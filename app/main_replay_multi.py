@@ -1,5 +1,6 @@
 from core.config import load_camera_configs, load_rule_config
 from core.history_logger import HistoryLogger
+from core.logger_config import get_logger
 from core.path_utils import PROJECT_ROOT
 from core.replay_camera_processor import ReplayCameraProcessor
 
@@ -9,13 +10,18 @@ import cv2
 CAMERA_CONFIG_PATH = PROJECT_ROOT / "configs" / "cameras.json"
 RULE_CONFIG_PATH = PROJECT_ROOT / "configs" / "rules.json"
 HISTORY_DIR = PROJECT_ROOT / "outputs" / "history"
+logger = get_logger(__name__)
 
 
 def print_state_changes(states):
     for state in states:
-        print(
-            f"[{state.camera_id}] {state.zone_id}: "
-            f"state={state.state}, score={state.score:.2f}, health={state.health}"
+        logger.info(
+            "[%s] %s: state=%s, score=%.2f, health=%s",
+            state.camera_id,
+            state.zone_id,
+            state.state,
+            state.score,
+            state.health,
         )
 
 

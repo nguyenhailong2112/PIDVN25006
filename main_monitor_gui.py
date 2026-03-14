@@ -21,6 +21,7 @@ from core.camera_runner import CameraRunner
 from core.config import load_camera_configs, load_json_dict, load_rule_config
 from core.history_logger import HistoryLogger
 from core.live_camera_processor import LiveCameraProcessor
+from core.logger_config import get_logger
 from core.path_utils import PROJECT_ROOT
 from core.replay_camera_processor import ReplayCameraProcessor
 
@@ -32,6 +33,7 @@ RULE_CONFIG_PATH = PROJECT_ROOT / "configs" / "rules.json"
 GUI_CONFIG_PATH = PROJECT_ROOT / "configs" / "gui.json"
 HISTORY_DIR = PROJECT_ROOT / "outputs" / "history"
 AGV_DIR = PROJECT_ROOT / "outputs" / "agv"
+logger = get_logger(__name__)
 
 
 class CameraTile(QFrame):
@@ -155,7 +157,7 @@ class MonitorWindow(QMainWindow):
 
         self.gui_cfg = load_json_dict(GUI_CONFIG_PATH)
         self.source_fps = float(self.gui_cfg.get("source_fps", 25.0))
-        self.target_interval = 1.0 / max(1.0, self.source_fps)
+        self.update_interval_ms = int(round(1000.0 / max(1.0, self.source_fps)))
         self.camera_configs = [cfg for cfg in load_camera_configs(CAMERA_CONFIG_PATH) if cfg.enabled]
         self.rule_cfg = load_rule_config(RULE_CONFIG_PATH)
         self.history_logger = HistoryLogger(HISTORY_DIR)
@@ -166,7 +168,6 @@ class MonitorWindow(QMainWindow):
         self.last_total_detect_ms = 0.0
         self.latest_results = {}
         self.last_display_frame_ids = {}
-        self.display_state = {}
 
         self.processor_target_fps = float(self.gui_cfg.get("processor_target_fps", self.source_fps))
         if self.processor_target_fps <= 0:
@@ -184,6 +185,7 @@ class MonitorWindow(QMainWindow):
         ]
         for runner in self.runners:
             runner.start()
+        logger.info("MonitorWindow started with %d cameras", len(self.runners))
 
         self.setWindowTitle(self.gui_cfg["window_title"])
         if APP_ICON_PATH.exists():
@@ -234,12 +236,18 @@ class MonitorWindow(QMainWindow):
             self.grid.setColumnMinimumWidth(col, int(self.gui_cfg["cell_min_width"]))
 
         self.timer = QTimer(self)
+        self.timer.setTimerType(Qt.TimerType.PreciseTimer)
         self.timer.timeout.connect(self.update_views)
-        self.timer.start(int(self.gui_cfg["update_interval_ms"]))
+        self.timer.start(self.update_interval_ms)
 
     def _build_processor(self, camera_cfg):
         if camera_cfg.source_type in {"rtsp", "live"}:
-            return LiveCameraProcessor(PROJECT_ROOT, camera_cfg, self.rule_cfg)
+            return LiveCameraProcessor(
+                PROJECT_ROOT,
+                camera_cfg,
+                self.rule_cfg,
+                expected_fps=self.source_fps,
+            )
         return ReplayCameraProcessor(PROJECT_ROOT, camera_cfg, self.rule_cfg, target_fps=self.source_fps)
 
     def _make_short_status(self, states):
@@ -313,16 +321,6 @@ class MonitorWindow(QMainWindow):
             if last_displayed == result["frame_id"]:
                 continue
 
-            state = self.display_state.get(camera_id)
-            if state is None:
-                state = {"last_display_ts": 0.0}
-                self.display_state[camera_id] = state
-
-            now_ts = time.time()
-            if (now_ts - state["last_display_ts"]) < self.target_interval:
-                continue
-
-            state["last_display_ts"] = now_ts
             self.last_display_frame_ids[camera_id] = result["frame_id"]
             self.latest_results[index] = result
 
@@ -365,6 +363,7 @@ class MonitorWindow(QMainWindow):
             self.last_agv_export_ts = now_ts
 
     def closeEvent(self, event):
+        logger.info("Closing MonitorWindow")
         for runner in self.runners:
             runner.stop()
         super().closeEvent(event)

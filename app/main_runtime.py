@@ -7,6 +7,7 @@ from core.camera_reader import CameraReader
 from core.config import load_camera_configs, load_rule_config, load_zone_configs
 from core.detector import YoloDetector
 from core.frame_store import FrameStore
+from core.logger_config import get_logger
 from core.state_tracker import StateTracker
 from core.visualizer import draw_debug_frame
 from core.zone_reasoner import ZoneReasoner
@@ -15,13 +16,18 @@ from core.zone_reasoner import ZoneReasoner
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 CAMERA_CONFIG_PATH = PROJECT_ROOT / "configs" / "cameras.json"
 RULE_CONFIG_PATH = PROJECT_ROOT / "configs" / "rules.json"
+logger = get_logger(__name__)
 
 
 def print_state_changes(states):
     for state in states:
-        print(
-            f"[{state.camera_id}] {state.zone_id}: "
-            f"state={state.state}, score={state.score:.2f}, health={state.health}"
+        logger.info(
+            "[%s] %s: state=%s, score=%.2f, health=%s",
+            state.camera_id,
+            state.zone_id,
+            state.state,
+            state.score,
+            state.health,
         )
 
 
@@ -29,7 +35,7 @@ def print_snapshot(states):
     if not states:
         return
     parts = [f"{state.zone_id}={state.state}" for state in states]
-    print(" | ".join(parts))
+    logger.info(" | ".join(parts))
 
 
 def main() -> None:

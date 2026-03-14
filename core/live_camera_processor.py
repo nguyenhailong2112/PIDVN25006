@@ -14,19 +14,37 @@ from core.zone_reasoner import ZoneReasoner
 
 
 class LiveCameraProcessor:
-    def __init__(self, project_root, camera_config, rule_config) -> None:
+    def __init__(
+        self,
+        project_root,
+        camera_config,
+        rule_config,
+        expected_fps: float | None = None,
+        frame_store: FrameStore | None = None,
+    ) -> None:
         self.project_root = Path(project_root)
         self.camera_config = camera_config
         self.rule_config = rule_config
         self.last_frame_id = -1
         self.last_result = None
 
-        source_path = self._resolve_source(camera_config.source_type, camera_config.source_path)
+        source_path = None
+        if frame_store is None:
+            source_path = self._resolve_source(camera_config.source_type, camera_config.source_path)
         model_path = ensure_exists(camera_config.model_path, "Model file")
 
-        self.frame_store = FrameStore()
-        self.reader = CameraReader(camera_config.camera_id, source_path, self.frame_store)
-        self.reader.start()
+        self.frame_store = frame_store or FrameStore()
+        self.reader = None
+        self._owns_reader = False
+        if frame_store is None:
+            self.reader = CameraReader(
+                camera_config.camera_id,
+                source_path,
+                self.frame_store,
+                expected_fps=expected_fps,
+            )
+            self.reader.start()
+            self._owns_reader = True
 
         self.detector = YoloDetector(
             str(model_path),
@@ -119,4 +137,5 @@ class LiveCameraProcessor:
         return self.last_result
 
     def close(self) -> None:
-        self.reader.stop()
+        if self._owns_reader and self.reader is not None:
+            self.reader.stop()

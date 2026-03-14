@@ -98,8 +98,10 @@ class ZoneGridCard(QFrame):
             rows.setdefault(row_key, []).append(state)
 
         sorted_row_keys = sorted(rows.keys())
+        max_cols = 0
         for r, row_key in enumerate(sorted_row_keys):
             row_states = sorted(rows[row_key], key=lambda s: s.zone_id)
+            max_cols = max(max_cols, len(row_states))
             for c, state in enumerate(row_states):
                 label = QLabel(f"{state.zone_id}\n{state.state}")
                 label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -110,11 +112,17 @@ class ZoneGridCard(QFrame):
                 )
                 self.layout.addWidget(label, r, c)
 
+        for c in range(max_cols):
+            self.layout.setColumnStretch(c, 1)
+        for r in range(len(sorted_row_keys)):
+            self.layout.setRowStretch(r, 1)
+
 
 class DetailWindow(QMainWindow):
     def __init__(self, camera_id: str):
         super().__init__()
         self.camera_id = camera_id
+        self._last_zone_signature = None
         self.setWindowTitle(f"Camera Detail - {camera_id}")
         self.resize(1650, 920)
 
@@ -197,4 +205,7 @@ class DetailWindow(QMainWindow):
             )
         )
 
-        self.zone_grid.update_states(states)
+        signature = tuple((state.zone_id, state.state) for state in sorted(states, key=lambda s: s.zone_id))
+        if signature != self._last_zone_signature:
+            self.zone_grid.update_states(states)
+            self._last_zone_signature = signature

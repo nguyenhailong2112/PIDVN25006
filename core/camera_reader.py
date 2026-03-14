@@ -5,20 +5,31 @@ import time
 import cv2
 
 from core.frame_store import FrameStore, LiveFrame
+from core.logger_config import get_logger
 
 
 class CameraReader:
-    def __init__(self, camera_id: str, source: str, frame_store: FrameStore, reconnect_delay_sec: float = 2.0):
+    def __init__(
+        self,
+        camera_id: str,
+        source: str,
+        frame_store: FrameStore,
+        reconnect_delay_sec: float = 2.0,
+        expected_fps: float | None = None,
+        buffer_size: int = 1,
+    ):
         self.camera_id = camera_id
         self.source = source
         self.frame_store = frame_store
         self.reconnect_delay_sec = reconnect_delay_sec
+        self.expected_fps = float(expected_fps) if expected_fps and expected_fps > 0 else 25.0
+        self.buffer_size = max(1, int(buffer_size))
 
         self._thread = None
         self._running = False
         self._frame_id = 0
         self._health = "offline"
-        self._max_drain = 3
+        self._logger = get_logger(__name__)
 
     def start(self) -> None:
         if self._running:
@@ -39,16 +50,24 @@ class CameraReader:
         if self.source.lower().startswith("rtsp"):
             os.environ.setdefault(
                 "OPENCV_FFMPEG_CAPTURE_OPTIONS",
-                "rtsp_transport;tcp|fflags;nobuffer|flags;low_delay|max_delay;0",
+                "rtsp_transport;tcp|fflags;nobuffer|flags;low_delay|max_delay;0|reorder_queue_size;0",
             )
         cap = cv2.VideoCapture(self.source, cv2.CAP_FFMPEG)
         if hasattr(cap, "set"):
             try:
-                cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+                cap.set(cv2.CAP_PROP_BUFFERSIZE, self.buffer_size)
             except Exception:
                 pass
             try:
-                cap.set(cv2.CAP_PROP_FPS, 25)
+                cap.set(cv2.CAP_PROP_FPS, self.expected_fps)
+            except Exception:
+                pass
+            try:
+                cap.set(cv2.CAP_PROP_OPEN_TIMEOUT_MSEC, 2000)
+            except Exception:
+                pass
+            try:
+                cap.set(cv2.CAP_PROP_READ_TIMEOUT_MSEC, 2000)
             except Exception:
                 pass
         return cap
@@ -58,27 +77,22 @@ class CameraReader:
             cap = self._open_capture()
             if not cap.isOpened():
                 self._health = "offline"
-                print(f"[{self.camera_id}] Cannot open source. Retry after {self.reconnect_delay_sec}s")
+                self._logger.warning(
+                    "[%s] Cannot open source. Retry after %.1fs",
+                    self.camera_id,
+                    self.reconnect_delay_sec,
+                )
                 time.sleep(self.reconnect_delay_sec)
                 continue
 
-            print(f"[{self.camera_id}] Connected to source.")
+            self._logger.info("[%s] Connected to source.", self.camera_id)
             self._health = "online"
 
             while self._running:
-                if not cap.grab():
-                    self._health = "offline"
-                    print(f"[{self.camera_id}] Read failed. Reconnecting...")
-                    break
-
-                for _ in range(self._max_drain):
-                    if not cap.grab():
-                        break
-
-                ret, frame = cap.retrieve()
+                ret, frame = cap.read()
                 if not ret:
                     self._health = "offline"
-                    print(f"[{self.camera_id}] Retrieve failed. Reconnecting...")
+                    self._logger.warning("[%s] Read failed. Reconnecting...", self.camera_id)
                     break
 
                 self._frame_id += 1

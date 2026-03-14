@@ -24,8 +24,8 @@ from core.camera_runner import CameraRunner
 from core.config import load_camera_configs, load_json_dict, load_rule_config
 from core.frame_store import FrameStore, LiveFrame
 from core.live_camera_processor import LiveCameraProcessor
+from core.logger_config import get_logger
 from core.path_utils import PROJECT_ROOT, ensure_exists, resolve_project_path
-from core.replay_camera_processor import ReplayCameraProcessor
 
 APP_ICON_PATH = PROJECT_ROOT / "assets" / "rtc_logo.png"
 
@@ -33,6 +33,7 @@ CAMERA_CONFIG_PATH = PROJECT_ROOT / "configs" / "cameras.json"
 GUI_CONFIG_PATH = PROJECT_ROOT / "configs" / "gui.json"
 RULE_CONFIG_PATH = PROJECT_ROOT / "configs" / "rules.json"
 AGV_DIR = PROJECT_ROOT / "outputs" / "agv"
+logger = get_logger(__name__)
 
 
 class VideoFileReader:
@@ -206,7 +207,12 @@ class OriginCameraSlot:
 
     def _build_reader(self, camera_cfg, target_fps: float | None = None):
         if camera_cfg.source_type in {"rtsp", "live"}:
-            return CameraReader(camera_cfg.camera_id, camera_cfg.source_path, self.frame_store)
+            return CameraReader(
+                camera_cfg.camera_id,
+                camera_cfg.source_path,
+                self.frame_store,
+                expected_fps=target_fps,
+            )
         source = str(ensure_exists(resolve_project_path(camera_cfg.source_path), "Video source"))
         return VideoFileReader(camera_cfg.camera_id, source, self.frame_store, target_fps=target_fps)
 
@@ -218,17 +224,21 @@ class OriginCameraSlot:
 
 
 class DetailSession:
-    def __init__(self, camera_cfg, rule_cfg, target_fps: float):
+    def __init__(self, camera_cfg, rule_cfg, target_fps: float, frame_store: FrameStore):
         self.camera_cfg = camera_cfg
         self.rule_cfg = rule_cfg
         self.target_fps = target_fps
-        self.runner = CameraRunner(self._build_processor(), target_fps)
+        self.runner = CameraRunner(self._build_processor(frame_store), target_fps)
         self.runner.start()
 
-    def _build_processor(self):
-        if self.camera_cfg.source_type in {"rtsp", "live"}:
-            return LiveCameraProcessor(PROJECT_ROOT, self.camera_cfg, self.rule_cfg)
-        return ReplayCameraProcessor(PROJECT_ROOT, self.camera_cfg, self.rule_cfg, target_fps=self.target_fps)
+    def _build_processor(self, frame_store: FrameStore):
+        return LiveCameraProcessor(
+            PROJECT_ROOT,
+            self.camera_cfg,
+            self.rule_cfg,
+            expected_fps=self.target_fps,
+            frame_store=frame_store,
+        )
 
     def get_latest(self):
         return self.runner.get_latest()
@@ -243,7 +253,7 @@ class OriginMonitorWindow(QMainWindow):
 
         self.gui_cfg = load_json_dict(GUI_CONFIG_PATH)
         self.source_fps = float(self.gui_cfg.get("source_fps", 25.0))
-        self.target_interval = 1.0 / max(1.0, self.source_fps)
+        self.update_interval_ms = int(round(1000.0 / max(1.0, self.source_fps)))
         self.rule_cfg = load_rule_config(RULE_CONFIG_PATH)
 
         self.camera_configs = [cfg for cfg in load_camera_configs(CAMERA_CONFIG_PATH) if cfg.enabled]
@@ -252,7 +262,6 @@ class OriginMonitorWindow(QMainWindow):
         self.latest_frames = {}
         self.latest_frame_ids = {}
         self.detail_windows = {}
-        self.detail_state = {}
         self.detail_sessions = {}
 
         self.setWindowTitle("AGV CCTV Origin Monitor")
@@ -305,8 +314,10 @@ class OriginMonitorWindow(QMainWindow):
             self.grid.setColumnMinimumWidth(col, int(self.gui_cfg["cell_min_width"]))
 
         self.timer = QTimer(self)
+        self.timer.setTimerType(Qt.TimerType.PreciseTimer)
         self.timer.timeout.connect(self.update_views)
-        self.timer.start(int(self.gui_cfg.get("origin_update_interval_ms", 40)))
+        self.timer.start(self.update_interval_ms)
+        logger.info("OriginMonitorWindow started with %d cameras", len(self.camera_configs))
 
     def on_tile_clicked(self, index: int):
         if index >= len(self.camera_configs):
@@ -322,7 +333,7 @@ class OriginMonitorWindow(QMainWindow):
 
         session = self.detail_sessions.get(camera_id)
         if session is None:
-            session = DetailSession(camera_cfg, self.rule_cfg, self.source_fps)
+            session = DetailSession(camera_cfg, self.rule_cfg, self.source_fps, self.slot_map[camera_id].frame_store)
             self.detail_sessions[camera_id] = session
 
         result = session.get_latest()
@@ -350,16 +361,6 @@ class OriginMonitorWindow(QMainWindow):
             if last_id == live_frame.frame_id:
                 continue
 
-            now_ts = time.time()
-            state = self.detail_state.get(camera_id)
-            if state is None:
-                state = {"last_display_ts": 0.0}
-                self.detail_state[camera_id] = state
-
-            if (now_ts - state["last_display_ts"]) < self.target_interval:
-                continue
-
-            state["last_display_ts"] = now_ts
             self.latest_frame_ids[camera_id] = live_frame.frame_id
             self.latest_frames[camera_id] = live_frame.frame
             tile.set_title(f"{self.camera_configs[index].name} ({camera_id})")
@@ -373,20 +374,10 @@ class OriginMonitorWindow(QMainWindow):
             if session is None:
                 continue
 
-            now_ts = time.time()
-            state = self.detail_state.get(f"detail:{camera_id}")
-            if state is None:
-                state = {"last_display_ts": 0.0}
-                self.detail_state[f"detail:{camera_id}"] = state
-
-            if (now_ts - state["last_display_ts"]) < self.target_interval:
-                continue
-
             result = session.get_latest()
             if result is None:
                 continue
 
-            state["last_display_ts"] = now_ts
             window.update_result(result)
 
         for camera_id, window in list(self.detail_windows.items()):
@@ -396,6 +387,7 @@ class OriginMonitorWindow(QMainWindow):
                     session.close()
 
     def closeEvent(self, event):
+        logger.info("Closing OriginMonitorWindow")
         for window in self.detail_windows.values():
             window.close()
         for slot in self.slots:
