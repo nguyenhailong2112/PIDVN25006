@@ -1,0 +1,27 @@
+# IDE
+.idea/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# dataset
+dataset/
+
+# test data
+dataTest/
+
+# outputs
+outputs/
+
+# weights
+weights/
+
+# logs
+logs/
+
+# env
+venv/
+.env

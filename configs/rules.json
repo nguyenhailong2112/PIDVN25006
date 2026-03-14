@@ -1,0 +1,12 @@
+{
+  "spatial_method": "bbox_all_corners",
+  "enter_window": 5,
+  "enter_count": 3,
+  "exit_window": 7,
+  "exit_count": 5,
+  "unknown_timeout_sec": 2.0,
+  "conf_threshold": 0.5,
+  "img_size": 640,
+  "batch_size": 1,
+  "batch_timeout_ms": 0
+}

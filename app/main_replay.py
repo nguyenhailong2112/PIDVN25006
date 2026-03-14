@@ -1,0 +1,101 @@
+import time
+
+import cv2
+
+from core.config import load_camera_configs, load_rule_config, load_zone_configs
+from core.debug_utils import StageTimer
+from core.detector import YoloDetector
+from core.path_utils import PROJECT_ROOT, ensure_exists, resolve_project_path
+from core.state_exporter import StateExporter
+from core.state_tracker import StateTracker
+from core.visualizer import draw_debug_frame
+from core.zone_reasoner import ZoneReasoner
+
+
+CAMERA_CONFIG_PATH = PROJECT_ROOT / "configs" / "cameras.json"
+RULE_CONFIG_PATH = PROJECT_ROOT / "configs" / "rules.json"
+OUTPUT_DIR = PROJECT_ROOT / "outputs" / "replay"
+
+
+def print_state_changes(states):
+    for state in states:
+        print(
+            f"[{state.camera_id}] {state.zone_id}: "
+            f"state={state.state}, score={state.score:.2f}, health={state.health}"
+        )
+
+
+def print_snapshot(states):
+    if not states:
+        return
+    parts = [f"{state.zone_id}={state.state}" for state in states]
+    print(" | ".join(parts))
+
+
+def main() -> None:
+    camera_configs = [cfg for cfg in load_camera_configs(CAMERA_CONFIG_PATH) if cfg.enabled]
+    if not camera_configs:
+        raise RuntimeError("No enabled camera configuration found.")
+
+    camera_cfg = camera_configs[0]
+    rule_cfg = load_rule_config(RULE_CONFIG_PATH)
+
+    zone_config_path = ensure_exists(camera_cfg.zone_config, "Zone config")
+    model_path = ensure_exists(camera_cfg.model_path, "Model file")
+    source_path = ensure_exists(camera_cfg.source_path, "Replay source")
+
+    zone_configs = load_zone_configs(zone_config_path)
+    detector = YoloDetector(str(model_path), rule_cfg.conf_threshold)
+    reasoner = ZoneReasoner(zone_configs, rule_cfg)
+    tracker = StateTracker(rule_cfg)
+    exporter = StateExporter(OUTPUT_DIR)
+
+    cap = cv2.VideoCapture(str(source_path))
+    if not cap.isOpened():
+        raise RuntimeError(f"Cannot open video source: {source_path}")
+
+    frame_id = 0
+    last_detection_result = None
+    timer = StageTimer()
+
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if not ret:
+            break
+
+        frame_id += 1
+        timestamp = time.time()
+
+        if frame_id % camera_cfg.infer_every_n_frames == 0:
+            timer.start()
+            last_detection_result = detector.infer(frame, camera_cfg.camera_id, frame_id, timestamp)
+            detect_ms = timer.elapsed_ms()
+
+            observations = reasoner.observe(last_detection_result, frame.shape)
+            changed_states = tracker.update_observations(observations)
+            if changed_states:
+                print_state_changes(changed_states)
+
+            if frame_id % 30 == 0:
+                print(f"[{camera_cfg.camera_id}] detect_time_ms={detect_ms:.1f}")
+
+        current_states = tracker.get_current_states(camera_cfg.camera_id, timestamp)
+
+        if frame_id % 15 == 0:
+            exporter.export_camera_snapshot(camera_cfg.camera_id, current_states, timestamp)
+
+        if frame_id % 30 == 0:
+            print_snapshot(current_states)
+
+        debug_frame = draw_debug_frame(frame, last_detection_result, zone_configs, current_states)
+        cv2.imshow(f"Replay - {camera_cfg.name}", cv2.resize(debug_frame, (1280, 720)))
+
+        if cv2.waitKey(1) & 0xFF == ord("q"):
+            break
+
+    cap.release()
+    cv2.destroyAllWindows()
+
+
+if __name__ == "__main__":
+    main()

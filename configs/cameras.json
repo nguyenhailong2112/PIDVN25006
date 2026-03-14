@@ -1,0 +1,90 @@
+[
+  {
+    "camera_id": "cam101",
+    "camera_type": "trolley_slot",
+    "name": "Cam101",
+    "source_type": "video",
+    "source_path": "dataTest/videoTest/192.168.1.101_01_20260210142828998.mp4",
+    "model_path": "weights/best.pt",
+    "zone_config": "configs/zones_cam101.json",
+    "infer_every_n_frames": 2,
+    "enabled": true
+  },
+  {
+    "camera_id": "cam102",
+    "camera_type": "trolley_slot",
+    "name": "Cam102",
+    "source_type": "video",
+    "source_path": "dataTest/videoTest/192.168.1.102_01_20260210093631597.mp4",
+    "model_path": "weights/best.pt",
+    "zone_config": "configs/zones_cam102.json",
+    "infer_every_n_frames": 2,
+    "enabled": true
+  },
+  {
+    "camera_id": "cam103",
+    "camera_type": "trolley_slot",
+    "name": "Cam103",
+    "source_type": "video",
+    "source_path": "dataTest/videoTest/192.168.1.103_01_20260210125625824.mp4",
+    "model_path": "weights/best.pt",
+    "zone_config": "configs/zones_cam103.json",
+    "infer_every_n_frames": 2,
+    "enabled": true
+  },
+  {
+    "camera_id": "cam104",
+    "camera_type": "pallet_slot",
+    "name": "Cam104",
+    "source_type": "video",
+    "source_path": "dataTest/videoTest/192.168.1.104_01_20260210144215839.mp4",
+    "model_path": "weights/best.pt",
+    "zone_config": "configs/zones_cam104.json",
+    "infer_every_n_frames": 2,
+    "enabled": true
+  },
+  {
+    "camera_id": "cam105",
+    "camera_type": "pallet_slot",
+    "name": "Cam105",
+    "source_type": "video",
+    "source_path": "dataTest/videoTest/192.168.1.105_01_20260210142242465.mp4",
+    "model_path": "weights/best.pt",
+    "zone_config": "configs/zones_cam105.json",
+    "infer_every_n_frames": 2,
+    "enabled": true
+  },
+  {
+    "camera_id": "cam64",
+    "camera_type": "general_monitoring",
+    "name": "Cam64",
+    "source_type": "video",
+    "source_path": "dataTest/videoTest/192.168.1.64_01_20260210104057532.mp4",
+    "model_path": "weights/best.pt",
+    "zone_config": "",
+    "infer_every_n_frames": 2,
+    "enabled": true
+  },
+  {
+    "camera_id": "cam106",
+    "camera_type": "general_monitoring",
+    "name": "Cam106",
+    "source_type": "rtsp",
+    "source_path": "rtsp://admin:rtctech!@192.168.1.106:554/Streaming/Channels/101",
+    "model_path": "weights/best.pt",
+    "zone_config": "",
+    "infer_every_n_frames": 2,
+    "enabled": true
+  },
+  {
+    "camera_id": "cam107",
+    "camera_type": "general_monitoring",
+    "name": "Cam107",
+    "source_type": "rtsp",
+    "source_path": "rtsp://admin:rtctech!@192.168.1.107:554/Streaming/Channels/101",
+    "model_path": "weights/best.pt",
+    "zone_config": "",
+    "infer_every_n_frames": 2,
+    "enabled": true
+  }
+]

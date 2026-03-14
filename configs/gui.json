@@ -1,0 +1,16 @@
+{
+  "window_title": "RTC-PIDVN AGV-VISION CCTV Monitor",
+  "grid_rows": 4,
+  "grid_cols": 4,
+  "cell_min_width": 300,
+  "cell_min_height": 180,
+  "update_interval_ms": 40,
+  "origin_update_interval_ms": 40,
+  "grid_spacing": 3,
+  "focus_window_enabled": false,
+  "fixed_tile_mode": true,
+  "processor_target_fps": 25,
+  "agv_output_interval_ms": 40,
+  "debug_frame_export_interval_ms": 40,
+  "source_fps": 25.0
+}

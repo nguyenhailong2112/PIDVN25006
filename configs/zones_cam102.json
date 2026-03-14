@@ -1,0 +1,32 @@
+{
+  "source": "C:\\Users\\longn\\PycharmProjects\\PIDVN25006\\dataTest\\imageTest\\Cam102\\192.168.1.102_01_20260210092917768.jpg",
+  "target_object": "trolley",
+  "zones": [
+    {
+      "zone_id": "A5",
+      "target_object": "trolley",
+      "polygon": [
+        [
+          0.70,
+          0.00
+        ],
+        [
+          0.70,
+          0.60
+        ],
+        [
+          1.00,
+          0.60
+        ],
+        [
+          0.70,
+          0.60
+        ],
+        [
+          0.70,
+          0.00
+        ]
+      ]
+    }
+  ]
+}
