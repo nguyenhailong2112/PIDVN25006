@@ -5,6 +5,10 @@ from threading import Lock
 
 from ultralytics import YOLO
 
+from core.logger_config import get_logger
+
+
+logger = get_logger(__name__)
 
 @dataclass
 class ModelBundle:
@@ -28,7 +32,7 @@ class ModelRegistry:
                 model.fuse()
             except Exception:
                 # Some model variants do not support fuse; keep running.
-                pass
+                logger.debug("Model fuse not supported for %s", model_path)
 
             bundle = ModelBundle(model=model, lock=Lock())
             cls._models[model_path] = bundle

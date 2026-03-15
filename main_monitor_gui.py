@@ -1,5 +1,6 @@
 import sys
 import time
+from collections import deque
 
 import cv2
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
@@ -11,6 +12,7 @@ from PyQt6.QtWidgets import (
     QGridLayout,
     QLabel,
     QMainWindow,
+    QMessageBox,
     QSizePolicy,
     QVBoxLayout,
     QWidget,
@@ -18,7 +20,14 @@ from PyQt6.QtWidgets import (
 
 from core.agv_exporter import AgvExporter
 from core.camera_runner import CameraRunner
-from core.config import load_camera_configs, load_json_dict, load_rule_config
+from core.config import (
+    load_camera_configs,
+    load_json_dict,
+    load_rule_config,
+    validate_camera_configs,
+    validate_gui_config,
+    validate_rule_config,
+)
 from core.history_logger import HistoryLogger
 from core.live_camera_processor import LiveCameraProcessor
 from core.logger_config import get_logger
@@ -156,10 +165,15 @@ class MonitorWindow(QMainWindow):
         super().__init__()
 
         self.gui_cfg = load_json_dict(GUI_CONFIG_PATH)
+        validate_gui_config(self.gui_cfg)
         self.source_fps = float(self.gui_cfg.get("source_fps", 25.0))
         self.update_interval_ms = int(round(1000.0 / max(1.0, self.source_fps)))
+        self.max_result_staleness_sec = float(self.gui_cfg.get("max_result_staleness_sec", 1.0))
+        self.metrics_log_interval_sec = float(self.gui_cfg.get("metrics_log_interval_sec", 10.0))
         self.camera_configs = [cfg for cfg in load_camera_configs(CAMERA_CONFIG_PATH) if cfg.enabled]
         self.rule_cfg = load_rule_config(RULE_CONFIG_PATH)
+        validate_camera_configs(self.camera_configs)
+        validate_rule_config(self.rule_cfg)
         self.history_logger = HistoryLogger(HISTORY_DIR)
         self.last_logged_ts = {}
 
@@ -168,6 +182,8 @@ class MonitorWindow(QMainWindow):
         self.last_total_detect_ms = 0.0
         self.latest_results = {}
         self.last_display_frame_ids = {}
+        self.metrics = {}
+        self.last_metrics_log_ts = time.time()
 
         self.processor_target_fps = float(self.gui_cfg.get("processor_target_fps", self.source_fps))
         if self.processor_target_fps <= 0:
@@ -205,6 +221,12 @@ class MonitorWindow(QMainWindow):
         self.grid.setSpacing(int(self.gui_cfg["grid_spacing"]))
         self.grid.setContentsMargins(0, 0, 0, 0)
         root_layout.addWidget(self.grid_widget, 1)
+
+        self.legend_label = QLabel("Legend: OK=Normal | WARNING=Unknown | OFFLINE=No Signal")
+        self.legend_label.setStyleSheet(
+            "background-color: #17191d; color: #d0d0d0; padding: 6px 10px; border: 1px solid #2d3138;"
+        )
+        root_layout.addWidget(self.legend_label)
 
         self.tiles = []
         total_tiles = int(self.gui_cfg["grid_rows"]) * int(self.gui_cfg["grid_cols"])
@@ -270,26 +292,35 @@ class MonitorWindow(QMainWindow):
             cv2.imwrite(str(out_path), debug_frame)
             self.last_debug_export_ts[camera_id] = now_ts
         except Exception:
-            pass
+            logger.exception("Failed to export debug frame for %s", camera_id)
 
     def _export_agv_snapshot(self, now_ts: float) -> None:
         cameras_payload = []
         for result in self.latest_results.values():
+            stale = (now_ts - result["timestamp"]) > self.max_result_staleness_sec
+            camera_health = result.get("camera_health", "unknown")
+            states = result.get("current_states", [])
+            hold = stale or camera_health != "online" or any(state.state == "unknown" for state in states)
+
             cameras_payload.append(
                 {
                     "camera_id": result["camera_id"],
                     "camera_type": result["camera_type"],
                     "timestamp": result["timestamp"],
-                    "states": [
+                    "health": "stale" if stale else camera_health,
+                    "hold": hold,
+                    "states": []
+                    if stale
+                    else [
                         {
                             "zone_id": state.zone_id,
                             "state": state.state,
                             "score": round(state.score, 4),
                             "health": state.health,
                         }
-                        for state in result.get("current_states", [])
+                        for state in states
                     ],
-                    "detections": result.get("detections", []),
+                    "detections": [] if stale else result.get("detections", []),
                 }
             )
 
@@ -312,8 +343,8 @@ class MonitorWindow(QMainWindow):
 
             result = self.runners[index].get_latest()
             if result is None:
-                tile.set_alert_level("warning")
-                tile.update_content(None, "No frame")
+                tile.set_alert_level("danger")
+                tile.update_content(None, "OFFLINE | No frame")
                 continue
 
             camera_id = result["camera_id"]
@@ -334,15 +365,26 @@ class MonitorWindow(QMainWindow):
                 self.last_logged_ts[camera_id] = result["timestamp"]
 
             states = result["current_states"]
-            status_text = self._make_short_status(states)
+            camera_health = result.get("camera_health", "unknown")
+            if camera_health != "online":
+                summary = "OFFLINE"
+            elif states and any(s.state == "unknown" for s in states):
+                summary = "WARNING"
+            else:
+                summary = "OK"
 
-            if states and any(s.state == "unknown" for s in states):
+            status_text = f"{summary} | {self._make_short_status(states)}"
+
+            if summary == "OFFLINE":
+                tile.set_alert_level("danger")
+            elif summary == "WARNING":
                 tile.set_alert_level("warning")
             else:
                 tile.set_alert_level("normal")
 
             detect_ms = float(result.get("detect_ms", 0.0))
             total_detect_ms += detect_ms
+            self._update_metrics(result, detect_ms)
 
             title = f"{result['camera_name']} ({camera_id})"
             tile.set_title(title)
@@ -361,6 +403,61 @@ class MonitorWindow(QMainWindow):
         if (now_ts - self.last_agv_export_ts) * 1000.0 >= self.agv_output_interval_ms:
             self._export_agv_snapshot(now_ts)
             self.last_agv_export_ts = now_ts
+        self._log_metrics_if_due()
+
+    def _update_metrics(self, result: dict, detect_ms: float) -> None:
+        camera_id = result["camera_id"]
+        entry = self.metrics.get(camera_id)
+        if entry is None:
+            entry = {
+                "frame_count": 0,
+                "unknown_count": 0,
+                "detect_ms": deque(maxlen=300),
+                "last_ts": time.time(),
+                "reconnect_count": 0,
+            }
+            self.metrics[camera_id] = entry
+
+        entry["frame_count"] += 1
+        entry["detect_ms"].append(detect_ms)
+        states = result.get("current_states", [])
+        if any(state.state == "unknown" for state in states):
+            entry["unknown_count"] += 1
+
+        health = result.get("camera_health", "unknown")
+        if health in {"offline", "stale"}:
+            entry["reconnect_count"] += 1
+
+    def _log_metrics_if_due(self) -> None:
+        now = time.time()
+        if now - self.last_metrics_log_ts < self.metrics_log_interval_sec:
+            return
+        self.last_metrics_log_ts = now
+
+        for camera_id, entry in self.metrics.items():
+            dt = max(1e-3, now - entry["last_ts"])
+            fps = entry["frame_count"] / dt
+            unknown_ratio = entry["unknown_count"] / max(1, entry["frame_count"])
+            samples = list(entry["detect_ms"])
+            detect_p95 = 0.0
+            if samples:
+                samples.sort()
+                detect_p95 = samples[int(0.95 * (len(samples) - 1))]
+
+            logger.info(
+                "[Metrics] %s fps=%.1f detect_p95=%.1fms unknown_ratio=%.2f reconnects=%d",
+                camera_id,
+                fps,
+                detect_p95,
+                unknown_ratio,
+                entry["reconnect_count"],
+            )
+
+            entry["frame_count"] = 0
+            entry["unknown_count"] = 0
+            entry["detect_ms"].clear()
+            entry["last_ts"] = now
+            entry["reconnect_count"] = 0
 
     def closeEvent(self, event):
         logger.info("Closing MonitorWindow")
@@ -371,7 +468,11 @@ class MonitorWindow(QMainWindow):
 
 def main():
     app = QApplication(sys.argv)
-    window = MonitorWindow()
+    try:
+        window = MonitorWindow()
+    except ValueError as exc:
+        QMessageBox.critical(None, "Config Error", str(exc))
+        sys.exit(1)
     window.showMaximized()
     sys.exit(app.exec())
 

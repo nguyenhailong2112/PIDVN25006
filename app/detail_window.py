@@ -181,6 +181,7 @@ class DetailWindow(QMainWindow):
         detect_ms = float(result.get("detect_ms", 0.0))
         frame_id = result.get("frame_id", -1)
         timestamp = result.get("timestamp", 0.0)
+        camera_health = result.get("camera_health", "unknown")
 
         self.camera_info.setText(
             "\n".join(
@@ -201,6 +202,7 @@ class DetailWindow(QMainWindow):
                     f"Timestamp     : {timestamp:.3f}",
                     f"Detect Time   : {detect_ms:.2f} ms",
                     f"Zone Count    : {len(states)}",
+                    f"Health        : {camera_health}",
                 ]
             )
         )

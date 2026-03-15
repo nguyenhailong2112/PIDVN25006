@@ -27,6 +27,7 @@ class LiveCameraProcessor:
         self.rule_config = rule_config
         self.last_frame_id = -1
         self.last_result = None
+        self.camera_health = "unknown"
 
         source_path = None
         if frame_store is None:
@@ -125,6 +126,7 @@ class LiveCameraProcessor:
             "camera_id": self.camera_config.camera_id,
             "camera_name": self.camera_config.name,
             "camera_type": self.camera_config.camera_type,
+            "camera_health": self.reader.get_health() if self.reader is not None else self.camera_health,
             "frame_id": live_frame.frame_id,
             "timestamp": live_frame.timestamp,
             "changed_states": changed_states,

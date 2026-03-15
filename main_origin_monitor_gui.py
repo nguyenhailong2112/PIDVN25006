@@ -13,6 +13,7 @@ from PyQt6.QtWidgets import (
     QGridLayout,
     QLabel,
     QMainWindow,
+    QMessageBox,
     QSizePolicy,
     QVBoxLayout,
     QWidget,
@@ -21,7 +22,14 @@ from PyQt6.QtWidgets import (
 from app.detail_window import DetailWindow
 from core.camera_reader import CameraReader
 from core.camera_runner import CameraRunner
-from core.config import load_camera_configs, load_json_dict, load_rule_config
+from core.config import (
+    load_camera_configs,
+    load_json_dict,
+    load_rule_config,
+    validate_camera_configs,
+    validate_gui_config,
+    validate_rule_config,
+)
 from core.frame_store import FrameStore, LiveFrame
 from core.live_camera_processor import LiveCameraProcessor
 from core.logger_config import get_logger
@@ -80,7 +88,7 @@ class VideoFileReader:
         try:
             self._cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
         except Exception:
-            pass
+            logger.exception("Failed to reset video reader for %s", self.camera_id)
         self._frame_id = 0
         self._base_wall = None
         self._base_msec = None
@@ -252,11 +260,14 @@ class OriginMonitorWindow(QMainWindow):
         super().__init__()
 
         self.gui_cfg = load_json_dict(GUI_CONFIG_PATH)
+        validate_gui_config(self.gui_cfg)
         self.source_fps = float(self.gui_cfg.get("source_fps", 25.0))
         self.update_interval_ms = int(round(1000.0 / max(1.0, self.source_fps)))
         self.rule_cfg = load_rule_config(RULE_CONFIG_PATH)
+        validate_rule_config(self.rule_cfg)
 
         self.camera_configs = [cfg for cfg in load_camera_configs(CAMERA_CONFIG_PATH) if cfg.enabled]
+        validate_camera_configs(self.camera_configs)
         self.slots = [OriginCameraSlot(cfg, target_fps=self.source_fps) for cfg in self.camera_configs]
         self.slot_map = {cfg.camera_id: slot for cfg, slot in zip(self.camera_configs, self.slots)}
         self.latest_frames = {}
@@ -399,7 +410,11 @@ class OriginMonitorWindow(QMainWindow):
 
 def main():
     app = QApplication(sys.argv)
-    window = OriginMonitorWindow()
+    try:
+        window = OriginMonitorWindow()
+    except ValueError as exc:
+        QMessageBox.critical(None, "Config Error", str(exc))
+        sys.exit(1)
     window.showMaximized()
     sys.exit(app.exec())
 

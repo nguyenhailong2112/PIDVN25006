@@ -100,6 +100,7 @@ class ReplayCameraProcessor:
             "camera_id": self.camera_config.camera_id,
             "camera_name": self.camera_config.name,
             "camera_type": self.camera_config.camera_type,
+            "camera_health": "replay",
             "frame_id": frame_id,
             "timestamp": timestamp,
             "changed_states": changed_states,

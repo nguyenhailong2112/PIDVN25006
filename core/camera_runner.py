@@ -2,6 +2,10 @@ import threading
 import time
 from dataclasses import dataclass
 
+from core.logger_config import get_logger
+
+
+logger = get_logger(__name__)
 
 @dataclass
 class RunnerStats:
@@ -23,6 +27,7 @@ class CameraRunner:
         if self._running:
             return
         self._running = True
+        logger.info("CameraRunner started")
         self._thread = threading.Thread(target=self._run, daemon=True)
         self._thread.start()
 
@@ -30,10 +35,12 @@ class CameraRunner:
         self._running = False
         if self._thread is not None:
             self._thread.join(timeout=2.0)
+            if self._thread.is_alive():
+                logger.warning("CameraRunner thread did not stop within timeout")
         try:
             self.processor.close()
         except Exception:
-            pass
+            logger.exception("Processor close failed")
 
     def get_latest(self):
         with self._lock:

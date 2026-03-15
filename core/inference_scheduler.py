@@ -3,6 +3,7 @@ from __future__ import annotations
 import queue
 import threading
 import time
+import atexit
 from dataclasses import dataclass
 
 from ultralytics import YOLO
@@ -31,10 +32,13 @@ class InferenceScheduler:
         self.batch_timeout_ms = max(0, int(batch_timeout_ms))
 
         self._queue: queue.Queue[_Request] = queue.Queue()
+        self._stop_event = threading.Event()
         self._thread = threading.Thread(target=self._run, daemon=True)
         self._thread.start()
 
     def submit(self, frame) -> object:
+        if self._stop_event.is_set():
+            raise RuntimeError("InferenceScheduler is stopping")
         req = _Request(frame=frame, event=threading.Event())
         self._queue.put(req)
         req.event.wait()
@@ -43,6 +47,8 @@ class InferenceScheduler:
     def _run(self) -> None:
         while True:
             first = self._queue.get()
+            if first is None and self._stop_event.is_set():
+                break
             if first is None:
                 continue
 
@@ -72,6 +78,13 @@ class InferenceScheduler:
                 req.result = res
                 req.event.set()
 
+    def close(self) -> None:
+        if self._stop_event.is_set():
+            return
+        self._stop_event.set()
+        self._queue.put(None)
+        self._thread.join(timeout=2.0)
+
 
 class SchedulerRegistry:
     _lock = threading.Lock()
@@ -99,3 +112,14 @@ class SchedulerRegistry:
                 scheduler = InferenceScheduler(model, conf, imgsz, batch_size, batch_timeout_ms)
                 cls._items[key] = scheduler
             return scheduler
+
+    @classmethod
+    def close_all(cls) -> None:
+        with cls._lock:
+            items = list(cls._items.values())
+            cls._items.clear()
+        for scheduler in items:
+            scheduler.close()
+
+
+atexit.register(SchedulerRegistry.close_all)

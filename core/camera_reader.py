@@ -1,4 +1,5 @@
 import os
+import random
 import threading
 import time
 
@@ -22,6 +23,7 @@ class CameraReader:
         self.source = source
         self.frame_store = frame_store
         self.reconnect_delay_sec = reconnect_delay_sec
+        self.max_reconnect_delay_sec = max(5.0, float(reconnect_delay_sec) * 6.0)
         self.expected_fps = float(expected_fps) if expected_fps and expected_fps > 0 else 25.0
         self.buffer_size = max(1, int(buffer_size))
 
@@ -30,6 +32,8 @@ class CameraReader:
         self._frame_id = 0
         self._health = "offline"
         self._logger = get_logger(__name__)
+        self._reconnect_delay = float(reconnect_delay_sec)
+        self.reconnect_count = 0
 
     def start(self) -> None:
         if self._running:
@@ -80,13 +84,17 @@ class CameraReader:
                 self._logger.warning(
                     "[%s] Cannot open source. Retry after %.1fs",
                     self.camera_id,
-                    self.reconnect_delay_sec,
+                    self._reconnect_delay,
                 )
-                time.sleep(self.reconnect_delay_sec)
+                self.reconnect_count += 1
+                jitter = random.uniform(0.0, self._reconnect_delay * 0.2)
+                time.sleep(self._reconnect_delay + jitter)
+                self._reconnect_delay = min(self._reconnect_delay * 2.0, self.max_reconnect_delay_sec)
                 continue
 
             self._logger.info("[%s] Connected to source.", self.camera_id)
             self._health = "online"
+            self._reconnect_delay = float(self.reconnect_delay_sec)
 
             while self._running:
                 ret, frame = cap.read()
@@ -107,4 +115,7 @@ class CameraReader:
 
             cap.release()
             if self._running:
-                time.sleep(self.reconnect_delay_sec)
+                self.reconnect_count += 1
+                jitter = random.uniform(0.0, self._reconnect_delay * 0.2)
+                time.sleep(self._reconnect_delay + jitter)
+                self._reconnect_delay = min(self._reconnect_delay * 2.0, self.max_reconnect_delay_sec)
