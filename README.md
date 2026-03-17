@@ -101,6 +101,7 @@ python main_monitor_gui.py
 ```bash
 python main_origin_monitor_gui.py
 ```
+Tip: Click vào tile camera để mở detail window (original + processed + zone trạng thái).
 
 ### 6.3 Replay video file (single/multi)
 ```bash
@@ -115,7 +116,53 @@ python supervisor.py
 
 ---
 
-## 7) Debug và log
+## 7) Cài đặt từ máy Linux mới (từ số 0)
+### 7.1 Chuẩn bị
+- Máy Linux có GPU.
+- Có quyền `sudo`.
+- Có thư mục chứa project (copy bằng USB hoặc `scp`).
+
+### 7.2 Cài đặt tự động bằng script (khuyến nghị)
+```bash
+cd /path/to/PIDVN25006
+chmod +x install_linux.sh
+./install_linux.sh
+```
+
+Nếu muốn tự động cài service systemd:
+```bash
+ENABLE_SYSTEMD=1 ./install_linux.sh
+```
+
+Nếu muốn cài thêm PyTorch (CPU mặc định):
+```bash
+INSTALL_TORCH=1 ./install_linux.sh
+```
+
+### 7.3 Thiết lập biến môi trường cho RTSP
+Nếu dùng systemd, chỉnh file:
+```
+/etc/pidvn25006.env
+```
+Ví dụ:
+```
+RTSP_PASS=your_password
+```
+
+Nếu chạy bằng terminal, export trực tiếp:
+```bash
+export RTSP_PASS=your_password
+```
+
+### 7.4 Chạy bằng systemd
+```bash
+sudo systemctl start pidvn25006
+sudo systemctl status pidvn25006
+```
+
+---
+
+## 8) Debug và log
 - `outputs/history/*_history.jsonl`: log trạng thái.
 - `outputs/multi_runtime/*_latest.json`: snapshot state.
 - `outputs/monitoring/*_latest_detection.json`: detection snapshot.
@@ -130,7 +177,7 @@ Metrics per camera (log định kỳ):
 
 ---
 
-## 8) RTSP low-latency
+## 9) RTSP low-latency
 Đã bật:
 - Buffer tối thiểu.
 - FFmpeg options: `fflags=nobuffer`, `low_delay`, `reorder_queue_size=0`.
@@ -142,7 +189,7 @@ rtsp://user:${RTSP_PASS}@ip:port/Streaming/Channels/101
 
 ---
 
-## 9) Fail-safe output policy (AGV)
+## 10) Fail-safe output policy (AGV)
 Một camera sẽ **hold** nếu:
 - `timestamp` stale > `max_result_staleness_sec`
 - `camera_health` != `online`
@@ -153,7 +200,13 @@ Payload AGV bao gồm:
 
 ---
 
-## 10) Triển khai Linux (production)
+## 11) Triển khai Linux (production)
+### 10.0 One-shot setup (khuyến nghị cho máy mới)
+```bash
+bash scripts/setup_full_linux.sh --project-dir /opt/pidvn25006 --torch cpu
+```
+- Script sẽ copy dự án, cài dependency hệ thống + Python, validate config và tạo service systemd.
+- Nếu dùng CUDA: đổi `--torch cuda`.
 ### 10.1 Tạo môi trường
 ```bash
 python3 -m venv .venv
@@ -201,7 +254,41 @@ sudo systemctl status pidvn25006
 
 ---
 
-## 11) Checklist vận hành tại nhà máy
+## 12) Hướng dẫn chỉnh cấu hình
+### 12.1 Cấu hình camera RTSP/video
+Sửa file `configs/cameras.json`:
+- `source_type`: `rtsp` hoặc `video`
+- `source_path`: link RTSP hoặc đường dẫn video
+- `model_path`: model YOLO
+- `zone_config`: file zone cho slot camera
+
+### 12.2 Số lượng camera và grid hiển thị
+Sửa `configs/gui.json`:
+- `grid_rows`, `grid_cols`
+- Nếu camera ít hơn số ô, các ô dư sẽ hiện “Empty”.
+
+### 12.3 Điều chỉnh FPS và độ trễ
+- `source_fps`: FPS mục tiêu
+- `max_result_staleness_sec`: stale guard
+
+### 12.4 Điều chỉnh logic ROI
+Sửa file `configs/zones_camXXX.json` hoặc dùng tool ROI trong `tools/`.
+
+---
+
+## 13) Hướng dẫn vận hành cho operator (SOP ngắn)
+1. Mở GUI monitor.
+2. Kiểm tra trạng thái tile:
+   - OK: bình thường.
+   - WARNING: dữ liệu chưa chắc chắn.
+   - OFFLINE: mất tín hiệu.
+3. Khi OFFLINE hoặc WARNING kéo dài:
+   - Báo kỹ thuật.
+   - Không phát lệnh AGV thủ công.
+
+---
+
+## 14) Checklist vận hành tại nhà máy
 - RTSP delay < 300 ms.
 - 25 FPS ổn định 10 phút liên tục.
 - Origin và processed view không drift.
