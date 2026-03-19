@@ -6,7 +6,7 @@ from pathlib import Path
 
 
 def _child_cmd():
-    main_py = Path(__file__).with_name("main_monitor_gui.py")
+    main_py = Path(__file__).with_name("main.py")
     return [sys.executable, str(main_py)]
 
 
