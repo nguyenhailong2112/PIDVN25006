@@ -51,7 +51,14 @@ def main() -> None:
     source_path = ensure_exists(camera_cfg.source_path, "Replay source")
 
     zone_configs = load_zone_configs(zone_config_path)
-    detector = YoloDetector(str(model_path), rule_cfg.conf_threshold)
+    detector = YoloDetector(
+        str(model_path),
+        rule_cfg.conf_threshold,
+        rule_cfg.img_size,
+        rule_cfg.batch_size,
+        rule_cfg.batch_timeout_ms,
+        rule_cfg.max_pending_requests,
+    )
     reasoner = ZoneReasoner(zone_configs, rule_cfg)
     tracker = StateTracker(rule_cfg)
     exporter = StateExporter(OUTPUT_DIR)
@@ -74,13 +81,16 @@ def main() -> None:
 
         if frame_id % camera_cfg.infer_every_n_frames == 0:
             timer.start()
-            last_detection_result = detector.infer(frame, camera_cfg.camera_id, frame_id, timestamp)
+            detection_result = detector.infer(frame, camera_cfg.camera_id, frame_id, timestamp)
+            if detection_result is not None:
+                last_detection_result = detection_result
             detect_ms = timer.elapsed_ms()
 
-            observations = reasoner.observe(last_detection_result, frame.shape)
-            changed_states = tracker.update_observations(observations)
-            if changed_states:
-                print_state_changes(changed_states)
+            if last_detection_result is not None:
+                observations = reasoner.observe(last_detection_result, frame.shape)
+                changed_states = tracker.update_observations(observations)
+                if changed_states:
+                    print_state_changes(changed_states)
 
             if frame_id % 30 == 0:
                 logger.info("[%s] detect_time_ms=%.1f", camera_cfg.camera_id, detect_ms)

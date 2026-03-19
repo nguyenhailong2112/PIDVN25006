@@ -244,7 +244,11 @@ class OriginMonitorWindow(QMainWindow):
         self.gui_cfg = load_json_dict(GUI_CONFIG_PATH)
         validate_gui_config(self.gui_cfg)
         self.source_fps = float(self.gui_cfg.get("source_fps", 25.0))
-        self.update_interval_ms = int(round(1000.0 / max(1.0, self.source_fps)))
+        self.origin_display_fps = float(self.gui_cfg.get("origin_display_fps", min(10.0, self.source_fps)))
+        if self.origin_display_fps <= 0:
+            self.origin_display_fps = min(10.0, self.source_fps)
+        self.gui_poll_interval_ms = int(round(1000.0 / max(1.0, self.source_fps)))
+        self.origin_display_interval_ms = int(round(1000.0 / max(1.0, self.origin_display_fps)))
         self.max_result_staleness_sec = float(self.gui_cfg.get("max_result_staleness_sec", 1.0))
         self.metrics_log_interval_sec = float(self.gui_cfg.get("metrics_log_interval_sec", 10.0))
         self.rule_cfg = load_rule_config(RULE_CONFIG_PATH)
@@ -262,16 +266,22 @@ class OriginMonitorWindow(QMainWindow):
         if self.processor_target_fps <= 0:
             self.processor_target_fps = self.source_fps
 
+        self.tile_view_mode = str(self.gui_cfg.get("tile_view_mode", "processed")).lower()
         self.agv_output_interval_ms = int(self.gui_cfg.get("agv_output_interval_ms", 40))
         self.debug_frame_export_interval_ms = int(self.gui_cfg.get("debug_frame_export_interval_ms", 40))
+        self.agv_export_enabled = bool(self.gui_cfg.get("agv_export_enabled", False))
+        self.debug_frame_export_enabled = bool(self.gui_cfg.get("debug_frame_export_enabled", False))
+        self.history_logging_enabled = bool(self.gui_cfg.get("history_logging_enabled", False))
+        self.metrics_logging_enabled = bool(self.gui_cfg.get("metrics_logging_enabled", False))
         self.last_agv_export_ts = 0.0
         self.last_debug_export_ts = {}
+        self.last_origin_display_ts = {}
 
-        self.history_logger = HistoryLogger(HISTORY_DIR)
+        self.history_logger = HistoryLogger(HISTORY_DIR) if self.history_logging_enabled else None
         self.last_logged_ts = {}
         self.metrics = {}
         self.last_metrics_log_ts = time.time()
-        self.agv_exporter = AgvExporter(AGV_DIR)
+        self.agv_exporter = AgvExporter(AGV_DIR) if (self.agv_export_enabled or self.debug_frame_export_enabled) else None
 
         self.runners = [
             CameraRunner(self._build_processor(cfg), self.processor_target_fps)
@@ -338,7 +348,7 @@ class OriginMonitorWindow(QMainWindow):
         self.timer = QTimer(self)
         self.timer.setTimerType(Qt.TimerType.PreciseTimer)
         self.timer.timeout.connect(self.update_views)
-        self.timer.start(self.update_interval_ms)
+        self.timer.start(self.gui_poll_interval_ms)
         logger.info("OriginMonitorWindow started with %d cameras", len(self.camera_configs))
 
     def _build_processor(self, camera_cfg):
@@ -354,6 +364,8 @@ class OriginMonitorWindow(QMainWindow):
         return ReplayCameraProcessor(PROJECT_ROOT, camera_cfg, self.rule_cfg, target_fps=self.source_fps)
 
     def _export_debug_frame(self, camera_id: str, debug_frame, now_ts: float) -> None:
+        if not self.debug_frame_export_enabled:
+            return
         last_ts = self.last_debug_export_ts.get(camera_id, 0.0)
         if (now_ts - last_ts) * 1000.0 < self.debug_frame_export_interval_ms:
             return
@@ -367,6 +379,8 @@ class OriginMonitorWindow(QMainWindow):
             logger.exception("Failed to export debug frame for %s", camera_id)
 
     def _export_agv_snapshot(self, now_ts: float) -> None:
+        if not self.agv_export_enabled or self.agv_exporter is None:
+            return
         cameras_payload = []
         for result in self.latest_results.values():
             stale = (now_ts - result["timestamp"]) > self.max_result_staleness_sec
@@ -480,26 +494,7 @@ class OriginMonitorWindow(QMainWindow):
         window.activateWindow()
 
     def update_views(self):
-        for index, tile in enumerate(self.tiles):
-            if index >= len(self.slots):
-                tile.set_empty(f"Empty {index + 1}")
-                continue
-
-            live_frame = self.slots[index].get_latest()
-            if live_frame is None:
-                tile.set_title(self.camera_configs[index].name)
-                tile.set_frame(None)
-                continue
-
-            camera_id = self.camera_configs[index].camera_id
-            last_id = self.latest_frame_ids.get(camera_id)
-            if last_id == live_frame.frame_id:
-                continue
-
-            self.latest_frame_ids[camera_id] = live_frame.frame_id
-            self.latest_frames[camera_id] = live_frame.frame
-            tile.set_title(f"{self.camera_configs[index].name} ({camera_id})")
-            tile.set_frame(live_frame.frame)
+        now_ts = time.time()
 
         for runner in self.runners:
             result = runner.get_latest()
@@ -514,7 +509,7 @@ class OriginMonitorWindow(QMainWindow):
             self.latest_results[camera_id] = result
 
             last_ts = self.last_logged_ts.get(camera_id)
-            if result["changed_states"] and result["timestamp"] != last_ts:
+            if self.history_logging_enabled and self.history_logger is not None and result["changed_states"] and result["timestamp"] != last_ts:
                 self.history_logger.log_zone_states(
                     camera_id,
                     result["changed_states"],
@@ -523,8 +518,54 @@ class OriginMonitorWindow(QMainWindow):
                 self.last_logged_ts[camera_id] = result["timestamp"]
 
             detect_ms = float(result.get("detect_ms", 0.0))
-            self._update_metrics(result, detect_ms)
-            self._export_debug_frame(camera_id, result.get("debug_frame"), time.time())
+            if self.metrics_logging_enabled:
+                self._update_metrics(result, detect_ms)
+            self._export_debug_frame(camera_id, result.get("debug_frame"), now_ts)
+
+            for index, tile in enumerate(self.tiles):
+                if index >= len(self.camera_configs):
+                    tile.set_empty(f"Empty {index + 1}")
+                    continue
+
+                camera_cfg = self.camera_configs[index]
+                camera_id = camera_cfg.camera_id
+                result = self.latest_results.get(camera_id)
+                live_frame = self.slots[index].get_latest()
+
+                if result is None and live_frame is None:
+                    tile.set_title(camera_cfg.name)
+                    tile.set_frame(None)
+                    continue
+
+                last_display_ts = self.last_origin_display_ts.get(camera_id, 0.0)
+                if (now_ts - last_display_ts) * 1000.0 < self.origin_display_interval_ms:
+                    continue
+
+                display_frame = None
+                frame_id = -1
+                if self.tile_view_mode == "processed" and result is not None:
+                    display_frame = result.get("debug_frame")
+                    frame_id = int(result.get("frame_id", -1))
+                elif live_frame is not None:
+                    display_frame = live_frame.frame
+                    frame_id = live_frame.frame_id
+                elif result is not None:
+                    display_frame = result.get("debug_frame")
+                    frame_id = int(result.get("frame_id", -1))
+
+                if display_frame is None:
+                    tile.set_title(f"{camera_cfg.name} ({camera_id})")
+                    tile.set_frame(None)
+                    continue
+
+                if self.latest_frame_ids.get(camera_id) == frame_id:
+                    continue
+
+                self.latest_frame_ids[camera_id] = frame_id
+                self.latest_frames[camera_id] = display_frame
+                tile.set_title(f"{camera_cfg.name} ({camera_id})")
+                tile.set_frame(display_frame)
+                self.last_origin_display_ts[camera_id] = now_ts
 
         for camera_id, window in list(self.detail_windows.items()):
             if window is None or not window.isVisible():
@@ -536,11 +577,11 @@ class OriginMonitorWindow(QMainWindow):
 
             window.update_result(result)
 
-        now_ts = time.time()
-        if (now_ts - self.last_agv_export_ts) * 1000.0 >= self.agv_output_interval_ms:
+        if self.agv_export_enabled and (now_ts - self.last_agv_export_ts) * 1000.0 >= self.agv_output_interval_ms:
             self._export_agv_snapshot(now_ts)
             self.last_agv_export_ts = now_ts
-        self._log_metrics_if_due()
+        if self.metrics_logging_enabled:
+            self._log_metrics_if_due()
 
     def closeEvent(self, event):
         logger.info("Closing OriginMonitorWindow")

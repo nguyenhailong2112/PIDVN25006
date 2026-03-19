@@ -10,8 +10,11 @@
   "focus_window_enabled": false,
   "fixed_tile_mode": true,
   "processor_target_fps": 25,
+  "origin_display_fps": 25,
   "agv_output_interval_ms": 40,
+  "agv_export_enabled": false,
   "debug_frame_export_interval_ms": 40,
+  "debug_frame_export_enabled": false,
   "source_fps": 25.0,
   "max_result_staleness_sec": 1.0,
   "metrics_log_interval_sec": 10.0

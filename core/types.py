@@ -34,6 +34,7 @@ class RuleConfig:
     img_size: int | None = None
     batch_size: int = 1
     batch_timeout_ms: int = 0
+    max_pending_requests: int = 0
 
 
 @dataclass

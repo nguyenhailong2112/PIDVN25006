@@ -81,6 +81,7 @@ def load_rule_config(path: str | Path) -> RuleConfig:
         img_size=img_size,
         batch_size=int(data.get("batch_size", 1)),
         batch_timeout_ms=int(data.get("batch_timeout_ms", 0)),
+        max_pending_requests=int(data.get("max_pending_requests", 0)),
     )
 
 

@@ -51,7 +51,14 @@ def main() -> None:
     source_path = camera_cfg.source_path
 
     zone_configs = load_zone_configs(zone_config_path)
-    detector = YoloDetector(str(model_path), rule_cfg.conf_threshold, rule_cfg.img_size)
+    detector = YoloDetector(
+        str(model_path),
+        rule_cfg.conf_threshold,
+        rule_cfg.img_size,
+        rule_cfg.batch_size,
+        rule_cfg.batch_timeout_ms,
+        rule_cfg.max_pending_requests,
+    )
     reasoner = ZoneReasoner(zone_configs, rule_cfg)
     tracker = StateTracker(rule_cfg)
 
@@ -89,16 +96,18 @@ def main() -> None:
                 last_processed_frame_id = live_frame.frame_id
                 last_infer_time = now
 
-                last_detection_result = detector.infer(
+                detection_result = detector.infer(
                     live_frame.frame,
                     camera_cfg.camera_id,
                     live_frame.frame_id,
                     live_frame.timestamp,
                 )
-                observations = reasoner.observe(last_detection_result, live_frame.frame.shape)
-                changed_states = tracker.update_observations(observations)
-                if changed_states:
-                    print_state_changes(changed_states)
+                if detection_result is not None:
+                    last_detection_result = detection_result
+                    observations = reasoner.observe(last_detection_result, live_frame.frame.shape)
+                    changed_states = tracker.update_observations(observations)
+                    if changed_states:
+                        print_state_changes(changed_states)
 
             current_states = tracker.get_current_states(camera_cfg.camera_id, now)
             debug_frame = draw_debug_frame(live_frame.frame, last_detection_result, zone_configs, current_states)

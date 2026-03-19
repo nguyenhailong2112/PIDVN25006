@@ -1,6 +1,6 @@
 import numpy as np
 
-from core.inference_scheduler import SchedulerRegistry
+from core.inference_scheduler import SchedulerRegistry, is_skipped_result
 from core.model_registry import ModelRegistry
 from core.types import Detection, DetectionResult
 
@@ -13,6 +13,7 @@ class YoloDetector:
         img_size: int | None = None,
         batch_size: int = 1,
         batch_timeout_ms: int = 0,
+        max_pending_requests: int = 0,
     ) -> None:
         bundle = ModelRegistry.get(model_path)
         self._model = bundle.model
@@ -20,16 +21,20 @@ class YoloDetector:
         self.img_size = img_size
         self.batch_size = max(1, int(batch_size))
         self.batch_timeout_ms = max(0, int(batch_timeout_ms))
+        self.max_pending_requests = max(0, int(max_pending_requests))
         self._scheduler = SchedulerRegistry.get(
             self._model,
             self.conf_threshold,
             self.img_size,
             self.batch_size,
             self.batch_timeout_ms,
+            self.max_pending_requests,
         )
 
-    def infer(self, frame: np.ndarray, camera_id: str, frame_id: int, timestamp: float) -> DetectionResult:
-        result = self._scheduler.submit(frame)
+    def infer(self, frame: np.ndarray, camera_id: str, frame_id: int, timestamp: float) -> DetectionResult | None:
+        result = self._scheduler.submit(frame, stream_key=camera_id)
+        if result is None or is_skipped_result(result) or not hasattr(result, "boxes"):
+            return None
         detections: list[Detection] = []
 
         for box in result.boxes:

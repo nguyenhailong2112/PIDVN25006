@@ -5,6 +5,7 @@ import threading
 import time
 import atexit
 from dataclasses import dataclass
+from collections import deque
 
 import torch
 from ultralytics import YOLO
@@ -13,9 +14,19 @@ from ultralytics import YOLO
 @dataclass
 class _Request:
     frame: object
+    stream_key: str | None
     event: threading.Event
     result: object | None = None
 
+class _SkippedInference:
+    pass
+
+
+_SKIPPED = _SkippedInference()
+
+
+def is_skipped_result(result: object) -> bool:
+    return isinstance(result, _SkippedInference)
 
 class InferenceScheduler:
     def __init__(
@@ -25,6 +36,7 @@ class InferenceScheduler:
         imgsz: int | None,
         batch_size: int,
         batch_timeout_ms: int,
+        max_pending_requests: int | None = None,
     ) -> None:
         self.model = model
         self.conf = conf
@@ -32,40 +44,62 @@ class InferenceScheduler:
         self.batch_size = max(1, int(batch_size))
         self.batch_timeout_ms = max(0, int(batch_timeout_ms))
 
-        self._queue: queue.Queue[_Request] = queue.Queue()
+        self.max_pending_requests = max(self.batch_size, int(max_pending_requests or (self.batch_size * 4)))
+        self._pending: deque[_Request] = deque()
+        self._cv = threading.Condition()
         self._stop_event = threading.Event()
         self._thread = threading.Thread(target=self._run, daemon=True)
         self._thread.start()
 
-    def submit(self, frame) -> object:
+    def submit(self, frame, stream_key: str | None = None) -> object:
         if self._stop_event.is_set():
             raise RuntimeError("InferenceScheduler is stopping")
-        req = _Request(frame=frame, event=threading.Event())
-        self._queue.put(req)
+        req = _Request(frame=frame, stream_key=stream_key, event=threading.Event())
+        with self._cv:
+            if stream_key is not None:
+                for pending_req in list(self._pending):
+                    if pending_req.stream_key == stream_key:
+                        self._pending.remove(pending_req)
+                        pending_req.result = _SKIPPED
+                        pending_req.event.set()
+                        break
+
+            self._pending.append(req)
+            while len(self._pending) > self.max_pending_requests:
+                dropped = self._pending.popleft()
+                if dropped is req:
+                    break
+                dropped.result = _SKIPPED
+                dropped.event.set()
+            self._cv.notify()
         req.event.wait()
         return req.result
 
     def _run(self) -> None:
         while True:
-            first = self._queue.get()
-            if first is None and self._stop_event.is_set():
-                break
-            if first is None:
-                continue
+            with self._cv:
+                while not self._pending and not self._stop_event.is_set():
+                    self._cv.wait()
+                if not self._pending and self._stop_event.is_set():
+                    break
+                first = self._pending.popleft()
 
             batch = [first]
             start = time.perf_counter()
             timeout_s = self.batch_timeout_ms / 1000.0
 
             while len(batch) < self.batch_size:
-                remaining = timeout_s - (time.perf_counter() - start)
-                if remaining <= 0:
-                    break
-                try:
-                    req = self._queue.get(timeout=remaining)
-                except queue.Empty:
-                    break
-                batch.append(req)
+                with self._cv:
+                    if self._pending:
+                        batch.append(self._pending.popleft())
+                        continue
+                    remaining = timeout_s - (time.perf_counter() - start)
+                    if remaining <= 0:
+                        break
+                    self._cv.wait(timeout=remaining)
+                    if not self._pending:
+                        continue
+                    batch.append(self._pending.popleft())
 
             frames = [req.frame for req in batch]
             results = self.model.predict(
@@ -84,7 +118,8 @@ class InferenceScheduler:
         if self._stop_event.is_set():
             return
         self._stop_event.set()
-        self._queue.put(None)
+        with self._cv:
+            self._cv.notify_all()
         self._thread.join(timeout=2.0)
 
 
@@ -100,6 +135,7 @@ class SchedulerRegistry:
         imgsz: int | None,
         batch_size: int,
         batch_timeout_ms: int,
+        max_pending_requests: int | None = None,
     ) -> InferenceScheduler:
         key = (
             id(model),
@@ -107,11 +143,12 @@ class SchedulerRegistry:
             int(imgsz) if imgsz is not None else None,
             int(batch_size),
             int(batch_timeout_ms),
+            int(max_pending_requests or 0),
         )
         with cls._lock:
             scheduler = cls._items.get(key)
             if scheduler is None:
-                scheduler = InferenceScheduler(model, conf, imgsz, batch_size, batch_timeout_ms)
+                scheduler = InferenceScheduler(model, conf, imgsz, batch_size, batch_timeout_ms, max_pending_requests)
                 cls._items[key] = scheduler
             return scheduler
 

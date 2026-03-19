@@ -30,6 +30,7 @@ class ReplayCameraProcessor:
             rule_config.img_size,
             rule_config.batch_size,
             rule_config.batch_timeout_ms,
+            rule_config.max_pending_requests,
         )
         self.last_detection_result = None
 
@@ -62,21 +63,23 @@ class ReplayCameraProcessor:
 
         if frame_id % self.camera_config.infer_every_n_frames == 0:
             t0 = time.perf_counter()
-            self.last_detection_result = self.detector.infer(
+            detection_result = self.detector.infer(
                 frame,
                 self.camera_config.camera_id,
                 frame_id,
                 timestamp,
             )
-            detect_ms = (time.perf_counter() - t0) * 1000.0
+            if detection_result is not None:
+                self.last_detection_result = detection_result
+                detect_ms = (time.perf_counter() - t0) * 1000.0
 
-            if self.camera_config.camera_type in ["trolley_slot", "pallet_slot"]:
+            if self.last_detection_result is not None and self.camera_config.camera_type in ["trolley_slot", "pallet_slot"]:
                 observations = self.reasoner.observe(self.last_detection_result, frame.shape)
                 changed_states = self.tracker.update_observations(observations)
                 current_states = self.tracker.get_current_states(self.camera_config.camera_id, timestamp)
                 self.state_exporter.export_camera_snapshot(self.camera_config.camera_id, current_states, timestamp)
 
-            elif self.camera_config.camera_type == "general_monitoring":
+            elif self.last_detection_result is not None and self.camera_config.camera_type == "general_monitoring":
                 self.monitoring_exporter.export_detection_snapshot(self.last_detection_result)
 
         if self.camera_config.camera_type in ["trolley_slot", "pallet_slot"]:
