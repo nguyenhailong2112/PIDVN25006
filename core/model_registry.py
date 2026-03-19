@@ -29,7 +29,7 @@ class ModelRegistry:
 
             model = YOLO(model_path)
             model.to("cuda")
-            
+
             try:
                 model.fuse()
             except Exception:
