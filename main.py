@@ -1,3 +1,6 @@
+import torch
+torch.backends.cudnn.benchmark = True
+
 import time
 import sys
 from collections import deque

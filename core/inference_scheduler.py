@@ -1,3 +1,8 @@
+import torch
+
+import os
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+
 from __future__ import annotations
 
 import queue
@@ -66,13 +71,27 @@ class InferenceScheduler:
                     break
                 batch.append(req)
 
+            # frames = [req.frame for req in batch]
+            # results = self.model.predict(
+            #     frames,
+            #     conf=self.conf,
+            #     imgsz=self.imgsz,
+            #     verbose=False,
+            #     device=0
+            # )
+
+            # Convert sang tensor GPU
             frames = [req.frame for req in batch]
-            results = self.model.predict(
-                frames,
-                conf=self.conf,
-                imgsz=self.imgsz,
-                verbose=False,
-            )
+
+            frames = [
+                torch.from_numpy(f).permute(2, 0, 1).float() / 255.0
+                for f in frames
+            ]
+
+            frames = torch.stack(frames).to("cuda")
+
+            with torch.no_grad():
+                results = self.model(frames)
 
             for req, res in zip(batch, results):
                 req.result = res

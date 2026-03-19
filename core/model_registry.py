@@ -28,6 +28,8 @@ class ModelRegistry:
                 return bundle
 
             model = YOLO(model_path)
+            model.to("cuda")
+            
             try:
                 model.fuse()
             except Exception:
