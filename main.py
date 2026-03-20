@@ -349,6 +349,7 @@ class OriginMonitorWindow(QMainWindow):
                 expected_fps=self.source_fps,
                 frame_store=slot.frame_store if slot is not None else None,
                 ingest_config=self.ingest_cfg,
+                health_reader=slot.reader if slot is not None else None,
             )
         return ReplayCameraProcessor(PROJECT_ROOT, camera_cfg, self.rule_cfg, target_fps=self.source_fps)
 

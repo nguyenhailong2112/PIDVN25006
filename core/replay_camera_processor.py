@@ -57,6 +57,8 @@ class ReplayCameraProcessor:
         zone_occupancy = []
         detect_ms = 0.0
 
+        fresh_detection_result = None
+
         if frame_id % self.camera_config.infer_every_n_frames == 0:
             t0 = time.perf_counter()
             detection_result = self.detector.infer(
@@ -66,12 +68,13 @@ class ReplayCameraProcessor:
                 timestamp,
             )
             if detection_result is not None:
+                fresh_detection_result = detection_result
                 self.last_detection_result = detection_result
                 detect_ms = (time.perf_counter() - t0) * 1000.0
 
-            if self.last_detection_result is not None and self.camera_config.camera_type in ["trolley_slot", "pallet_slot"]:
-                observations = self.reasoner.observe(self.last_detection_result, frame.shape)
-                changed_states = self.tracker.update_observations(observations)
+                if self.camera_config.camera_type in ["trolley_slot", "pallet_slot"]:
+                    observations = self.reasoner.observe(fresh_detection_result, frame.shape)
+                    changed_states = self.tracker.update_observations(observations)
 
         if self.camera_config.camera_type in ["trolley_slot", "pallet_slot"]:
             current_states = self.tracker.get_current_states(self.camera_config.camera_id, timestamp)
@@ -101,7 +104,7 @@ class ReplayCameraProcessor:
             "zone_occupancy": zone_occupancy,
             "raw_frame": raw_frame,
             "debug_frame": debug_frame,
-            "detect_ms": detect_ms
+            "detect_ms": detect_ms,
         }
         return self.last_result
 

@@ -19,6 +19,8 @@ class LiveCameraProcessor:
         rule_config,
         expected_fps: float | None = None,
         frame_store: FrameStore | None = None,
+        ingest_config=None,
+        health_reader=None,
     ) -> None:
         self.project_root = Path(project_root)
         self.camera_config = camera_config
@@ -26,6 +28,7 @@ class LiveCameraProcessor:
         self.last_frame_id = -1
         self.last_result = None
         self.camera_health = "unknown"
+        self.health_reader = health_reader
 
         source_path = None
         if frame_store is None:
@@ -41,9 +44,11 @@ class LiveCameraProcessor:
                 source_path,
                 self.frame_store,
                 expected_fps=expected_fps,
+                ingest_config=ingest_config,
             )
             self.reader.start()
             self._owns_reader = True
+            self.health_reader = self.reader
 
         self.detector = YoloDetector(
             str(model_path),
@@ -70,6 +75,14 @@ class LiveCameraProcessor:
             return source_path
         return str(ensure_exists(resolve_project_path(source_path), "Video source"))
 
+    def _get_camera_health(self) -> str:
+        if self.health_reader is not None:
+            try:
+                return self.health_reader.get_health()
+            except Exception:
+                return "unknown"
+        return self.camera_health
+
     def step(self):
         live_frame = self.frame_store.get_latest(self.camera_config.camera_id)
         if live_frame is None:
@@ -84,6 +97,8 @@ class LiveCameraProcessor:
         zone_occupancy = []
         detect_ms = 0.0
 
+        fresh_detection_result = None
+
         if live_frame.frame_id % self.camera_config.infer_every_n_frames == 0:
             t0 = time.perf_counter()
             detection_result = self.detector.infer(
@@ -93,12 +108,13 @@ class LiveCameraProcessor:
                 live_frame.timestamp,
             )
             if detection_result is not None:
+                fresh_detection_result = detection_result
                 self.last_detection_result = detection_result
                 detect_ms = (time.perf_counter() - t0) * 1000.0
 
-            if self.last_detection_result is not None and self.camera_config.camera_type in ["trolley_slot", "pallet_slot"]:
-                observations = self.reasoner.observe(self.last_detection_result, live_frame.frame.shape)
-                changed_states = self.tracker.update_observations(observations)
+                if self.camera_config.camera_type in ["trolley_slot", "pallet_slot"]:
+                    observations = self.reasoner.observe(fresh_detection_result, live_frame.frame.shape)
+                    changed_states = self.tracker.update_observations(observations)
 
         if self.camera_config.camera_type in ["trolley_slot", "pallet_slot"]:
             current_states = self.tracker.get_current_states(self.camera_config.camera_id, live_frame.timestamp)
@@ -112,15 +128,25 @@ class LiveCameraProcessor:
                 }
                 for state in current_states
             ]
-            debug_frame = draw_debug_frame(live_frame.frame, self.last_detection_result, self.zone_configs, current_states)
+            debug_frame = draw_debug_frame(
+                live_frame.frame,
+                self.last_detection_result,
+                self.zone_configs,
+                current_states,
+            )
         else:
-            debug_frame = draw_debug_frame(live_frame.frame, self.last_detection_result, [], [])
+            debug_frame = draw_debug_frame(
+                live_frame.frame,
+                self.last_detection_result,
+                [],
+                [],
+            )
 
         self.last_result = {
             "camera_id": self.camera_config.camera_id,
             "camera_name": self.camera_config.name,
             "camera_type": self.camera_config.camera_type,
-            "camera_health": self.reader.get_health() if self.reader is not None else self.camera_health,
+            "camera_health": self._get_camera_health(),
             "frame_id": live_frame.frame_id,
             "timestamp": live_frame.timestamp,
             "changed_states": changed_states,
@@ -128,7 +154,7 @@ class LiveCameraProcessor:
             "zone_occupancy": zone_occupancy,
             "raw_frame": live_frame.frame,
             "debug_frame": debug_frame,
-            "detect_ms": detect_ms
+            "detect_ms": detect_ms,
         }
         return self.last_result
 

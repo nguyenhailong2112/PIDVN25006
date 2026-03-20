@@ -79,12 +79,11 @@ def main() -> None:
         if frame_id % camera_cfg.infer_every_n_frames == 0:
             timer.start()
             detection_result = detector.infer(frame, camera_cfg.camera_id, frame_id, timestamp)
-            if detection_result is not None:
-                last_detection_result = detection_result
             detect_ms = timer.elapsed_ms()
 
-            if last_detection_result is not None:
-                observations = reasoner.observe(last_detection_result, frame.shape)
+            if detection_result is not None:
+                last_detection_result = detection_result
+                observations = reasoner.observe(detection_result, frame.shape)
                 changed_states = tracker.update_observations(observations)
                 if changed_states:
                     print_state_changes(changed_states)

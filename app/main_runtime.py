@@ -66,17 +66,19 @@ def main() -> None:
     tracker = StateTracker(rule_cfg)
 
     frame_store = FrameStore()
+    runtime_fps = min(float(10), float(ingest_cfg.reader_output_fps))
+
     reader = CameraReader(
         camera_cfg.camera_id,
         source_path,
         frame_store,
-        expected_fps=min(float(5), float(ingest_cfg.reader_output_fps)),
+        expected_fps=runtime_fps,
         ingest_config=ingest_cfg,
     )
     reader.start()
 
     last_infer_time = 0.0
-    infer_interval = max(0.01, 1.0 / max(1.0, float(5)))
+    infer_interval = max(0.01, 1.0 / max(1.0, runtime_fps))
     last_processed_frame_id = -1
     last_detection_result = None
 
