@@ -6,8 +6,7 @@ from core.config import load_camera_configs, load_rule_config, load_zone_configs
 from core.debug_utils import StageTimer
 from core.detector import YoloDetector
 from core.logger_config import get_logger
-from core.path_utils import PROJECT_ROOT, ensure_exists, resolve_project_path
-from core.state_exporter import StateExporter
+from core.path_utils import PROJECT_ROOT, ensure_exists
 from core.state_tracker import StateTracker
 from core.visualizer import draw_debug_frame
 from core.zone_reasoner import ZoneReasoner
@@ -15,7 +14,6 @@ from core.zone_reasoner import ZoneReasoner
 
 CAMERA_CONFIG_PATH = PROJECT_ROOT / "configs" / "cameras.json"
 RULE_CONFIG_PATH = PROJECT_ROOT / "configs" / "rules.json"
-OUTPUT_DIR = PROJECT_ROOT / "outputs" / "replay"
 logger = get_logger(__name__)
 
 
@@ -34,7 +32,7 @@ def print_state_changes(states):
 def print_snapshot(states):
     if not states:
         return
-    parts = [f"{state.zone_id}={state.state}" for state in states]
+    parts = [f"{state.zone_id}={1 if state.state == 'occupied' else 0}" for state in states]
     logger.info(" | ".join(parts))
 
 
@@ -61,7 +59,6 @@ def main() -> None:
     )
     reasoner = ZoneReasoner(zone_configs, rule_cfg)
     tracker = StateTracker(rule_cfg)
-    exporter = StateExporter(OUTPUT_DIR)
 
     cap = cv2.VideoCapture(str(source_path))
     if not cap.isOpened():
@@ -96,9 +93,6 @@ def main() -> None:
                 logger.info("[%s] detect_time_ms=%.1f", camera_cfg.camera_id, detect_ms)
 
         current_states = tracker.get_current_states(camera_cfg.camera_id, timestamp)
-
-        if frame_id % 15 == 0:
-            exporter.export_camera_snapshot(camera_cfg.camera_id, current_states, timestamp)
 
         if frame_id % 30 == 0:
             print_snapshot(current_states)

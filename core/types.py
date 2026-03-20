@@ -14,6 +14,18 @@ class CameraConfig:
     infer_every_n_frames: int
     enabled: bool = True
 
+@dataclass
+class IngestConfig:
+    stream_profile: str = "main"
+    latest_frame_only: bool = True
+    reader_output_fps: float = 10.0
+    expected_source_fps: float = 25.0
+    buffer_size: int = 1
+    reconnect_delay_sec: float = 1.0
+    rtsp_transport: str = "tcp"
+    open_timeout_msec: int = 2000
+    read_timeout_msec: int = 1000
+    skip_sleep_ms: int = 2
 
 @dataclass
 class ZoneConfig:

@@ -4,7 +4,7 @@ from pathlib import Path
 import cv2
 
 from core.camera_reader import CameraReader
-from core.config import load_camera_configs, load_rule_config, load_zone_configs
+from core.config import load_camera_configs, load_ingest_config, load_rule_config, load_zone_configs, validate_ingest_config
 from core.detector import YoloDetector
 from core.frame_store import FrameStore
 from core.logger_config import get_logger
@@ -16,6 +16,7 @@ from core.zone_reasoner import ZoneReasoner
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 CAMERA_CONFIG_PATH = PROJECT_ROOT / "configs" / "cameras.json"
 RULE_CONFIG_PATH = PROJECT_ROOT / "configs" / "rules.json"
+INGEST_CONFIG_PATH = PROJECT_ROOT / "configs" / "ingest.json"
 logger = get_logger(__name__)
 
 
@@ -34,7 +35,7 @@ def print_state_changes(states):
 def print_snapshot(states):
     if not states:
         return
-    parts = [f"{state.zone_id}={state.state}" for state in states]
+    parts = [f"{state.zone_id}={1 if state.state == 'occupied' else 0}" for state in states]
     logger.info(" | ".join(parts))
 
 
@@ -45,6 +46,8 @@ def main() -> None:
 
     camera_cfg = camera_configs[0]
     rule_cfg = load_rule_config(RULE_CONFIG_PATH)
+    ingest_cfg = load_ingest_config(INGEST_CONFIG_PATH)
+    validate_ingest_config(ingest_cfg)
 
     model_path = PROJECT_ROOT / camera_cfg.model_path
     zone_config_path = PROJECT_ROOT / camera_cfg.zone_config
@@ -63,7 +66,13 @@ def main() -> None:
     tracker = StateTracker(rule_cfg)
 
     frame_store = FrameStore()
-    reader = CameraReader(camera_cfg.camera_id, source_path, frame_store)
+    reader = CameraReader(
+        camera_cfg.camera_id,
+        source_path,
+        frame_store,
+        expected_fps=min(float(5), float(ingest_cfg.reader_output_fps)),
+        ingest_config=ingest_cfg,
+    )
     reader.start()
 
     last_infer_time = 0.0

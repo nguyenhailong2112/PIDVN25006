@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 
 from core.path_utils import ensure_exists, resolve_project_path
-from core.types import CameraConfig, RuleConfig, ZoneConfig
+from core.types import CameraConfig, IngestConfig, RuleConfig, ZoneConfig
 
 
 def _coerce_str(value, fallback="") -> str:
@@ -84,6 +84,22 @@ def load_rule_config(path: str | Path) -> RuleConfig:
         max_pending_requests=int(data.get("max_pending_requests", 0)),
     )
 
+def load_ingest_config(path: str | Path) -> IngestConfig:
+    path = ensure_exists(path, "Ingest config")
+    data = json.loads(path.read_text(encoding="utf-8"))
+
+    return IngestConfig(
+        stream_profile=str(data.get("stream_profile", "main")).lower(),
+        latest_frame_only=bool(data.get("latest_frame_only", True)),
+        reader_output_fps=float(data.get("reader_output_fps", 10.0)),
+        expected_source_fps=float(data.get("expected_source_fps", 25.0)),
+        buffer_size=int(data.get("buffer_size", 1)),
+        reconnect_delay_sec=float(data.get("reconnect_delay_sec", 1.0)),
+        rtsp_transport=str(data.get("rtsp_transport", "tcp")).lower(),
+        open_timeout_msec=int(data.get("open_timeout_msec", 2000)),
+        read_timeout_msec=int(data.get("read_timeout_msec", 1000)),
+        skip_sleep_ms=int(data.get("skip_sleep_ms", 2)),
+    )
 
 def load_json_dict(path: str | Path) -> dict:
     path = ensure_exists(path, "JSON config")
@@ -135,6 +151,24 @@ def validate_rule_config(rule_cfg: RuleConfig) -> None:
     if errors:
         raise ValueError("Rule config validation failed:\n- " + "\n- ".join(errors))
 
+def validate_ingest_config(ingest_cfg: IngestConfig) -> None:
+    errors = []
+    if ingest_cfg.stream_profile not in {"main", "sub", "third"}:
+        errors.append("stream_profile must be one of: main, sub, third")
+    if ingest_cfg.reader_output_fps <= 0:
+        errors.append("reader_output_fps must be > 0")
+    if ingest_cfg.expected_source_fps <= 0:
+        errors.append("expected_source_fps must be > 0")
+    if ingest_cfg.buffer_size <= 0:
+        errors.append("buffer_size must be > 0")
+    if ingest_cfg.reconnect_delay_sec <= 0:
+        errors.append("reconnect_delay_sec must be > 0")
+    if ingest_cfg.open_timeout_msec <= 0 or ingest_cfg.read_timeout_msec <= 0:
+        errors.append("open_timeout_msec/read_timeout_msec must be > 0")
+    if ingest_cfg.skip_sleep_ms < 0:
+        errors.append("skip_sleep_ms must be >= 0")
+    if errors:
+        raise ValueError("Ingest config validation failed:\n- " + "\n- ".join(errors))
 
 def validate_gui_config(gui_cfg: dict) -> None:
     errors = []

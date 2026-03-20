@@ -1,0 +1,12 @@
+{
+  "stream_profile": "sub",
+  "latest_frame_only": true,
+  "reader_output_fps": 10.0,
+  "expected_source_fps": 12.5,
+  "buffer_size": 1,
+  "reconnect_delay_sec": 1.0,
+  "rtsp_transport": "tcp",
+  "open_timeout_msec": 2000,
+  "read_timeout_msec": 1000,
+  "skip_sleep_ms": 2
+}
