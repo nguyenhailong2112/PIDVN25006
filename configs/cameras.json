@@ -66,6 +66,28 @@
     "enabled": true
   },
   {
+    "camera_id": "cam106",
+    "camera_type": "general_monitoring",
+    "name": "Cam106",
+    "source_type": "rtsp",
+    "source_path": "rtsp://admin:rtctech!@192.168.1.106:554/Streaming/Channels/101",
+    "model_path": "weights/best.pt",
+    "zone_config": "",
+    "infer_every_n_frames": 2,
+    "enabled": true
+  },
+  {
+    "camera_id": "cam107",
+    "camera_type": "trolley_slot",
+    "name": "Cam107",
+    "source_type": "rtsp",
+    "source_path": "rtsp://admin:rtctech!@192.168.1.107:554/Streaming/Channels/101",
+    "model_path": "weights/best.pt",
+    "zone_config": "configs/zones_cam103.json",
+    "infer_every_n_frames": 2,
+    "enabled": true
+  },
+  {
     "camera_id": "cam108",
     "camera_type": "general_monitoring",
     "name": "Cam108",
@@ -78,12 +100,12 @@
   },
   {
     "camera_id": "cam109",
-    "camera_type": "trolley_slot",
+    "camera_type": "pallet_slot",
     "name": "Cam109",
     "source_type": "rtsp",
     "source_path": "rtsp://admin:rtctech!@192.168.1.107:554/Streaming/Channels/101",
     "model_path": "weights/best.pt",
-    "zone_config": "configs/zones_cam103.json",
+    "zone_config": "configs/zones_cam104.json",
     "infer_every_n_frames": 2,
     "enabled": true
   },
@@ -100,12 +122,12 @@
   },
   {
     "camera_id": "cam111",
-    "camera_type": "pallet_slot",
+    "camera_type": "trolley_slot",
     "name": "Cam111",
     "source_type": "rtsp",
     "source_path": "rtsp://admin:rtctech!@192.168.1.107:554/Streaming/Channels/101",
     "model_path": "weights/best.pt",
-    "zone_config": "configs/zones_cam104.json",
+    "zone_config": "configs/zones_cam103.json",
     "infer_every_n_frames": 2,
     "enabled": true
   },
