@@ -64,7 +64,7 @@ python mainCCTV.py
 
 `main.py` đang là hàm main chính của version 1, là main codebase để cải tiến các version sau. Nếu các version sau không ổn, `main.py` vẫn đóng vai trò là main chính của hệ thống (version này chưa cập nhật `main.py` theo đúng tiến độ vì đang thử nghiệm tách chương trình thành frontend và backend cụ thể là `mainCCTV.py` và `mainProcess.py`.
 
-`main_monitor_gui.py` và `main_origin_monitor_gui.py` là 2 hàm main dùng để thử nghiệm từ version 1, hiện tại đang không sử dụng.
+`main_monitor_gui.py` là hàm main dùng để thử nghiệm giao diện giám sát CCTV & detail_window từ version 1, hiện tại có thể sử dụng nếu chỉ cần giám sát CCTV bình thường đang không sử dụng.
 ## 6. Luồng vận hành
 1. Backend chạy trước.
 2. Backend mở toàn bộ camera/video.
