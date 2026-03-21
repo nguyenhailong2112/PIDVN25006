@@ -1,4 +1,5 @@
 import cv2
+from types import SimpleNamespace
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QImage, QPixmap, QIcon
 from PyQt6.QtWidgets import (
@@ -28,7 +29,7 @@ class ImagePanel(QLabel):
         self.setScaledContents(False)
 
     def set_frame(self, frame_bgr):
-        self.last_frame_bgr = frame_bgr.copy() if frame_bgr is not None else None
+        self.last_frame_bgr = frame_bgr
         self._render()
 
     def _render(self):
@@ -166,6 +167,16 @@ class DetailWindow(QMainWindow):
         layout.addLayout(info_row, 1)
         layout.addWidget(self.zone_grid, 1)
 
+    @staticmethod
+    def _normalize_states(states):
+        normalized = []
+        for state in states or []:
+            if isinstance(state, dict):
+                normalized.append(SimpleNamespace(**state))
+            else:
+                normalized.append(state)
+        return normalized
+
     def update_result(self, result: dict):
         camera_name = result["camera_name"]
         camera_id = result["camera_id"]
@@ -177,7 +188,7 @@ class DetailWindow(QMainWindow):
         self.origin_panel.set_frame(result.get("raw_frame"))
         self.processed_panel.set_frame(result.get("debug_frame"))
 
-        states = result.get("current_states", [])
+        states = self._normalize_states(result.get("current_states", []))
         detect_ms = float(result.get("detect_ms", 0.0))
         frame_id = result.get("frame_id", -1)
         timestamp = result.get("timestamp", 0.0)

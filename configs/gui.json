@@ -4,15 +4,15 @@
   "grid_cols": 4,
   "cell_min_width": 320,
   "cell_min_height": 180,
-  "update_interval_ms": 40,
-  "origin_update_interval_ms": 40,
+  "update_interval_ms": 100,
+  "origin_update_interval_ms": 100,
   "grid_spacing": 3,
   "focus_window_enabled": false,
   "fixed_tile_mode": true,
   "tile_view_mode": "processed",
-  "processor_target_fps": 25,
-  "origin_display_fps": 25,
+  "processor_target_fps": 15,
+  "origin_display_fps": 15,
   "agv_export_enabled": false,
   "debug_frame_export_enabled": false,
-  "source_fps": 25.0
+  "source_fps": 15.0
 }

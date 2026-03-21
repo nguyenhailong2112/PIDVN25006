@@ -1,0 +1,17 @@
+{
+  "decode_fps_default": 12.0,
+  "slot_infer_fps_default": 10.0,
+  "general_infer_fps_default": 5.0,
+  "selected_infer_fps": 15.0,
+  "detail_infer_fps": 15.0,
+  "grid_display_fps": 10.0,
+  "detail_display_fps": 15.0,
+  "export_interval_ms": 100,
+  "debug_export_fps": 15.0,
+  "schedule_sleep_ms": 5,
+  "selected_priority_boost": 1000.0,
+  "detail_priority_boost": 1200.0,
+  "offline_priority_penalty": 0.2,
+  "preview_width": 960,
+  "preview_height": 540
+}

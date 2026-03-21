@@ -21,6 +21,8 @@ class LiveCameraProcessor:
         frame_store: FrameStore | None = None,
         ingest_config=None,
         health_reader=None,
+        render_debug: bool = True,
+        infer_interval_sec: float = 0.0,
     ) -> None:
         self.project_root = Path(project_root)
         self.camera_config = camera_config
@@ -29,6 +31,9 @@ class LiveCameraProcessor:
         self.last_result = None
         self.camera_health = "unknown"
         self.health_reader = health_reader
+        self.render_debug = bool(render_debug)
+        self.infer_interval_sec = max(0.0, float(infer_interval_sec))
+        self.last_infer_ts = 0.0
 
         source_path = None
         if frame_store is None:
@@ -99,7 +104,11 @@ class LiveCameraProcessor:
 
         fresh_detection_result = None
 
-        if live_frame.frame_id % self.camera_config.infer_every_n_frames == 0:
+        should_infer = live_frame.frame_id % self.camera_config.infer_every_n_frames == 0
+        if should_infer and self.infer_interval_sec > 0.0:
+            should_infer = (live_frame.timestamp - self.last_infer_ts) >= self.infer_interval_sec
+
+        if should_infer:
             t0 = time.perf_counter()
             detection_result = self.detector.infer(
                 live_frame.frame,
@@ -108,6 +117,7 @@ class LiveCameraProcessor:
                 live_frame.timestamp,
             )
             if detection_result is not None:
+                self.last_infer_ts = live_frame.timestamp
                 fresh_detection_result = detection_result
                 self.last_detection_result = detection_result
                 detect_ms = (time.perf_counter() - t0) * 1000.0
@@ -128,19 +138,23 @@ class LiveCameraProcessor:
                 }
                 for state in current_states
             ]
-            debug_frame = draw_debug_frame(
-                live_frame.frame,
-                self.last_detection_result,
-                self.zone_configs,
-                current_states,
-            )
+            debug_frame = None
+            if self.render_debug:
+                debug_frame = draw_debug_frame(
+                    live_frame.frame,
+                    self.last_detection_result,
+                    self.zone_configs,
+                    current_states,
+                )
         else:
-            debug_frame = draw_debug_frame(
-                live_frame.frame,
-                self.last_detection_result,
-                [],
-                [],
-            )
+            debug_frame = None
+            if self.render_debug:
+                debug_frame = draw_debug_frame(
+                    live_frame.frame,
+                    self.last_detection_result,
+                    [],
+                    [],
+                )
 
         self.last_result = {
             "camera_id": self.camera_config.camera_id,
