@@ -10,9 +10,9 @@
   "focus_window_enabled": false,
   "fixed_tile_mode": true,
   "tile_view_mode": "processed",
-  "processor_target_fps": 15,
-  "origin_display_fps": 15,
+  "processor_target_fps": 25,
+  "origin_display_fps": 25,
   "agv_export_enabled": false,
   "debug_frame_export_enabled": false,
-  "source_fps": 15.0
+  "source_fps": 25.0
 }

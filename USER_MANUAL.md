@@ -1,10 +1,10 @@
-# Hướng dẫn sử dụng chương trình cho công nhân vận hành nhà máy
+# HƯỚNG DẪN SỬ DỤNG CHƯƠNG TRÌNH - CÁCH VẬN HÀNH HỆ THỐNG
 
 ## 1. Mục đích
 Chương trình dùng để:
 - xem hình ảnh CCTV tại các vị trí trong nhà máy
-- xem trạng thái có hàng / không có hàng tại từng vị trí trolley/pallet
-- hỗ trợ hệ thống AGV lấy/trả hàng đúng vị trí
+- xem trạng thái có hàng / không có hàng tại từng vị trí, khu vực đặt trolley/pallet
+- hỗ trợ hệ thống AGV lấy/trả hàng theo đúng vị trí chỉ định
 
 ## 2. Trước khi chạy
 Đảm bảo máy tính đã bật và hệ thống camera đang hoạt động.

@@ -1,7 +1,7 @@
 {
   "stream_profile": "sub",
   "latest_frame_only": true,
-  "reader_output_fps": 10,
+  "reader_output_fps": 20,
   "expected_source_fps": 25,
   "buffer_size": 1,
   "reconnect_delay_sec": 1.0,
