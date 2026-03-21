@@ -32,7 +32,7 @@ from core.runtime_bridge import (
     load_selected_cameras,
 )
 from core.state_tracker import StateTracker
-from core.types import Detection, DetectionResult
+from core.types import CameraConfig, Detection, DetectionResult
 from core.video_file_reader import VideoFileReader
 from core.visualizer import draw_debug_frame
 from core.zone_reasoner import ZoneReasoner
@@ -47,8 +47,8 @@ logger = get_logger(__name__)
 
 @dataclass
 class CameraWorker:
-    camera_cfg: object
-    reader: object
+    camera_cfg: CameraConfig
+    reader: CameraReader | VideoFileReader
     frame_store: FrameStore
     reasoner: ZoneReasoner | None
     tracker: StateTracker | None
