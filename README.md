@@ -61,6 +61,79 @@ python mainProcess.py
 ```bash
 python mainCCTV.py
 ```
+<<<<<<< ours
+=======
+rtsp://user:${RTSP_PASS}@ip:port/Streaming/Channels/101
+```
+
+---
+
+## 9) Fail-safe output policy (AGV)
+Một camera sẽ **hold** nếu:
+- `timestamp` stale > `max_result_staleness_sec`
+- `camera_health` != `online`
+- Có bất kỳ zone state = `unknown`
+
+Payload AGV bao gồm:
+- `health`, `hold`, `states`, `detections`
+
+---
+
+## 10) Triển khai Linux (production)
+### 10.0 One-shot setup (khuyến nghị cho máy mới)
+```bash
+bash scripts/setup_full_linux.sh --project-dir /opt/pidvn25006 --torch cpu
+```
+- Script sẽ copy dự án, cài dependency hệ thống + Python, validate config và tạo service systemd.
+- Nếu dùng CUDA: đổi `--torch cuda`.
+
+### 10.1 Tạo môi trường
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -U pip
+pip install -r requirements.txt
+```
+
+### 10.2 Cài hệ phụ trợ (khuyến nghị)
+```bash
+sudo apt-get update
+sudo apt-get install -y ffmpeg libgl1 libglib2.0-0
+```
+
+### 10.3 Cài PyTorch phù hợp GPU
+- CPU: `pip install torch torchvision`
+- CUDA: dùng lệnh theo hướng dẫn chính thức của PyTorch.
+
+### 10.4 Systemd service (khuyến nghị)
+Tạo file `/etc/systemd/system/pidvn25006.service`:
+```ini
+[Unit]
+Description=PIDVN25006 Monitor
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/pidvn25006
+ExecStart=/opt/pidvn25006/.venv/bin/python /opt/pidvn25006/main_monitor_gui.py
+Restart=always
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Kích hoạt:
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable pidvn25006
+sudo systemctl start pidvn25006
+sudo systemctl status pidvn25006
+```
+
+---
+>>>>>>> theirs
 
 `main.py` đang là hàm main chính của version 1, là main codebase để cải tiến các version sau. Nếu các version sau không ổn, `main.py` vẫn đóng vai trò là main chính của hệ thống (version này chưa cập nhật `main.py` theo đúng tiến độ vì đang thử nghiệm tách chương trình thành frontend và backend cụ thể là `mainCCTV.py` và `mainProcess.py`.
 
