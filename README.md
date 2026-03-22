@@ -1,180 +1,628 @@
-# PIDVN25006 - CCTV Vision System Version 2 - Made by Nguyen Hai Long - RTC Computer Vision
+# PIDVN25006 - AGV Vision CCTV Runtime
+
+Tác giả dự án: Nguyễn Hải Long - RTC Computer Vision
 
 ## 1. Mục tiêu hệ thống
-Hệ thống này giám sát camera CCTV công nghiệp để xác định trạng thái ROI/zone cho trolley hoặc pallet và trả kết quả cho AGV/AMR.
 
-Output quan trọng nhất của hệ thống là trạng thái zone:
-- `1` / `occupied` / `bind`: có hàng trong ROI.
-- `0` / `empty` / `unbind`: không có hàng trong ROI.
-- `unknown`: chưa đủ tin cậy hoặc camera/lồng xử lý đang không ổn định.
+Hệ thống này dùng camera CCTV công nghiệp để xác nhận trạng thái hàng tại các vị trí làm việc với AGV/AMR:
 
-## 2. Kiến trúc V2
-Hệ thống V2 được chia thành 2 tiến trình đơn giản:
+- `occupied` / `bind` / `1`: vị trí đang có hàng
+- `empty` / `unbind` / `0`: vị trí đang trống
+- `unknown`: chưa đủ chắc chắn hoặc camera/runtime đang không ổn định
 
-### `mainProcess.py`
-Backend duy nhất của hệ thống:
-- mở camera/video
-- giữ latest frame của từng camera
+Mục tiêu cuối cùng của phần mềm là:
+
+1. Nhận hình từ camera/video.
+2. Suy luận trạng thái zone/ROI theo từng camera.
+3. Hiển thị giám sát cho người vận hành.
+4. Xuất trạng thái zone cho hệ thống AGV/AMR.
+5. Tùy chọn đồng bộ trực tiếp sang HIK RCS-2000 bằng REST API.
+
+---
+
+## 2. Kiến trúc hệ thống hiện tại
+
+Kiến trúc khuyến nghị hiện tại là V2, tách backend và frontend:
+
+### 2.1 Backend - `mainProcess.py`
+
+Đây là tiến trình trung tâm của hệ thống, chịu trách nhiệm:
+
+- mở camera RTSP hoặc video replay
+- giữ `latest frame` cho từng camera
 - chọn camera đến hạn infer
 - gom batch inference xuống GPU
-- tính trạng thái zone
-- xuất kết quả ROI cho AGV
-- xuất preview/debug frame cho giao diện
+- suy luận trạng thái zone
+- ghi history thay đổi trạng thái
+- xuất preview/debug cho giao diện
+- xuất snapshot runtime cho AGV
+- tùy chọn bridge sang HIK RCS
 
-### `mainCCTV.py`
-Frontend nhẹ:
-- không tự mở camera nữa
-- chỉ đọc preview/debug do backend xuất ra
-- hiển thị lưới CCTV
-- mở detail camera
-- gửi danh sách camera đang được chọn để backend ưu tiên infer
+### 2.2 Frontend - `mainCCTV.py`
 
-## 3. Các file cấu hình chính
-- `configs/cameras.json`: danh sách camera, loại camera, model, zone config.
-- `configs/rules.json`: rule occupancy/empty/unknown và batch inference.
-- `configs/ingest.json`: cấu hình ingest camera/video.
-- `configs/gui.json`: cấu hình lưới hiển thị GUI.
-- `configs/runtime.json`: nhịp decode, infer, preview, priority boost.
+Đây là giao diện giám sát nhẹ:
 
-## 4. Output quan trọng cho AGV
-Backend luôn cập nhật file:
-- `outputs/runtime/agv_latest.json`
+- không tự mở camera
+- chỉ đọc dữ liệu do backend export
+- hiển thị grid camera
+- mở cửa sổ detail camera
+- chọn camera ưu tiên để backend tăng nhịp infer
 
-Đây là file đơn giản nhất để tích hợp cho Version 3 với HIK Server/AGV.
-Mỗi camera có danh sách `zones`, và mỗi zone có:
+### 2.3 Các chế độ main khác
+
+- `main.py`: phiên bản V1/legacy, vẫn hữu ích làm code tham chiếu
+- `main_origin_monitor_gui.py`: monitor kiểu origin/processed từ giai đoạn trước
+- `app/main_runtime.py`, `app/main_replay.py`, `app/main_replay_multi.py`: các luồng chạy thử nghiệm/replay
+
+Trong triển khai thật, ưu tiên:
+
+- backend: `python mainProcess.py`
+- frontend: `python mainCCTV.py`
+
+---
+
+## 3. Luồng dữ liệu tổng thể
+
+Luồng xử lý chuẩn của hệ thống:
+
+`Camera/Video -> CameraReader/VideoFileReader -> FrameStore -> Scheduler -> YOLO batch inference -> ZoneReasoner -> StateTracker -> Runtime Export -> GUI / AGV / HIK RCS`
+
+Giải thích ngắn:
+
+1. Camera/video được đọc liên tục.
+2. Hệ thống chỉ giữ frame mới nhất để giảm độ trễ.
+3. Backend chọn camera nào cần infer theo mức ưu tiên và FPS mục tiêu.
+4. YOLO chạy batch để tận dụng GPU tốt hơn.
+5. Detections được quy đổi sang zone observation.
+6. `StateTracker` áp dụng hysteresis để tránh flicker.
+7. Nếu dữ liệu stale quá ngưỡng, trạng thái bị ép về `unknown`.
+8. Kết quả được xuất sang file runtime, GUI, AGV và bridge HIK.
+
+---
+
+## 4. Cấu trúc thư mục quan trọng
+
+### 4.1 Entrypoint
+
+- `mainProcess.py`: backend chính
+- `mainCCTV.py`: frontend chính
+- `main.py`: runtime V1
+- `main_origin_monitor_gui.py`: monitor thử nghiệm/legacy
+
+### 4.2 Thư mục cấu hình
+
+- `configs/cameras.json`: danh sách camera, nguồn, model, zone config
+- `configs/rules.json`: luật enter/exit/unknown, threshold, batch size
+- `configs/ingest.json`: cấu hình RTSP/video ingest
+- `configs/runtime.json`: nhịp decode/infer/export/preview
+- `configs/gui.json`: cấu hình giao diện
+- `configs/hik_rcs.json`: cấu hình bridge HIK RCS-2000
+- `configs/zones_*.json`: polygon zone theo từng camera
+
+### 4.3 Core modules
+
+- `core/camera_reader.py`: đọc RTSP/live
+- `core/video_file_reader.py`: đọc file replay
+- `core/model_registry.py`: quản lý cache model YOLO
+- `core/zone_reasoner.py`: map detection -> zone observation
+- `core/state_tracker.py`: state machine occupied/empty/unknown
+- `core/runtime_bridge.py`: file bridge giữa backend và frontend
+- `core/hik_rcs_client.py`: HTTP client gọi HIK RCS
+- `core/hik_rcs_bridge.py`: chuyển zone state sang action RCS
+- `core/hik_callback_server.py`: nhận callback từ RCS
+
+### 4.4 Output runtime
+
+Hệ thống dùng `outputs/runtime/` làm bridge dữ liệu:
+
+- `outputs/runtime/process_latest.json`: snapshot runtime toàn hệ
+- `outputs/runtime/agv_latest.json`: snapshot gọn cho AGV
+- `outputs/runtime/selected_cameras.json`: camera đang được chọn từ UI
+- `outputs/runtime/cameras/<camera_id>.json`: snapshot từng camera
+- `outputs/runtime/preview/<camera_id>.jpg`: ảnh preview cho grid
+- `outputs/runtime/debug/<camera_id>.jpg`: ảnh debug detail
+- `outputs/runtime/hik_rcs/`: request/response/state/callback của bridge HIK
+
+### 4.5 Output khác
+
+- `outputs/history/*.jsonl`: log thay đổi trạng thái zone
+
+---
+
+## 5. Ý nghĩa trạng thái zone
+
+Trạng thái zone là đầu ra nghiệp vụ quan trọng nhất của dự án.
+
+### 5.1 Trạng thái logic
+
+- `occupied`: hệ thống tin rằng vị trí đang có hàng
+- `empty`: hệ thống tin rằng vị trí đang trống
+- `unknown`: chưa thể kết luận an toàn
+
+### 5.2 Quy đổi đầu ra
+
+- `occupied` -> `value=1`, `binding=bind`
+- `empty` -> `value=0`, `binding=unbind`
+- `unknown` -> `value=null`, `binding=unknown`
+
+### 5.3 Ý nghĩa vận hành
+
+- `occupied`: AGV không nên coi vị trí là trống
+- `empty`: AGV có thể coi vị trí là trống
+- `unknown`: cần fail-safe, không được suy diễn bừa thành `empty`
+
+---
+
+## 6. Cách hệ thống suy luận trạng thái
+
+### 6.1 Detections -> Zone
+
+Mỗi zone có:
+
 - `zone_id`
-- `value`: `1`, `0`, hoặc `null`
-- `binding`: `bind`, `unbind`, hoặc `unknown`
-- `state`: `occupied`, `empty`, hoặc `unknown`
-- `health`
-- `score`
+- `target_object`
+- polygon chuẩn hóa
 
-## 5. Cách chạy hệ thống
+Một zone chỉ quan tâm object đúng class của nó.
+
+### 6.2 Spatial method
+
+Trong `configs/rules.json`, hệ thống hỗ trợ:
+
+- `bbox_center`
+- `bbox_all_corners`
+
+Khuyến nghị bài toán công nghiệp:
+
+- dùng `bbox_all_corners` để chỉ coi là `occupied` khi bbox nằm gọn trong ROI
+
+### 6.3 Hysteresis
+
+`StateTracker` dùng:
+
+- `enter_window`, `enter_count`
+- `exit_window`, `exit_count`
+
+Mục tiêu:
+
+- tránh flicker
+- tránh flip trạng thái khi detection drop ngắn hạn
+
+### 6.4 Unknown timeout
+
+Nếu camera hoặc pipeline không cập nhật đủ mới:
+
+- trạng thái sẽ bị ép về `unknown`
+- tuyệt đối không tự suy diễn sang `empty`
+
+---
+
+## 7. Cách chạy hệ thống
+
+### 7.1 Chạy tiêu chuẩn
+
 Mở 2 terminal:
 
 ### Terminal 1 - Backend
+
 ```bash
 python mainProcess.py
 ```
 
 ### Terminal 2 - Frontend
+
 ```bash
 python mainCCTV.py
 ```
-<<<<<<< ours
-=======
-rtsp://user:${RTSP_PASS}@ip:port/Streaming/Channels/101
+
+### 7.2 Chạy chỉ backend
+
+Hữu ích khi:
+
+- test inference
+- test AGV snapshot
+- test bridge HIK
+- debug hiệu năng
+
+```bash
+python mainProcess.py
+```
+
+### 7.3 Chạy callback server HIK riêng
+
+```bash
+python tools/hik_rcs_cli.py serve-callbacks
+```
+
+### 7.4 Chạy test bridge HIK ở chế độ giả lập
+
+```bash
+python tools/hik_rcs_cli.py bind-zone --camera-id cam101 --zone-id A1 --state occupied --dry-run
 ```
 
 ---
 
-## 9) Fail-safe output policy (AGV)
-Một camera sẽ **hold** nếu:
-- `timestamp` stale > `max_result_staleness_sec`
-- `camera_health` != `online`
-- Có bất kỳ zone state = `unknown`
+## 8. Cấu hình chi tiết
 
-Payload AGV bao gồm:
-- `health`, `hold`, `states`, `detections`
+### 8.1 `configs/cameras.json`
+
+Mỗi camera gồm:
+
+- `camera_id`
+- `camera_type`
+- `name`
+- `source_type`: `video`, `rtsp`, `live`
+- `source_path`
+- `model_path`
+- `zone_config`
+- `infer_every_n_frames`
+- `enabled`
+
+### 8.1.1 `camera_type`
+
+Các loại chính:
+
+- `trolley_slot`
+- `pallet_slot`
+- `general_monitoring`
+
+### 8.1.2 Khi sửa file này
+
+Cần đảm bảo:
+
+- đường dẫn model đúng
+- đường dẫn video/RTSP đúng
+- camera slot có `zone_config`
+- `enabled=true` cho camera muốn chạy
+
+### 8.2 `configs/rules.json`
+
+Thông số quan trọng:
+
+- `spatial_method`
+- `enter_window`
+- `enter_count`
+- `exit_window`
+- `exit_count`
+- `unknown_timeout_sec`
+- `conf_threshold`
+- `img_size`
+- `batch_size`
+
+### Gợi ý chỉnh
+
+- tăng `enter_count` nếu muốn chống false positive mạnh hơn
+- tăng `exit_count` nếu muốn chống false empty mạnh hơn
+- giảm `img_size` để giảm tải GPU
+- giảm `batch_size` nếu VRAM không đủ
+
+### 8.3 `configs/ingest.json`
+
+Thông số chính:
+
+- `stream_profile`
+- `latest_frame_only`
+- `reader_output_fps`
+- `expected_source_fps`
+- `buffer_size`
+- `reconnect_delay_sec`
+- `rtsp_transport`
+- `open_timeout_msec`
+- `read_timeout_msec`
+
+### Gợi ý chỉnh
+
+- mạng yếu: tăng `read_timeout_msec`
+- muốn giảm delay: giữ `latest_frame_only=true`, `buffer_size=1`
+- camera HIK sub-stream: `stream_profile=sub`
+
+### 8.4 `configs/runtime.json`
+
+Thông số backend quan trọng:
+
+- `decode_fps_default`
+- `slot_infer_fps_default`
+- `general_infer_fps_default`
+- `selected_infer_fps`
+- `detail_infer_fps`
+- `grid_display_fps`
+- `detail_display_fps`
+- `export_interval_ms`
+- `debug_export_fps`
+- `selected_priority_boost`
+
+### Gợi ý chỉnh
+
+- GPU yếu: giảm `slot_infer_fps_default`, `general_infer_fps_default`
+- UI giật: giảm `grid_display_fps`
+- cần detail mượt hơn: tăng `detail_infer_fps`
+
+### 8.5 `configs/gui.json`
+
+Thông số giao diện:
+
+- số hàng/cột grid
+- kích thước tile
+- khoảng cách tile
+- `tile_view_mode`
+
+### 8.6 `configs/hik_rcs.json`
+
+Đây là cấu hình tích hợp HIK RCS-2000.
+
+Các trường chính:
+
+- `enabled`
+- `dry_run`
+- `host`
+- `rpc_port`
+- `dps_port`
+- `client_code`
+- `token_code`
+- `callback_server`
+- `mappings`
+
+### 8.6.1 Ý nghĩa `mappings`
+
+Mỗi mapping là một quy tắc:
+
+- camera nào
+- zone nào
+- gọi API HIK nào
+- mã nghiệp vụ HIK tương ứng là gì
+
+Ví dụ:
+
+- `bindPodAndBerth`
+- `bindPodAndMat`
+- `bindCtnrAndBin`
+
+### 8.6.2 Lưu ý rất quan trọng
+
+Bridge HIK không thể tự bịa ra `positionCode`, `podCode`, `materialLot`, `ctnrCode`.
+
+Bạn bắt buộc phải được HIK/WMS/AGV xác nhận:
+
+- zone nào ứng với mã nào trong RCS
+- loại đối tượng nào đang được quản lý
+- `unknown` sẽ được xử lý bằng `lockPosition` hay cách khác
+
+### 8.6.3 Chế độ an toàn
+
+Khuyến nghị:
+
+- để `dry_run=true` khi test lần đầu
+- chỉ `enabled=true` sau khi mapping thật đã được xác nhận
 
 ---
 
-## 10) Triển khai Linux (production)
-### 10.0 One-shot setup (khuyến nghị cho máy mới)
+## 9. Tích hợp HIK RCS-2000
+
+### 9.1 Điều bridge đang làm
+
+Bridge đọc kết quả zone từ backend và xử lý:
+
+- `occupied` -> bind
+- `empty` -> unbind
+- `unknown` -> lockPosition nếu mapping yêu cầu
+
+Bridge chỉ dispatch khi:
+
+- trạng thái thay đổi
+- hoặc request trước đó thất bại và đến kỳ retry
+
+### 9.2 Callback từ RCS
+
+Bridge hỗ trợ nhận:
+
+- `agvCallback`
+- `warnCallback`
+- `bindNotify`
+
+Dữ liệu callback được lưu vào:
+
+- `outputs/runtime/hik_rcs/callbacks/`
+
+### 9.3 Log giao tiếp HIK
+
+Request/response được lưu tại:
+
+- `outputs/runtime/hik_rcs/http_exchange.jsonl`
+
+State bridge được lưu tại:
+
+- `outputs/runtime/hik_rcs/bridge_state.json`
+
+### 9.4 CLI hỗ trợ
+
+Ví dụ:
+
 ```bash
-bash scripts/setup_full_linux.sh --project-dir /opt/pidvn25006 --torch cpu
-```
-- Script sẽ copy dự án, cài dependency hệ thống + Python, validate config và tạo service systemd.
-- Nếu dùng CUDA: đổi `--torch cuda`.
-
-### 10.1 Tạo môi trường
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -U pip
-pip install -r requirements.txt
-```
-
-### 10.2 Cài hệ phụ trợ (khuyến nghị)
-```bash
-sudo apt-get update
-sudo apt-get install -y ffmpeg libgl1 libglib2.0-0
-```
-
-### 10.3 Cài PyTorch phù hợp GPU
-- CPU: `pip install torch torchvision`
-- CUDA: dùng lệnh theo hướng dẫn chính thức của PyTorch.
-
-### 10.4 Systemd service (khuyến nghị)
-Tạo file `/etc/systemd/system/pidvn25006.service`:
-```ini
-[Unit]
-Description=PIDVN25006 Monitor
-After=network.target
-
-[Service]
-Type=simple
-WorkingDirectory=/opt/pidvn25006
-ExecStart=/opt/pidvn25006/.venv/bin/python /opt/pidvn25006/main_monitor_gui.py
-Restart=always
-RestartSec=5
-Environment=PYTHONUNBUFFERED=1
-
-[Install]
-WantedBy=multi-user.target
-```
-
-Kích hoạt:
-```bash
-sudo systemctl daemon-reload
-sudo systemctl enable pidvn25006
-sudo systemctl start pidvn25006
-sudo systemctl status pidvn25006
+python tools/hik_rcs_cli.py query-agv --map-short-name test
+python tools/hik_rcs_cli.py query-task --task-code TASK-001
+python tools/hik_rcs_cli.py lock-position --position-code P-A1 --action disable
+python tools/hik_rcs_cli.py call-rpc genAgvSchedulingTask payload.json
 ```
 
 ---
->>>>>>> theirs
 
-`main.py` đang là hàm main chính của version 1, là main codebase để cải tiến các version sau. Nếu các version sau không ổn, `main.py` vẫn đóng vai trò là main chính của hệ thống (version này chưa cập nhật `main.py` theo đúng tiến độ vì đang thử nghiệm tách chương trình thành frontend và backend cụ thể là `mainCCTV.py` và `mainProcess.py`.
+## 10. Quy trình vận hành chuẩn
 
-`main_monitor_gui.py` là hàm main dùng để thử nghiệm giao diện giám sát CCTV & detail_window từ version 1, hiện tại có thể sử dụng nếu chỉ cần giám sát CCTV bình thường đang không sử dụng.
-## 6. Luồng vận hành
-1. Backend chạy trước.
-2. Backend mở toàn bộ camera/video.
-3. Backend infer và xuất trạng thái zone.
-4. Frontend đọc preview/debug từ backend để hiển thị.
-5. Khi người vận hành chọn camera trên GUI, frontend ghi camera đó vào runtime bridge.
-6. Backend đọc danh sách camera được chọn và tăng priority infer cho camera đó.
-7. AGV có thể đọc `outputs/runtime/agv_latest.json` để lấy câu trả lời zone ROI hiện tại.
+### 10.1 Trước khi chạy
 
-## 7. Runtime bridge
-Các file giao tiếp nhẹ giữa backend và frontend nằm ở `outputs/runtime/`:
-- `selected_cameras.json`: camera đang được chọn trên UI.
-- `process_latest.json`: tổng snapshot runtime.
-- `agv_latest.json`: output ROI đơn giản cho AGV.
-- `cameras/<camera_id>.json`: snapshot riêng cho từng camera.
-- `preview/<camera_id>.jpg`: ảnh raw preview cho grid/detail.
-- `debug/<camera_id>.jpg`: ảnh processed/debug cho detail camera được chọn.
+Kiểm tra:
 
-## 8. Debug nhanh
-### Nếu frontend mở nhưng không có hình
-- kiểm tra backend đã chạy chưa.
-- kiểm tra thư mục `outputs/runtime/preview` có ảnh hay chưa.
-- kiểm tra `outputs/runtime/cameras/<camera_id>.json` có được cập nhật hay chưa.
+- camera online
+- model đúng đường dẫn
+- zone config đúng camera
+- GPU/driver ổn
+- `configs/hik_rcs.json` đúng nếu dùng HIK bridge
 
-### Nếu AGV chưa có output đúng
-- kiểm tra `outputs/runtime/agv_latest.json`.
-- kiểm tra camera đó có zone config đúng không.
-- kiểm tra model/path camera trong `configs/cameras.json`.
+### 10.2 Trong khi chạy
 
-### Nếu camera yếu hoặc chậm
-- giảm `slot_infer_fps_default` / `general_infer_fps_default` trong `configs/runtime.json`.
-- giảm `decode_fps_default`.
-- giảm `img_size` trong `configs/rules.json`.
-- giảm `grid_display_fps` nếu UI chưa đủ mượt.
+Theo dõi:
 
-## 9. Hướng mở rộng cho Version 3
-Version 2 đã chừa sẵn chỗ cho tích hợp HIK Server/AGV:
-- AGV chỉ cần gửi camera/zone đang quan tâm.
-- Vision backend đã luôn duy trì trạng thái ROI hiện tại.
-- Version 3 chỉ cần thêm adapter/API để đọc hoặc trả lời từ `agv_latest.json` hoặc state memory tương đương.
+- grid camera có hình không
+- detail camera có zone đúng không
+- `outputs/runtime/agv_latest.json` có cập nhật không
+- log backend có lỗi reconnect/model/config không
+
+### 10.3 Khi đóng hệ thống
+
+Thứ tự khuyến nghị:
+
+1. đóng `mainCCTV.py`
+2. đóng `mainProcess.py`
+
+---
+
+## 11. Debug nhanh
+
+### 11.1 Frontend mở nhưng không có hình
+
+Kiểm tra:
+
+- backend có đang chạy không
+- `outputs/runtime/preview/` có ảnh không
+- `outputs/runtime/cameras/<camera_id>.json` có được cập nhật không
+
+### 11.2 Zone sai
+
+Kiểm tra:
+
+- `configs/zones_*.json`
+- `target_object`
+- `spatial_method`
+- model có detect đúng class không
+
+### 11.3 Zone bị nhấp nháy
+
+Kiểm tra và chỉnh:
+
+- `enter_window`, `enter_count`
+- `exit_window`, `exit_count`
+- `unknown_timeout_sec`
+
+### 11.4 Camera RTSP hay offline
+
+Kiểm tra:
+
+- URL RTSP
+- tài khoản mật khẩu
+- `stream_profile`
+- timeout trong `configs/ingest.json`
+
+### 11.5 GPU quá tải
+
+Giảm:
+
+- `slot_infer_fps_default`
+- `general_infer_fps_default`
+- `img_size`
+- `batch_size`
+
+### 11.6 HIK bridge không gửi request
+
+Kiểm tra:
+
+- `configs/hik_rcs.json` có `enabled=true` chưa
+- mapping đã `enabled=true` chưa
+- `dry_run` có đang bật không
+- `outputs/runtime/hik_rcs/http_exchange.jsonl`
+- zone hiện tại có đang `unknown` vì health/score không đủ không
+
+### 11.7 HIK bridge gửi request nhưng AGV không phản ứng
+
+Kiểm tra:
+
+- `positionCode`/`podCode`/`materialLot`/`ctnrCode` có đúng mã thật trong RCS không
+- `client_code` và `token_code` có đúng không
+- RCS có nhận callback hay không
+- phía HIK có đang kỳ vọng API khác với use-case hiện tại không
+
+---
+
+## 12. Mở rộng hệ thống
+
+Các hướng mở rộng rõ ràng nhất:
+
+- thêm camera mới bằng `configs/cameras.json`
+- thêm zone mới bằng `configs/zones_*.json`
+- thêm loại mapping HIK mới trong `core/hik_rcs_bridge.py`
+- thêm API HIK mới trong `core/hik_rcs_client.py`
+- thêm dashboard giám sát runtime
+- thêm persistence/DB thay cho file bridge nếu cần scale
+
+---
+
+## 13. Checklist triển khai tại nhà máy
+
+### 13.1 Checklist phần cứng
+
+- camera đúng vị trí
+- ánh sáng ổn định
+- mạng nội bộ ổn
+- GPU đủ tải
+
+### 13.2 Checklist phần mềm
+
+- môi trường Python đầy đủ
+- model đúng version
+- config camera đúng
+- config zone đúng
+- config runtime phù hợp hiệu năng máy
+
+### 13.3 Checklist tích hợp AGV
+
+- xác nhận API HIK cần dùng
+- xác nhận `positionCode`
+- xác nhận `podCode/materialLot/ctnrCode`
+- xác nhận `client_code`, `token_code`
+- xác nhận callback URL
+- test `dry_run`
+- test request thật
+- test callback thật
+- test fail-safe `unknown`
+
+---
+
+## 14. Giới hạn hiện tại cần hiểu đúng
+
+Đây là điểm rất quan trọng.
+
+Code hiện tại đã hoàn chỉnh về mặt luồng phần mềm, nhưng để chạy production 100% thì vẫn cần đầu vào nghiệp vụ đúng:
+
+- mã HIK RCS thật
+- token thật
+- host/port thật
+- test live với server RCS thật
+
+Nếu Vision chỉ biết có hàng hay không có hàng, mà chưa biết ID đối tượng nghiệp vụ, thì bridge chưa thể tự động gọi bind/unbind đúng nghĩa nếu chưa có mapping phù hợp.
+
+---
+
+## 15. File tài liệu liên quan
+
+- `docs/hik_rcs_vision_integration_vi.md`: hướng dẫn bridge HIK chi tiết
+- `USER_MANUAL.md`: tài liệu cho công nhân vận hành
+
+---
+
+## 16. Kết luận
+
+Phiên bản hiện tại của dự án đã có:
+
+- pipeline Vision hoàn chỉnh
+- GUI giám sát
+- snapshot cho AGV
+- bridge tích hợp HIK RCS
+- tài liệu vận hành và debug
+
+Khi cần triển khai thực tế, hãy luôn làm theo thứ tự:
+
+1. xác nhận config camera/model/zone
+2. chạy backend
+3. kiểm tra GUI và snapshot
+4. bật HIK bridge ở `dry_run`
+5. xác nhận mapping thật
+6. mới chuyển sang request thật
