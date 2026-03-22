@@ -18,6 +18,7 @@ from core.config import (
     load_zone_configs,
 )
 from core.frame_store import FrameStore
+from core.hik_rcs_bridge import HikRcsBridge
 from core.history_logger import HistoryLogger
 from core.logger_config import get_logger
 from core.model_registry import ModelRegistry
@@ -41,6 +42,7 @@ CAMERA_CONFIG_PATH = PROJECT_ROOT / "configs" / "cameras.json"
 RULE_CONFIG_PATH = PROJECT_ROOT / "configs" / "rules.json"
 INGEST_CONFIG_PATH = PROJECT_ROOT / "configs" / "ingest.json"
 RUNTIME_CONFIG_PATH = PROJECT_ROOT / "configs" / "runtime.json"
+HIK_RCS_CONFIG_PATH = PROJECT_ROOT / "configs" / "hik_rcs.json"
 HISTORY_DIR = PROJECT_ROOT / "outputs" / "history"
 logger = get_logger(__name__)
 
@@ -100,6 +102,7 @@ class CentralBackendRuntime:
 
         self.workers = [self._build_worker(cfg) for cfg in self.camera_configs]
         self.model_bundles = {}
+        self.hik_bridge = HikRcsBridge(load_json_dict(HIK_RCS_CONFIG_PATH), PROJECT_ROOT)
         logger.info("CentralBackendRuntime started with %d cameras", len(self.workers))
 
     def _decode_fps_for(self, camera_cfg) -> float:
@@ -367,11 +370,16 @@ class CentralBackendRuntime:
                     encoding="utf-8",
                 )
                 self._export_agv_snapshot(cameras_payload, now_ts)
+                self.hik_bridge.sync(cameras_payload, now_ts)
                 self.last_export_ts = now_ts
 
             time.sleep(self.schedule_sleep_sec)
 
     def close(self) -> None:
+        try:
+            self.hik_bridge.close()
+        except Exception:
+            logger.exception("Failed to close HIK bridge cleanly")
         for worker in self.workers:
             worker.reader.stop()
 

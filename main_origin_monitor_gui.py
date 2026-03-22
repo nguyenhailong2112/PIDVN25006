@@ -1,7 +1,6 @@
-import json
 import time
 import sys
-from types import SimpleNamespace
+from collections import deque
 import threading
 
 import cv2
@@ -20,6 +19,7 @@ from PyQt6.QtWidgets import (
 )
 
 from app.detail_window import DetailWindow
+from core.agv_exporter import AgvExporter
 from core.camera_reader import CameraReader
 from core.camera_runner import CameraRunner
 from core.config import (
@@ -31,9 +31,11 @@ from core.config import (
     validate_rule_config,
 )
 from core.frame_store import FrameStore, LiveFrame
+from core.history_logger import HistoryLogger
 from core.live_camera_processor import LiveCameraProcessor
 from core.logger_config import get_logger
 from core.path_utils import PROJECT_ROOT, ensure_exists, resolve_project_path
+from core.replay_camera_processor import ReplayCameraProcessor
 
 APP_ICON_PATH = PROJECT_ROOT / "assets" / "rtc_logo.png"
 
@@ -41,6 +43,7 @@ CAMERA_CONFIG_PATH = PROJECT_ROOT / "configs" / "cameras.json"
 GUI_CONFIG_PATH = PROJECT_ROOT / "configs" / "gui.json"
 RULE_CONFIG_PATH = PROJECT_ROOT / "configs" / "rules.json"
 AGV_DIR = PROJECT_ROOT / "outputs" / "agv"
+HISTORY_DIR = PROJECT_ROOT / "outputs" / "history"
 logger = get_logger(__name__)
 
 
@@ -231,30 +234,6 @@ class OriginCameraSlot:
         self.reader.stop()
 
 
-class DetailSession:
-    def __init__(self, camera_cfg, rule_cfg, target_fps: float, frame_store: FrameStore):
-        self.camera_cfg = camera_cfg
-        self.rule_cfg = rule_cfg
-        self.target_fps = target_fps
-        self.runner = CameraRunner(self._build_processor(frame_store), target_fps)
-        self.runner.start()
-
-    def _build_processor(self, frame_store: FrameStore):
-        return LiveCameraProcessor(
-            PROJECT_ROOT,
-            self.camera_cfg,
-            self.rule_cfg,
-            expected_fps=self.target_fps,
-            frame_store=frame_store,
-        )
-
-    def get_latest(self):
-        return self.runner.get_latest()
-
-    def close(self):
-        self.runner.stop()
-
-
 class OriginMonitorWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -263,17 +242,45 @@ class OriginMonitorWindow(QMainWindow):
         validate_gui_config(self.gui_cfg)
         self.source_fps = float(self.gui_cfg.get("source_fps", 25.0))
         self.update_interval_ms = int(round(1000.0 / max(1.0, self.source_fps)))
+        self.max_result_staleness_sec = float(self.gui_cfg.get("max_result_staleness_sec", 1.0))
+        self.metrics_log_interval_sec = float(self.gui_cfg.get("metrics_log_interval_sec", 10.0))
         self.rule_cfg = load_rule_config(RULE_CONFIG_PATH)
         validate_rule_config(self.rule_cfg)
 
         self.camera_configs = [cfg for cfg in load_camera_configs(CAMERA_CONFIG_PATH) if cfg.enabled]
         validate_camera_configs(self.camera_configs)
         self.slots = [OriginCameraSlot(cfg, target_fps=self.source_fps) for cfg in self.camera_configs]
-        self.slot_map = {cfg.camera_id: slot for cfg, slot in zip(self.camera_configs, self.slots)}
+        self.slot_by_camera_id = {
+            cfg.camera_id: slot
+            for cfg, slot in zip(self.camera_configs, self.slots)
+        }
+
+        self.processor_target_fps = float(self.gui_cfg.get("processor_target_fps", self.source_fps))
+        if self.processor_target_fps <= 0:
+            self.processor_target_fps = self.source_fps
+
+        self.agv_output_interval_ms = int(self.gui_cfg.get("agv_output_interval_ms", 40))
+        self.debug_frame_export_interval_ms = int(self.gui_cfg.get("debug_frame_export_interval_ms", 40))
+        self.last_agv_export_ts = 0.0
+        self.last_debug_export_ts = {}
+
+        self.history_logger = HistoryLogger(HISTORY_DIR)
+        self.last_logged_ts = {}
+        self.metrics = {}
+        self.last_metrics_log_ts = time.time()
+        self.agv_exporter = AgvExporter(AGV_DIR)
+
+        self.runners = [
+            CameraRunner(self._build_processor(cfg), self.processor_target_fps)
+            for cfg in self.camera_configs
+        ]
+        for runner in self.runners:
+            runner.start()
         self.latest_frames = {}
         self.latest_frame_ids = {}
+        self.latest_results = {}
+        self.last_result_frame_ids = {}
         self.detail_windows = {}
-        self.detail_sessions = {}
 
         self.setWindowTitle("AGV CCTV Origin Monitor")
         if APP_ICON_PATH.exists():
@@ -330,6 +337,124 @@ class OriginMonitorWindow(QMainWindow):
         self.timer.start(self.update_interval_ms)
         logger.info("OriginMonitorWindow started with %d cameras", len(self.camera_configs))
 
+    def _build_processor(self, camera_cfg):
+        if camera_cfg.source_type in {"rtsp", "live"}:
+            slot = self.slot_by_camera_id.get(camera_cfg.camera_id)
+            return LiveCameraProcessor(
+                PROJECT_ROOT,
+                camera_cfg,
+                self.rule_cfg,
+                expected_fps=self.source_fps,
+                frame_store=slot.frame_store if slot is not None else None,
+            )
+        return ReplayCameraProcessor(PROJECT_ROOT, camera_cfg, self.rule_cfg, target_fps=self.source_fps)
+
+    def _export_debug_frame(self, camera_id: str, debug_frame, now_ts: float) -> None:
+        last_ts = self.last_debug_export_ts.get(camera_id, 0.0)
+        if (now_ts - last_ts) * 1000.0 < self.debug_frame_export_interval_ms:
+            return
+        if debug_frame is None:
+            return
+        out_path = AGV_DIR / f"{camera_id}_debug.jpg"
+        try:
+            cv2.imwrite(str(out_path), debug_frame)
+            self.last_debug_export_ts[camera_id] = now_ts
+        except Exception:
+            logger.exception("Failed to export debug frame for %s", camera_id)
+
+    def _export_agv_snapshot(self, now_ts: float) -> None:
+        cameras_payload = []
+        for result in self.latest_results.values():
+            stale = (now_ts - result["timestamp"]) > self.max_result_staleness_sec
+            camera_health = result.get("camera_health", "unknown")
+            states = result.get("current_states", [])
+            hold = stale or camera_health != "online" or any(state.state == "unknown" for state in states)
+
+            cameras_payload.append(
+                {
+                    "camera_id": result["camera_id"],
+                    "camera_type": result["camera_type"],
+                    "timestamp": result["timestamp"],
+                    "health": "stale" if stale else camera_health,
+                    "hold": hold,
+                    "states": []
+                    if stale
+                    else [
+                        {
+                            "zone_id": state.zone_id,
+                            "state": state.state,
+                            "score": round(state.score, 4),
+                            "health": state.health,
+                        }
+                        for state in states
+                    ],
+                    "detections": [] if stale else result.get("detections", []),
+                }
+            )
+
+        payload = {
+            "timestamp": now_ts,
+            "camera_count": len(cameras_payload),
+            "cameras": cameras_payload,
+        }
+        self.agv_exporter.export_snapshot(payload)
+        for cam in cameras_payload:
+            self.agv_exporter.export_camera(cam["camera_id"], cam)
+
+    def _update_metrics(self, result: dict, detect_ms: float) -> None:
+        camera_id = result["camera_id"]
+        entry = self.metrics.get(camera_id)
+        if entry is None:
+            entry = {
+                "frame_count": 0,
+                "unknown_count": 0,
+                "detect_ms": deque(maxlen=300),
+                "last_ts": time.time(),
+                "reconnect_count": 0,
+            }
+            self.metrics[camera_id] = entry
+
+        entry["frame_count"] += 1
+        entry["detect_ms"].append(detect_ms)
+        states = result.get("current_states", [])
+        if any(state.state == "unknown" for state in states):
+            entry["unknown_count"] += 1
+
+        health = result.get("camera_health", "unknown")
+        if health in {"offline", "stale"}:
+            entry["reconnect_count"] += 1
+
+    def _log_metrics_if_due(self) -> None:
+        now = time.time()
+        if now - self.last_metrics_log_ts < self.metrics_log_interval_sec:
+            return
+        self.last_metrics_log_ts = now
+
+        for camera_id, entry in self.metrics.items():
+            dt = max(1e-3, now - entry["last_ts"])
+            fps = entry["frame_count"] / dt
+            unknown_ratio = entry["unknown_count"] / max(1, entry["frame_count"])
+            samples = list(entry["detect_ms"])
+            detect_p95 = 0.0
+            if samples:
+                samples.sort()
+                detect_p95 = samples[int(0.95 * (len(samples) - 1))]
+
+            logger.info(
+                "[Metrics] %s fps=%.1f detect_p95=%.1fms unknown_ratio=%.2f reconnects=%d",
+                camera_id,
+                fps,
+                detect_p95,
+                unknown_ratio,
+                entry["reconnect_count"],
+            )
+
+            entry["frame_count"] = 0
+            entry["unknown_count"] = 0
+            entry["detect_ms"].clear()
+            entry["last_ts"] = now
+            entry["reconnect_count"] = 0
+
     def on_tile_clicked(self, index: int):
         if index >= len(self.camera_configs):
             return
@@ -342,12 +467,7 @@ class OriginMonitorWindow(QMainWindow):
             window = DetailWindow(camera_id)
             self.detail_windows[camera_id] = window
 
-        session = self.detail_sessions.get(camera_id)
-        if session is None:
-            session = DetailSession(camera_cfg, self.rule_cfg, self.source_fps, self.slot_map[camera_id].frame_store)
-            self.detail_sessions[camera_id] = session
-
-        result = session.get_latest()
+        result = self.latest_results.get(camera_id)
         if result is not None:
             window.update_result(result)
 
@@ -377,34 +497,56 @@ class OriginMonitorWindow(QMainWindow):
             tile.set_title(f"{self.camera_configs[index].name} ({camera_id})")
             tile.set_frame(live_frame.frame)
 
+        for runner in self.runners:
+            result = runner.get_latest()
+            if result is None:
+                continue
+
+            camera_id = result["camera_id"]
+            last_result_frame_id = self.last_result_frame_ids.get(camera_id)
+            if last_result_frame_id == result["frame_id"]:
+                continue
+
+            self.last_result_frame_ids[camera_id] = result["frame_id"]
+            self.latest_results[camera_id] = result
+
+            last_ts = self.last_logged_ts.get(camera_id)
+            if result["changed_states"] and result["timestamp"] != last_ts:
+                self.history_logger.log_zone_states(
+                    camera_id,
+                    result["changed_states"],
+                    result["timestamp"],
+                )
+                self.last_logged_ts[camera_id] = result["timestamp"]
+
+            detect_ms = float(result.get("detect_ms", 0.0))
+            self._update_metrics(result, detect_ms)
+            self._export_debug_frame(camera_id, result.get("debug_frame"), time.time())
+
         for camera_id, window in list(self.detail_windows.items()):
             if window is None or not window.isVisible():
                 continue
 
-            session = self.detail_sessions.get(camera_id)
-            if session is None:
-                continue
-
-            result = session.get_latest()
+            result = self.latest_results.get(camera_id)
             if result is None:
                 continue
 
             window.update_result(result)
 
-        for camera_id, window in list(self.detail_windows.items()):
-            if window is not None and not window.isVisible():
-                session = self.detail_sessions.pop(camera_id, None)
-                if session is not None:
-                    session.close()
+        now_ts = time.time()
+        if (now_ts - self.last_agv_export_ts) * 1000.0 >= self.agv_output_interval_ms:
+            self._export_agv_snapshot(now_ts)
+            self.last_agv_export_ts = now_ts
+        self._log_metrics_if_due()
 
     def closeEvent(self, event):
         logger.info("Closing OriginMonitorWindow")
         for window in self.detail_windows.values():
             window.close()
+        for runner in self.runners:
+            runner.stop()
         for slot in self.slots:
             slot.close()
-        for session in self.detail_sessions.values():
-            session.close()
         super().closeEvent(event)
 
 
