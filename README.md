@@ -604,6 +604,7 @@ Nếu Vision chỉ biết có hàng hay không có hàng, mà chưa biết ID đ
 ## 15. File tài liệu liên quan
 
 - `docs/hik_rcs_vision_integration_vi.md`: hướng dẫn bridge HIK chi tiết
+- `docs/hik_rcs_commissioning_step_by_step_vi.md`: hướng dẫn triển khai cầm tay chỉ việc Vision -> HIK RCS
 - `USER_MANUAL.md`: tài liệu cho công nhân vận hành
 
 ---
