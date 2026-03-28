@@ -215,6 +215,93 @@ python mainProcess.py
 python mainCCTV.py
 ```
 
+### 7.1.1 Chay mot cham va tu restart khi crash
+
+Tren Ubuntu Desktop/Server, khuyen nghi uu tien chay bang supervisor:
+
+```bash
+chmod +x run_forever.sh
+./run_forever.sh
+```
+
+Neu dang o Windows moi dung:
+
+```bat
+run_forever.cmd
+```
+
+Hoac goi truc tiep supervisor:
+
+```bash
+python tools/run_forever.py
+```
+
+Supervisor se:
+
+- tu dong mo `mainProcess.py`
+- tu dong mo `mainCCTV.py`
+- theo doi 2 tien trinh nay lien tuc
+- tien trinh nao exit bat thuong se duoc khoi dong lai
+- ghi log watchdog tai `outputs/runtime/supervisor/supervisor.log`
+
+Co the chay chi backend:
+
+```bash
+./run_forever.sh --no-frontend
+```
+
+Luu y quan trong:
+
+- supervisor chi hoat dong khi may tinh va user session van con hoat dong
+- neu may shutdown hoac user session ket thuc, tat ca process trong session deu dung
+- tren Ubuntu, neu muon tu dong chay lai sau reboot, can dang ky them `systemd`
+- tren Windows, neu muon tu dong chay lai sau reboot/logon, can dang ky them Task Scheduler hoac service Windows
+
+### 7.1.2 Ubuntu Server voi `systemd`
+
+Neu may la Ubuntu Server hoac ban muon he thong tu len lai sau reboot, hay dung file mau:
+
+- `deploy/systemd/pidvn25006.service`
+
+Quy trinh khuyen nghi:
+
+1. copy project vao duong dan on dinh, vi du `/opt/PIDVN25006`
+2. sua `User`, `WorkingDirectory`, `ExecStart` trong file service cho dung may that
+3. copy file service vao:
+
+```bash
+sudo cp deploy/systemd/pidvn25006.service /etc/systemd/system/
+```
+
+4. nap lai `systemd`:
+
+```bash
+sudo systemctl daemon-reload
+```
+
+5. bat auto-start:
+
+```bash
+sudo systemctl enable pidvn25006.service
+```
+
+6. start service:
+
+```bash
+sudo systemctl start pidvn25006.service
+```
+
+7. xem trang thai:
+
+```bash
+sudo systemctl status pidvn25006.service
+```
+
+Khuyen nghi cho Ubuntu Server:
+
+- dung `ExecStart=/opt/PIDVN25006/run_forever.sh --no-frontend`
+- frontend neu can thi mo rieng tren Ubuntu Desktop hoac may monitor
+
 ### 7.2 Chạy chỉ backend
 
 Hữu ích khi:
@@ -228,11 +315,52 @@ Hữu ích khi:
 python mainProcess.py
 ```
 
+### 7.2.1 Tham so supervisor
+
+Supervisor ho tro mot so tham so:
+
+```bash
+./run_forever.sh --frontend-delay-sec 5 --restart-delay-sec 3 --crash-backoff-sec 10
+```
+
+Y nghia:
+
+- `--frontend-delay-sec`: doi bao lau roi moi mo giao dien sau khi backend da start
+- `--restart-delay-sec`: do tre restart thong thuong
+- `--crash-backoff-sec`: do tre restart khi process crash qua nhanh
+- `--poll-interval-sec`: chu ky watchdog kiem tra child process
+- `--no-frontend`: chi giu backend song
+
+Neu dang o Ubuntu Server hoac may khong co giao dien:
+
+- chay `--no-frontend`
+- giu backend sinh output runtime va HIK bridge
+- neu can auto-start sau reboot, uu tien `systemd`
+
+Luu y:
+
+- `tools/run_forever.py` hien tai tu kiem tra `DISPLAY`/`WAYLAND_DISPLAY`
+- neu chay tren Linux headless ma ban quen `--no-frontend`, supervisor se canh bao va tu dong chay backend-only thay vi crash-loop frontend
+
 ### 7.3 Chạy callback server HIK riêng
 
 ```bash
 python tools/hik_rcs_cli.py serve-callbacks
 ```
+
+### 7.3.1 Thu muc log cua supervisor
+
+Khi chay bang `run_forever.sh`, `run_forever.cmd` hoac `tools/run_forever.py`, can theo doi them:
+
+- `outputs/runtime/supervisor/supervisor.log`
+
+File nay dung de truy vet:
+
+- backend da duoc start luc nao
+- frontend da duoc start luc nao
+- process nao crash
+- code exit cua child process la gi
+- watchdog da restart lai bao nhieu lan
 
 ### 7.4 Chạy test bridge HIK ở chế độ giả lập
 
@@ -457,6 +585,7 @@ Kiểm tra:
 - zone config đúng camera
 - GPU/driver ổn
 - `configs/hik_rcs.json` đúng nếu dùng HIK bridge
+- neu chay production lien tuc tren Ubuntu, uu tien dung `run_forever.sh` thay vi mo tay 2 terminal
 
 ### 10.2 Trong khi chạy
 
@@ -466,6 +595,7 @@ Theo dõi:
 - detail camera có zone đúng không
 - `outputs/runtime/agv_latest.json` có cập nhật không
 - log backend có lỗi reconnect/model/config không
+- `outputs/runtime/supervisor/supervisor.log` co ghi nhan restart bat thuong khong
 
 ### 10.3 Khi đóng hệ thống
 
@@ -473,6 +603,11 @@ Thứ tự khuyến nghị:
 
 1. đóng `mainCCTV.py`
 2. đóng `mainProcess.py`
+
+Neu dang chay bang supervisor:
+
+1. nhan `Ctrl+C` tai cua so supervisor
+2. cho watchdog dong backend/frontend co kiem soat
 
 ---
 

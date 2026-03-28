@@ -58,7 +58,36 @@ He thong thuong se co 2 phan:
 
 Ky thuat vien se cau hinh san. Nguoi van hanh chi can mo theo dung thu tu.
 
-### 3.1 Mo backend truoc
+### 3.1 Cach khuyen nghi de mo he thong hang ngay
+
+Khuyen nghi nhat:
+
+```bash
+chmod +x run_forever.sh
+./run_forever.sh
+```
+
+Khi dung cach nay:
+
+- he thong se tu mo backend
+- he thong se tu mo giao dien
+- neu chuong trinh bi crash bat thuong, watchdog se tu khoi dong lai
+
+Neu may dang la Ubuntu Server khong co desktop:
+
+```bash
+chmod +x run_forever.sh
+./run_forever.sh --no-frontend
+```
+
+Neu may server can tu chay lai sau reboot, ky thuat vien se cau hinh them `systemd`.
+Nguoi van hanh thong thuong khong tu sua file service.
+
+### 3.2 Truong hop mo tay thu cong
+
+Chi dung cach nay khi ky thuat vien yeu cau hoac khi can debug.
+
+#### Mo backend truoc
 
 Chay:
 
@@ -66,7 +95,7 @@ Chay:
 python mainProcess.py
 ```
 
-### 3.2 Mo giao dien giam sat sau
+#### Mo giao dien giam sat sau
 
 Chay:
 
@@ -106,8 +135,8 @@ Khi bam vao 1 camera:
 
 ## 5. Cach thao tac hang ngay
 
-1. Mo `mainProcess.py`
-2. Mo `mainCCTV.py`
+1. Mo `run_forever.sh`
+2. Cho he thong tu mo backend va giao dien
 3. Quan sat grid camera
 4. Bam vao camera can xem chi tiet
 5. Doc trang thai `occupied`, `empty`, `unknown`
@@ -123,6 +152,7 @@ He thong duoc coi la binh thuong khi:
 - trang thai zone cap nhat lien tuc
 - khong bi dung hinh lau
 - khong co qua nhieu `unknown`
+- cua so watchdog van dang chay
 
 ---
 
@@ -144,12 +174,22 @@ Can bao ngay khi co mot trong cac truong hop sau:
 
 Neu he thong bi tre nhe hoac man hinh khong cap nhat:
 
-1. Dong `mainCCTV.py`
-2. Dong `mainProcess.py`
-3. Mo lai `mainProcess.py`
-4. Mo lai `mainCCTV.py`
+1. Kiem tra cua so `run_forever.sh` con dang mo hay khong
+2. Doi watchdog tu khoi dong lai neu chuong trinh vua bi crash
+3. Neu he thong van khong phuc hoi, dong cua so `run_forever.sh`
+4. Mo lai `run_forever.sh`
 
 Neu van loi, bao ky thuat vien.
+
+## 8.1 Log can bao cho ky thuat vien
+
+Khi he thong gap van de, hay ghi lai:
+
+- camera nao bi loi
+- thoi gian bi loi
+- watchdog co thong bao restart khong
+- file log neu ky thuat vien yeu cau:
+  - `outputs/runtime/supervisor/supervisor.log`
 
 ---
 
@@ -161,6 +201,7 @@ Khong tu y:
 - sua duong dan camera
 - sua model
 - xoa file trong thu muc output
+- dong cua so `run_forever.sh` khi he thong dang van hanh
 - tat backend khi he thong dang van hanh
 
 Neu can thay doi, goi ky thuat vien hoac nguoi phu trach he thong.
@@ -216,4 +257,5 @@ Khi co van de:
 - ghi lai camera nao bi loi
 - ghi lai thoi gian bi loi
 - chup man hinh neu can
+- neu co the, gui them file `outputs/runtime/supervisor/supervisor.log`
 - bao ngay cho ky thuat vien hoac nguoi phu trach he thong

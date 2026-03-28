@@ -204,23 +204,32 @@ Neu chua co du 8 nhom thong tin tren, chua du dieu kien de ket luan "co the di l
 
 Trong du an nay, cac file quan trong nhat cho tich hop HIK/AGV la:
 
+- `run_forever.sh`
+- `run_forever.cmd`
+- `deploy/systemd/pidvn25006.service`
 - `configs/hik_rcs.json`
 - `mainProcess.py`
 - `core/hik_rcs_bridge.py`
 - `core/hik_rcs_client.py`
 - `core/hik_callback_server.py`
+- `tools/run_forever.py`
 - `tools/hik_rcs_cli.py`
 - `outputs/runtime/agv_latest.json`
 - `outputs/runtime/hik_rcs/http_exchange.jsonl`
 - `outputs/runtime/hik_rcs/bridge_state.json`
 - `outputs/runtime/hik_rcs/callbacks/`
+- `outputs/runtime/supervisor/supervisor.log`
 
 Y nghia tung thanh phan:
 
+- `run_forever.sh`: lenh Linux/Ubuntu mot cham de khoi dong watchdog.
+- `run_forever.cmd`: lenh Windows mot cham de khoi dong watchdog.
+- `deploy/systemd/pidvn25006.service`: mau service cho Ubuntu Server de auto-start sau reboot.
 - `mainProcess.py`: backend Vision sinh ra zone state va goi bridge.
 - `hik_rcs_bridge.py`: map state Vision sang API HIK.
 - `hik_rcs_client.py`: gui HTTP POST JSON sang HIK.
 - `hik_callback_server.py`: nhan callback tu HIK.
+- `tools/run_forever.py`: supervisor giu backend/frontend song va tu restart khi crash.
 - `agv_latest.json`: snapshot local cho he thong AGV/noi bo neu can doc file.
 - `http_exchange.jsonl`: bang chung request/response that hoac dry-run.
 
@@ -554,6 +563,13 @@ Chay:
 python mainProcess.py
 ```
 
+Neu muon test backend theo cach van hanh gan production hon:
+
+```bash
+chmod +x run_forever.sh
+./run_forever.sh --no-frontend
+```
+
 Kiem tra:
 
 - `outputs/runtime/agv_latest.json`
@@ -632,16 +648,25 @@ Chay:
 python mainProcess.py
 ```
 
+Neu dang setup tren may van hanh, khuyen nghi chay:
+
+```bash
+chmod +x run_forever.sh
+./run_forever.sh
+```
+
 Luc nay:
 
 - bridge van doc state that
 - van tao request dung theo logic
 - nhung khong gui ra HIK
+- neu backend/frontend crash, watchdog se tu khoi dong lai
 
 Kiem tra:
 
 - `outputs/runtime/hik_rcs/bridge_state.json`
 - log backend
+- `outputs/runtime/supervisor/supervisor.log`
 
 Luu y:
 
@@ -729,12 +754,20 @@ Thao tac:
 python mainProcess.py
 ```
 
+Khuyen nghi o site that:
+
+```bash
+chmod +x run_forever.sh
+./run_forever.sh
+```
+
 Kiem tra:
 
 - `outputs/runtime/hik_rcs/http_exchange.jsonl`
 - console backend
 - callback files
 - phan ung thuc te cua HIK/AGV
+- `outputs/runtime/supervisor/supervisor.log`
 
 Pass khi:
 
@@ -920,6 +953,38 @@ Chi test:
 - roi 1 camera
 - roi 1 nhom camera
 - roi moi den toan bo line
+
+### 13.6 Watchdog khong thay the `systemd` hoac service manager cua OS
+
+`run_forever.sh`, `run_forever.cmd` va `tools/run_forever.py` se giu he thong song khi:
+
+- backend crash
+- frontend crash
+- child process exit bat thuong
+
+Nhung watchdog nay van song trong user session hien tai.
+
+Vi vay:
+
+- neu may shutdown, watchdog cung dung
+- neu user logoff hoac desktop session ket thuc, watchdog cung dung
+- tren Ubuntu, neu muon auto-run sau reboot, phai cau hinh them `systemd`
+- tren Windows, neu muon auto-run sau reboot hoac sau logon, phai cau hinh them Task Scheduler hoac service Windows
+
+### 13.7 Khuyen nghi cho Ubuntu Server
+
+Neu may la Ubuntu Server va nhiem vu chinh la:
+
+- sinh output runtime
+- bridge sang HIK RCS
+- khong can mo GUI tai chinh may do
+
+Thi khuyen nghi production:
+
+- chay `run_forever.sh --no-frontend`
+- dang ky bang `systemd`
+- chi mo frontend tren may desktop giam sat rieng neu can
+- neu ky su quen khong truyen `--no-frontend` tren Linux headless, supervisor se tu phat hien khong co `DISPLAY`/`WAYLAND_DISPLAY` va ha xuong backend-only
 
 ---
 
