@@ -116,7 +116,7 @@ class CctvMonitorWindow(QMainWindow):
         self.last_detail_poll_ts = {}
         self.last_preview_mtime = {}
 
-        self.setWindowTitle("AGV CCTV Frontend")
+        self.setWindowTitle("RTC VISION CCTV MONITOR")
         if APP_ICON_PATH.exists():
             self.setWindowIcon(QIcon(str(APP_ICON_PATH)))
         self.resize(1700, 980)
