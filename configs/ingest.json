@@ -1,5 +1,5 @@
 {
-  "stream_profile": "sub",
+  "stream_profile": "main",
   "latest_frame_only": true,
   "reader_output_fps": 20,
   "expected_source_fps": 25,

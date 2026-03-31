@@ -1,6 +1,7 @@
 import json
 import sys
 import time
+import numpy as np
 
 import cv2
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
@@ -77,18 +78,37 @@ class ImageTile(QFrame):
             self.image_label.setText("No Signal")
             return
 
-        target_w = max(1, self.image_label.width())
-        target_h = max(1, self.image_label.height())
+        target_size = self.image_label.size()
+        target_w = max(1, target_size.width())
+        target_h = max(1, target_size.height())
         frame = self.last_frame_bgr
         src_h, src_w = frame.shape[:2]
         scale = min(1.0, target_w / src_w, target_h / src_h)
         new_w = max(1, int(src_w * scale))
         new_h = max(1, int(src_h * scale))
         resized = cv2.resize(frame, (new_w, new_h), interpolation=cv2.INTER_AREA if scale < 1 else cv2.INTER_LINEAR)
-        rgb = cv2.cvtColor(resized, cv2.COLOR_BGR2RGB)
+        canvas = np.zeros((target_h, target_w, 3), dtype=np.uint8)
+
+        # center ảnh vào giữa
+        x_offset = (target_w - new_w) // 2
+        y_offset = (target_h - new_h) // 2
+
+        canvas[y_offset:y_offset + new_h, x_offset:x_offset + new_w] = resized
+
+        rgb = cv2.cvtColor(canvas, cv2.COLOR_BGR2RGB)
         h, w, ch = rgb.shape
+
         image = QImage(rgb.data, w, h, ch * w, QImage.Format.Format_RGB888)
-        self.image_label.setPixmap(QPixmap.fromImage(image))
+
+        pixmap = QPixmap.fromImage(image)
+
+        self.image_label.setPixmap(
+            pixmap.scaled(
+                self.image_label.size(),
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation
+            )
+        )
 
     def resizeEvent(self, event):
         super().resizeEvent(event)

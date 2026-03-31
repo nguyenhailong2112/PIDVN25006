@@ -5,11 +5,17 @@ from core.types import DetectionResult, ZoneConfig, ZoneState
 
 
 STATE_COLORS = {
-    "occupied": (0, 0, 180),
-    "empty": (0, 180, 0),
-    "unknown": (0, 180, 180),
+    "occupied": (0, 0, 150),
+    "empty": (0, 150, 0),
+    "unknown": (0, 150, 150),
 }
 
+DET_COLORS = {
+    "person": (0, 255, 0),
+    "obstacle": (0, 165, 255),
+    "pallet": (255, 0, 0),
+    "trolley": (255, 255, 0),
+}
 
 def draw_debug_frame(
     frame: np.ndarray,
@@ -37,14 +43,53 @@ def draw_debug_frame(
         cv2.polylines(canvas, [points], True, color, 2)
 
         label = f"{zone.zone_id}: {state_name}"
-        cv2.putText(canvas, label, tuple(points[0]), cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
+        font = cv2.FONT_HERSHEY_DUPLEX
+        font_scale = 0.5
 
-    # Luôn vẽ detection để cả camera slot-based lẫn general monitoring đều debug được.
+        (tw, th), _ = cv2.getTextSize(label, font, font_scale, 1)
+        x, y = points[0]
+
+        cv2.rectangle(canvas, (x, y - th - 6), (x + tw + 4, y), color, -1)
+
+        cv2.putText(canvas, label, (x + 2, y - 2), font, font_scale, (255, 255, 255), 1, cv2.LINE_AA)
+
     if detection_result is not None:
         for det in detection_result.detections:
             x1, y1, x2, y2 = det.bbox_xyxy
-            cv2.rectangle(canvas, (x1, y1), (x2, y2), (255, 255, 0), 2)
-            text = f"{det.class_name} {det.confidence:.2f}"
-            cv2.putText(canvas, text, (x1, max(20, y1 - 8)), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 0), 2)
+            cls_name = det.class_name
+            conf = det.confidence
+
+            color = DET_COLORS.get(cls_name, (180, 180, 180))
+
+            cv2.rectangle(canvas, (x1, y1), (x2, y2), color, 1)
+
+            label = f"{cls_name} {conf:.2f}"
+
+            font = cv2.FONT_HERSHEY_DUPLEX
+            font_scale = 0.5
+            font_thickness = 1
+
+            (tw, th), _ = cv2.getTextSize(label, font, font_scale, font_thickness)
+
+            text_y = y1 - 6 if y1 - th - 6 > 0 else y1 + th + 6
+
+            cv2.rectangle(
+                canvas,
+                (x1, text_y - th - 4),
+                (x1 + tw + 4, text_y),
+                color,
+                -1
+            )
+
+            cv2.putText(
+                canvas,
+                label,
+                (x1 + 2, text_y - 2),
+                font,
+                font_scale,
+                (255, 255, 255),
+                font_thickness,
+                cv2.LINE_AA
+            )
 
     return canvas

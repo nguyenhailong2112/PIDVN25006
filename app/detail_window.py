@@ -38,19 +38,21 @@ class ImagePanel(QLabel):
             self.setText(self.panel_title)
             return
 
-        target_w = max(1, self.width())
-        target_h = max(1, self.height())
         frame = self.last_frame_bgr
-        src_h, src_w = frame.shape[:2]
-        scale = min(1.0, target_w / src_w, target_h / src_h)
-        new_w = max(1, int(src_w * scale))
-        new_h = max(1, int(src_h * scale))
-        resized = cv2.resize(frame, (new_w, new_h), interpolation=cv2.INTER_AREA if scale < 1 else cv2.INTER_LINEAR)
-        rgb = cv2.cvtColor(resized, cv2.COLOR_BGR2RGB)
+
+        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         h, w, ch = rgb.shape
+
         image = QImage(rgb.data, w, h, ch * w, QImage.Format.Format_RGB888)
         pixmap = QPixmap.fromImage(image)
-        self.setPixmap(pixmap)
+
+        self.setPixmap(
+            pixmap.scaled(
+                self.size(),
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation
+            )
+        )
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
