@@ -89,7 +89,7 @@ class ZoneGridCard(QFrame):
         self.clear_grid()
 
         if not states:
-            label = QLabel("general_monitoring / no zone-based state")
+            label = QLabel("No zone-based state available")
             label.setStyleSheet("color: #f0f0f0; font-size: 14px;")
             self.layout.addWidget(label, 0, 0)
             return

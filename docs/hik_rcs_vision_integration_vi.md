@@ -132,6 +132,25 @@ Su dung khi bai toan nghiep vu la pallet/container/bin.
 }
 ```
 
+### 5.4 Elevator / vung an toan chi can "co vat la khoa"
+Su dung khi zone Vision dai dien cho buong thang may, cua lien dong, hoac vung an toan ma AGV khong duoc di vao khi co bat ky vat the nao xuat hien.
+
+Trong use-case nay:
+- khong can phan biet person, pallet, trolley hay obstacle
+- chi can co bat ky object nao cat vao ROI thi coi la `occupied`
+- HIK/RCS nen nhan du lieu theo kieu khoa/mo vi tri bang `lockPosition`
+
+Trong code hien tai, cach cau hinh dung la:
+- tao 1 ROI lon phu gan het vung trong thang may
+- dat `target_object` la `*`
+- dat `spatial_method` la `bbox_intersects`
+- map zone do sang `method=lockPosition`
+
+Ket qua:
+- `occupied` -> `lockPosition(indBind=0)`
+- `empty` -> `lockPosition(indBind=1)`
+- `unknown` -> `lockPosition(indBind=0)`
+
 ## 6. Yeu cau nghiep vu can lam ro voi HIK
 Day la diem quan trong nhat de tich hop thanh cong.
 
@@ -154,6 +173,7 @@ Bridge co cac co che sau:
 - co `dry_run` de test ma khong gui that
 - tu dong `lockPosition` khi `unknown` neu mapping yeu cau
 - tu dong `enable` lai vi tri khi state quay ve `occupied/empty`
+- ho tro `method=lockPosition` cho cac zone safety interlock nhu thang may AGV
 - luu state tai `outputs/runtime/hik_rcs/bridge_state.json`
 - log request/response tai `outputs/runtime/hik_rcs/http_exchange.jsonl`
 - luu callback tai `outputs/runtime/hik_rcs/callbacks/`

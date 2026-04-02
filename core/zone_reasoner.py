@@ -1,4 +1,4 @@
-from core.geometry import is_bbox_all_corners_in_polygon, is_bbox_center_in_polygon
+from core.geometry import is_bbox_all_corners_in_polygon, is_bbox_center_in_polygon, is_bbox_intersects_polygon
 from core.types import DetectionResult, RuleConfig, ZoneConfig, ZoneObservation
 
 
@@ -15,11 +15,11 @@ class ZoneReasoner:
             matched_confidence = None
 
             for det in detection_result.detections:
-                # A zone only cares about its own target object.
-                if det.class_name != zone.target_object:
+                if not self._matches_target_object(zone.target_object, det.class_name):
                     continue
 
-                if self._match_detection_to_zone(det.bbox_xyxy, zone.polygon, frame_width, frame_height):
+                spatial_method = zone.spatial_method or self.rules.spatial_method
+                if self._match_detection_to_zone(det.bbox_xyxy, zone.polygon, frame_width, frame_height, spatial_method):
                     if matched_confidence is None or det.confidence > matched_confidence:
                         matched_confidence = det.confidence
 
@@ -42,13 +42,22 @@ class ZoneReasoner:
         polygon: list[tuple[float, float]],
         frame_width: int,
         frame_height: int,
+        spatial_method: str,
     ) -> bool:
-        if self.rules.spatial_method == "bbox_center":
+        if spatial_method == "bbox_center":
             return is_bbox_center_in_polygon(bbox_xyxy, polygon, frame_width, frame_height)
 
-        if self.rules.spatial_method == "bbox_all_corners":
-            # Industrial occupancy logic:
-            # count the slot as occupied only when the full trolley/pallet bbox is inside the ROI.
+        if spatial_method == "bbox_all_corners":
             return is_bbox_all_corners_in_polygon(bbox_xyxy, polygon, frame_width, frame_height)
 
-        raise ValueError(f"Unsupported spatial_method: {self.rules.spatial_method}")
+        if spatial_method == "bbox_intersects":
+            return is_bbox_intersects_polygon(bbox_xyxy, polygon, frame_width, frame_height)
+
+        raise ValueError(f"Unsupported spatial_method: {spatial_method}")
+
+    @staticmethod
+    def _matches_target_object(target_object: str, class_name: str) -> bool:
+        normalized = (target_object or "").strip().lower()
+        if normalized in {"*", "any", "any_object", "all"}:
+            return True
+        return class_name.strip().lower() == normalized

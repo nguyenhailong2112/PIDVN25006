@@ -130,7 +130,7 @@ class CentralBackendRuntime:
         zone_configs = []
         reasoner = None
         tracker = None
-        if camera_cfg.camera_type in {"trolley_slot", "pallet_slot"}:
+        if camera_cfg.zone_config:
             zone_config_path = ensure_exists(camera_cfg.zone_config, "Zone config")
             zone_configs = load_zone_configs(zone_config_path)
             reasoner = ZoneReasoner(zone_configs, self.rule_cfg)
@@ -148,7 +148,7 @@ class CentralBackendRuntime:
     def _target_infer_fps(self, worker: CameraWorker, selected_cameras: set[str]) -> float:
         if worker.camera_cfg.camera_id in selected_cameras:
             return self.detail_infer_fps
-        if worker.camera_cfg.camera_type in {"trolley_slot", "pallet_slot"}:
+        if worker.reasoner is not None:
             return self.slot_infer_fps_default
         return self.general_infer_fps_default
 

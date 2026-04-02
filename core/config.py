@@ -50,15 +50,23 @@ def load_zone_configs(path: str | Path) -> list[ZoneConfig]:
     path = ensure_exists(path, "Zone config")
     data = json.loads(path.read_text(encoding="utf-8"))
     zone_items = data["zones"]
+    allowed_spatial_methods = {"bbox_center", "bbox_all_corners", "bbox_intersects", ""}
 
     zones: list[ZoneConfig] = []
     for item in zone_items:
+        spatial_method = _coerce_str(item.get("spatial_method", ""))
+        if spatial_method not in allowed_spatial_methods:
+            raise ValueError(f"Unsupported zone spatial_method={spatial_method} in {path}")
+        target_object = _coerce_str(item.get("target_object", "")).strip()
+        if not target_object:
+            raise ValueError(f"Zone target_object is required in {path}")
         polygon = [(float(x), float(y)) for x, y in item["polygon"]]
         zones.append(
             ZoneConfig(
                 zone_id=item["zone_id"],
-                target_object=item["target_object"],
+                target_object=target_object,
                 polygon=polygon,
+                spatial_method=spatial_method or None,
             )
         )
     return zones
@@ -125,14 +133,13 @@ def validate_camera_configs(configs: list[CameraConfig]) -> None:
                 ensure_exists(cfg.model_path, f"{cfg.camera_id} model_path")
             except FileNotFoundError as exc:
                 errors.append(str(exc))
-        if cfg.camera_type in {"trolley_slot", "pallet_slot"}:
-            if not cfg.zone_config:
-                errors.append(f"{cfg.camera_id}: zone_config required for slot camera")
-            else:
-                try:
-                    ensure_exists(cfg.zone_config, f"{cfg.camera_id} zone_config")
-                except FileNotFoundError as exc:
-                    errors.append(str(exc))
+        if cfg.zone_config:
+            try:
+                ensure_exists(cfg.zone_config, f"{cfg.camera_id} zone_config")
+            except FileNotFoundError as exc:
+                errors.append(str(exc))
+        elif cfg.camera_type in {"trolley_slot", "pallet_slot"}:
+            errors.append(f"{cfg.camera_id}: zone_config required for slot camera")
 
     if errors:
         raise ValueError("Config validation failed:\n- " + "\n- ".join(errors))
@@ -140,6 +147,8 @@ def validate_camera_configs(configs: list[CameraConfig]) -> None:
 
 def validate_rule_config(rule_cfg: RuleConfig) -> None:
     errors = []
+    if rule_cfg.spatial_method not in {"bbox_center", "bbox_all_corners", "bbox_intersects"}:
+        errors.append("spatial_method must be one of: bbox_center, bbox_all_corners, bbox_intersects")
     if rule_cfg.enter_window <= 0 or rule_cfg.exit_window <= 0:
         errors.append("enter_window/exit_window must be > 0")
     if rule_cfg.enter_count <= 0 or rule_cfg.exit_count <= 0:

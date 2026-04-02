@@ -69,7 +69,7 @@ class LiveCameraProcessor:
         self.reasoner = None
         self.tracker = None
 
-        if camera_config.camera_type in ["trolley_slot", "pallet_slot"]:
+        if camera_config.zone_config:
             zone_config_path = ensure_exists(camera_config.zone_config, "Zone config")
             self.zone_configs = load_zone_configs(zone_config_path)
             self.reasoner = ZoneReasoner(self.zone_configs, rule_config)
@@ -122,11 +122,11 @@ class LiveCameraProcessor:
                 self.last_detection_result = detection_result
                 detect_ms = (time.perf_counter() - t0) * 1000.0
 
-                if self.camera_config.camera_type in ["trolley_slot", "pallet_slot"]:
+                if self.reasoner is not None and self.tracker is not None:
                     observations = self.reasoner.observe(fresh_detection_result, live_frame.frame.shape)
                     changed_states = self.tracker.update_observations(observations)
 
-        if self.camera_config.camera_type in ["trolley_slot", "pallet_slot"]:
+        if self.reasoner is not None and self.tracker is not None:
             current_states = self.tracker.get_current_states(self.camera_config.camera_id, live_frame.timestamp)
             zone_occupancy = [
                 {

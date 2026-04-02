@@ -44,6 +44,22 @@
       "unknown_action": "lockPosition",
       "position_code": "P-A1",
       "notes": "Example mapping for a pallet/container style flow."
+    },
+    {
+      "enabled": false,
+      "camera_id": "cam6",
+      "zone_id": "LIFT_1",
+      "method": "lockPosition",
+      "position_code": "LIFT-01",
+      "notes": "Elevator safety interlock example. occupied/unknown -> lockPosition(indBind=0), empty -> lockPosition(indBind=1). Replace position_code with the real RCS code."
+    },
+    {
+      "enabled": false,
+      "camera_id": "cam7",
+      "zone_id": "LIFT_2",
+      "method": "lockPosition",
+      "position_code": "LIFT-02",
+      "notes": "Elevator safety interlock example. occupied/unknown -> lockPosition(indBind=0), empty -> lockPosition(indBind=1). Replace position_code with the real RCS code."
     }
   ]
 }

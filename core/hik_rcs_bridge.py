@@ -21,7 +21,7 @@ class _SafeFormatDict(dict):
 class HikRcsBridge:
     """Maps Vision zone states to HIK RCS bind/unbind and safety calls."""
 
-    SUPPORTED_METHODS = {"bindPodAndBerth", "bindPodAndMat", "bindCtnrAndBin"}
+    SUPPORTED_METHODS = {"bindPodAndBerth", "bindPodAndMat", "bindCtnrAndBin", "lockPosition"}
 
     def __init__(self, config: dict, project_root: str | Path) -> None:
         self.config = config or {}
@@ -111,22 +111,13 @@ class HikRcsBridge:
         return changed
 
     def _handle_unknown(self, mapping: dict, context: dict[str, Any], entry: dict[str, Any], now_ts: float) -> bool:
+        method = str(mapping.get("method", "")).strip()
+        if method == "lockPosition":
+            return self._dispatch_lock_state(mapping, context, entry, now_ts, desired_state="disabled")
         action = str(mapping.get("unknown_action", "none")).strip()
         if action != "lockPosition":
             return False
-        dispatch = entry.setdefault("lock_dispatch", {})
-        desired_key = "lock:disable"
-        position_code = self._resolve_field(mapping, "lock_position_code", context) or self._resolve_field(mapping, "position_code", context)
-        if not position_code:
-            logger.warning("[HIK-RCS] %s missing position_code for unknown lock action", self._mapping_key(mapping))
-            return False
-        if not self._should_dispatch(dispatch, desired_key, now_ts):
-            return False
-        req_code = self._prepare_dispatch(dispatch, desired_key, now_ts)
-        response = self._send_lock_position(req_code=req_code, position_code=position_code, ind_bind="0")
-        self._commit_dispatch(dispatch, response, now_ts)
-        entry["lock_state"] = "disabled" if self.client.is_success(response) else entry.get("lock_state", "unknown")
-        return True
+        return self._dispatch_lock_state(mapping, context, entry, now_ts, desired_state="disabled")
 
     def _handle_known(
         self,
@@ -137,22 +128,18 @@ class HikRcsBridge:
         now_ts: float,
     ) -> bool:
         changed = False
+        method = str(mapping.get("method", "")).strip()
+        if method == "lockPosition":
+            desired_state = "disabled" if vision_state == "occupied" else "enabled"
+            return self._dispatch_lock_state(mapping, context, entry, now_ts, desired_state=desired_state)
+
         action = str(mapping.get("unknown_action", "none")).strip()
         if action == "lockPosition" and entry.get("lock_state") == "disabled":
-            dispatch = entry.setdefault("lock_dispatch", {})
-            desired_key = "lock:enable"
-            position_code = self._resolve_field(mapping, "lock_position_code", context) or self._resolve_field(mapping, "position_code", context)
-            if position_code and self._should_dispatch(dispatch, desired_key, now_ts):
-                req_code = self._prepare_dispatch(dispatch, desired_key, now_ts)
-                response = self._send_lock_position(req_code=req_code, position_code=position_code, ind_bind="1")
-                self._commit_dispatch(dispatch, response, now_ts)
-                if not self.client.is_success(response):
-                    return True
-                entry["lock_state"] = "enabled"
-                changed = True
+            changed |= self._dispatch_lock_state(mapping, context, entry, now_ts, desired_state="enabled")
+            if entry.get("lock_dispatch", {}).get("success") is False:
+                return True
 
         dispatch = entry.setdefault("bind_dispatch", {})
-        method = str(mapping.get("method", "")).strip()
         if method not in self.SUPPORTED_METHODS:
             logger.warning("[HIK-RCS] %s unsupported method=%s", self._mapping_key(mapping), method)
             return changed
@@ -270,6 +257,30 @@ class HikRcsBridge:
                 "indBind": ind_bind,
             },
         )
+
+    def _dispatch_lock_state(
+        self,
+        mapping: dict,
+        context: dict[str, Any],
+        entry: dict[str, Any],
+        now_ts: float,
+        desired_state: str,
+    ) -> bool:
+        dispatch = entry.setdefault("lock_dispatch", {})
+        desired_key = "lock:enable" if desired_state == "enabled" else "lock:disable"
+        position_code = self._resolve_field(mapping, "lock_position_code", context) or self._resolve_field(mapping, "position_code", context)
+        if not position_code:
+            logger.warning("[HIK-RCS] %s missing position_code for lockPosition action", self._mapping_key(mapping))
+            return False
+        if not self._should_dispatch(dispatch, desired_key, now_ts):
+            return False
+        req_code = self._prepare_dispatch(dispatch, desired_key, now_ts)
+        ind_bind = "1" if desired_state == "enabled" else "0"
+        response = self._send_lock_position(req_code=req_code, position_code=position_code, ind_bind=ind_bind)
+        self._commit_dispatch(dispatch, response, now_ts)
+        if self.client.is_success(response):
+            entry["lock_state"] = desired_state
+        return True
 
     def _dispatch(self, api_name: str, sender, req_code: str, payload: dict[str, Any]) -> dict[str, Any]:
         if self.dry_run:

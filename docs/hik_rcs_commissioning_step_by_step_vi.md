@@ -1,297 +1,430 @@
-# HUONG DAN CAM TAY CHI VIEC: VISION -> HIK RCS / AGV / AMR
+# HƯỚNG DẪN CẦM TAY CHỈ VIỆC: TRIỂN KHAI VISION <-> HIK RCS-2000
 
-Tai lieu nay la runbook trien khai thuc dia cho ky su setup, commissioning va nghiem thu ket noi giua he thong Vision va HIK RCS-2000 de AGV/AMR van hanh that.
+Tài liệu này là bản hướng dẫn triển khai thực địa hoàn chỉnh để kết nối hệ thống Vision trong dự án này với HIK RCS-2000, phục vụ điều phối AGV/AMR.
 
-Muc tieu cua tai lieu:
+Mục tiêu của tài liệu:
 
-1. Hieu dung output cua Vision la gi.
-2. Quy doi output do sang nghiep vu ma HIK RCS hieu.
-3. Dien config dung, khong bo sot field.
-4. Test tung buoc theo thu tu an toan.
-5. Biet ro khi nao duoc phep chuyen tu dry-run sang request that.
-6. Biet ro khi nao co the ket luan "tich hop thanh cong".
+1. Giúp bạn hiểu đúng bản chất giao tiếp giữa hai hệ thống.
+2. Giúp bạn xác định chính xác phải cấu hình gì trong code, trong RCS và trên hiện trường.
+3. Giúp bạn thực hiện test theo đúng thứ tự, an toàn, có kiểm soát, có bằng chứng.
+4. Giúp bạn đi từ trạng thái “đang mơ hồ” đến trạng thái “đủ chắc chắn để commissioning”.
 
-Tai lieu nay khong rut gon thao tac. Hay di tung buoc, danh dau pass/fail ro rang, khong bo qua buoc nao.
+Tài liệu này được viết theo hướng:
+
+- đầy đủ
+- có trình tự
+- dễ làm theo
+- hạn chế suy đoán
+- bám sát code đang có trong project
 
 ---
 
-## 1. Hieu dung bai toan va gioi han cua he thong
+## 1. Kết luận quan trọng nhất phải nắm trước
 
-He thong Vision hien tai xuat ra 3 trang thai nghiep vu cho moi zone:
+### 1.1 Vision không gửi “occupied/empty” thuần túy sang RCS
+
+Đây là điểm quan trọng nhất của toàn bộ bài toán.
+
+HIK RCS-2000 không làm việc theo kiểu:
+
+- Vision gửi lên: “ô này có hàng”
+- RCS nhận một bit occupancy rồi tự hiểu toàn bộ nghiệp vụ
+
+Thay vào đó, RCS làm việc theo API nghiệp vụ.
+
+Tức là Vision phải quy đổi trạng thái zone sang một hành động nghiệp vụ mà RCS hiểu, ví dụ:
+
+- bind rack vào vị trí
+- unbind rack khỏi vị trí
+- bind rack với material lot
+- bind container với bin
+- khóa vị trí khi trạng thái không chắc chắn
+
+### 1.2 Kiến trúc đúng của hệ thống
+
+Tư duy đúng phải là:
+
+`Vision -> Zone State -> Bridge nghiệp vụ -> HIK RCS API -> RCS scheduling -> AGV/AMR`
+
+Ý nghĩa:
+
+- Vision chỉ xác nhận hiện trường.
+- Bridge chuyển trạng thái Vision sang đúng API nghiệp vụ.
+- HIK RCS mới là hệ thống quản lý business object, scheduling và điều phối AGV/AMR.
+
+### 1.3 Muốn thành công thì phải chốt đúng 4 điểm
+
+Code đã có. Giao thức đã có. API hãng đã có. UI RCS cũng đã có.
+
+Thành bại thực tế bây giờ nằm ở 4 điểm sau:
+
+1. Mapping nghiệp vụ đúng.
+2. Auth đúng.
+3. Callback đúng.
+4. Trình tự test đúng.
+
+Nếu 4 điểm này đúng, việc tích hợp sẽ rõ ràng và làm được.
+
+---
+
+## 2. Hệ thống code hiện tại trong project đang làm được gì
+
+Trong project này, phần giao tiếp HIK RCS đã có sẵn các thành phần chính:
+
+- [`core/hik_rcs_client.py`](C:\Users\longn\PycharmProjects\PIDVN25006\core\hik_rcs_client.py)
+  Vai trò: gửi HTTP POST JSON sang HIK RCS.
+
+- [`core/hik_rcs_bridge.py`](C:\Users\longn\PycharmProjects\PIDVN25006\core\hik_rcs_bridge.py)
+  Vai trò: đọc state Vision và map sang API nghiệp vụ của HIK.
+
+- [`core/hik_callback_server.py`](C:\Users\longn\PycharmProjects\PIDVN25006\core\hik_callback_server.py)
+  Vai trò: nhận callback từ HIK RCS.
+
+- [`tools/hik_rcs_cli.py`](C:\Users\longn\PycharmProjects\PIDVN25006\tools\hik_rcs_cli.py)
+  Vai trò: test thủ công từng API, từng zone mapping, callback server.
+
+- [`configs/hik_rcs.json`](C:\Users\longn\PycharmProjects\PIDVN25006\configs\hik_rcs.json)
+  Vai trò: cấu hình kết nối, auth, callback và mapping zone -> business API.
+
+### 2.1 Các API nghiệp vụ mà code đang hỗ trợ
+
+Code hiện tại đang hỗ trợ đúng các nhóm API chính:
+
+- `bindPodAndBerth`
+- `bindPodAndMat`
+- `bindCtnrAndBin`
+- `lockPosition`
+- `queryAgvStatus`
+- `queryTaskStatus`
+
+### 2.2 Callback mà code hiện tại đang nhận
+
+Code callback server hiện tại hỗ trợ:
+
+- `agvCallback`
+- `warnCallback`
+- `bindNotify`
+
+### 2.3 Ý nghĩa state Vision trong bridge
+
+Trong hệ thống này, state từ Vision được hiểu như sau:
 
 - `occupied`
+  Nghĩa là vị trí có đối tượng cần quản lý.
+
 - `empty`
+  Nghĩa là vị trí trống.
+
 - `unknown`
+  Nghĩa là không đủ cơ sở kết luận an toàn.
 
-Y nghia:
+Quy tắc bridge hiện tại:
 
-- `occupied`: Vision ket luan vi tri dang co doi tuong can quan ly.
-- `empty`: Vision ket luan vi tri dang trong.
-- `unknown`: Vision khong du co so de ket luan an toan.
-
-Dieu quan trong nhat:
-
-- HIK RCS khong co API "gui occupancy thuan tuy".
-- Vision khong giao tiep truc tiep voi robot AMR bang mot lenh "di lam viec".
-- Vision phai quy doi ket qua sang nghiep vu ma HIK RCS hieu, roi HIK RCS moi scheduling va dieu phoi AMR.
-
-Kien truc dung:
-
-`Vision -> zone state -> HIK bridge -> HIK RCS API -> RCS scheduling -> AGV/AMR`
-
-Hay giu tu duy nay trong suot qua trinh trien khai:
-
-- Vision chi xac nhan trang thai hien truong.
-- HIK RCS quan ly business object va scheduling.
-- AGV/AMR phan ung dua tren trang thai nghiep vu ma HIK RCS da nhan.
+- `occupied` -> bind
+- `empty` -> unbind
+- `unknown` -> không bind/unbind mù, ưu tiên `lockPosition` nếu cấu hình `unknown_action=lockPosition`
 
 ---
 
-## 2. 3 nhom use-case ma HIK RCS dang ho tro trong du an nay
+## 3. 3 nhóm use-case nghiệp vụ mà bạn phải chọn đúng
 
-### 2.1 Rack/Trolley tai mot vi tri
+Bạn không được bắt đầu test live khi chưa chốt zone đó thuộc nhóm nghiệp vụ nào.
 
-Dung API:
+### 3.1 Nhóm 1: Rack/Trolley tại một vị trí
+
+Dùng API:
 
 - `bindPodAndBerth`
 
-Quy doi:
+Ý nghĩa:
 
-- `occupied` -> `indBind=1`
-- `empty` -> `indBind=0`
-- `unknown` -> uu tien `lockPosition(indBind=0)` neu zone yeu cau fail-safe
+- Khi Vision xác nhận vị trí đang có rack/trolley -> bind rack với vị trí
+- Khi Vision xác nhận vị trí trống -> unbind rack khỏi vị trí
 
-Du lieu can co:
+Field nghiệp vụ cần có:
 
 - `positionCode`
 - `podCode`
-- tuy chon `podDir`
-- tuy chon `characterValue`
+- tùy chọn `podDir`
+- tùy chọn `characterValue`
 
-### 2.2 Rack/Trolley gan voi material lot
+Quy đổi:
 
-Dung API:
+- `occupied` -> `indBind=1`
+- `empty` -> `indBind=0`
+- `unknown` -> ưu tiên `lockPosition(indBind=0)` nếu site yêu cầu fail-safe
+
+### 3.2 Nhóm 2: Rack/Trolley gắn với material lot
+
+Dùng API:
 
 - `bindPodAndMat`
 
-Quy doi:
-
-- `occupied` -> bind rack voi lot
-- `empty` -> unbind rack voi lot
-- `unknown` -> fail-safe theo quy tac site
-
-Du lieu can co:
+Field nghiệp vụ cần có:
 
 - `podCode`
 - `materialLot`
 
-### 2.3 Pallet/Container/Bin
+Quy đổi:
 
-Dung API:
+- `occupied` -> bind
+- `empty` -> unbind
+- `unknown` -> xử lý fail-safe theo quy tắc site
+
+### 3.3 Nhóm 3: Pallet/Container/Bin
+
+Dùng API:
 
 - `bindCtnrAndBin`
 
-Quy doi:
-
-- `occupied` -> `indBind=1`
-- `empty` -> `indBind=0`
-- `unknown` -> uu tien `lockPosition(indBind=0)` neu zone quan trong
-
-Du lieu can co:
+Field nghiệp vụ cần có:
 
 - `ctnrCode`
 - `ctnrTyp`
-- mot trong hai truong:
+- một trong hai:
   - `stgBinCode`
-  - `positionCode`
+  - hoặc `positionCode`
 
-Ket luan:
+Quy đổi:
 
-- Khong co API "Vision occupied".
-- Luon phai chon dung API business.
+- `occupied` -> `indBind=1`
+- `empty` -> `indBind=0`
+- `unknown` -> ưu tiên `lockPosition(indBind=0)` nếu đây là zone quan trọng
+
+### 3.4 Kết luận chốt method
+
+Bạn phải tự trả lời chính xác câu này cho từng zone:
+
+- Zone này ngoài hiện trường đang đại diện cho rack tại vị trí?
+- Hay rack gắn với material lot?
+- Hay pallet/container/bin?
+
+Chỉ sau khi trả lời được câu đó mới được chọn:
+
+- `bindPodAndBerth`
+- hoặc `bindPodAndMat`
+- hoặc `bindCtnrAndBin`
+
+### 3.5 Use-case đặc biệt: thang máy AGV hoặc vùng an toàn chỉ cần "có vật là chặn"
+
+Đây là use-case rất quan trọng trong dự án hiện tại.
+
+Bài toán:
+
+- Camera nhìn vào buồng thang máy.
+- Chỉ cần trong ROI có bất kỳ object nào thì AGV không được vào thang máy.
+
+Tư duy đúng:
+
+- Đây vẫn là bài toán zone-based state.
+- Nhưng đây không phải bài toán bind một business object như rack hay pallet.
+- Đây là bài toán safety interlock.
+
+Cách làm đúng trong code:
+
+1. Tạo ROI lớn phủ gần toàn bộ vùng trong thang máy.
+2. Đặt `target_object="*"` để nhận mọi class detect được.
+3. Dùng `spatial_method="bbox_intersects"` để chỉ cần bbox chạm ROI là tính có vật.
+4. Vision vẫn sinh state zone chuẩn:
+   - có vật -> `occupied`
+   - không có vật -> `empty`
+   - không chắc chắn -> `unknown`
+5. Mapping sang HIK bằng `method="lockPosition"`:
+   - `occupied` -> `lockPosition(indBind=0)`
+   - `empty` -> `lockPosition(indBind=1)`
+   - `unknown` -> `lockPosition(indBind=0)`
+
+Đây là cách triển khai đúng nhất cho use-case thang máy nếu mục tiêu thực sự là cho phép hoặc cấm AGV đi vào vùng đó.
 
 ---
 
-## 3. 8 thong tin bat buoc phai co truoc khi di commissioning
+## 4. 8 nhóm thông tin bắt buộc phải có trước khi đi commissioning
 
-Khong bat dau commissioning khi chua co du 8 nhom thong tin duoi day.
+Không được đi live khi chưa có đủ 8 nhóm thông tin sau.
 
-### 3.1 Thong tin ket noi HIK RCS
+### 4.1 Thông tin kết nối RCS
 
-Phai xin duoc:
+Phải có:
 
 - `host`
 - `rpc_port`
 - `dps_port`
-- `scheme`:
-  - thuong la `http`
-  - neu site yeu cau TLS thi xac nhan `https`
+- `scheme`
 
-### 3.2 Thong tin xac thuc
+### 4.2 Thông tin xác thực
 
-Phai xin duoc:
+Phải có:
 
 - `client_code`
 - `token_code`
 
-Neu site noi "khong can token":
+Nếu bên HIK nói không cần token, vẫn phải xác nhận rõ bằng tài liệu kỹ thuật hoặc trao đổi chính thức.
 
-- van phai xac nhan bang van ban hoac email ky thuat.
-- khong duoc tu suy doan.
+### 4.3 Bảng mapping zone -> business code
 
-### 3.3 Bang mapping zone -> HIK business code
-
-Phai co bang mapping ro rang:
+Phải có cho từng zone cần test:
 
 - `camera_id`
 - `zone_id`
 - `method`
 - `positionCode`
-- va mot trong cac nhom:
+- và mã nghiệp vụ tương ứng:
   - `podCode`
-  - `materialLot`
-  - `ctnrCode` + `ctnrTyp`
+  - hoặc `materialLot`
+  - hoặc `ctnrCode + ctnrTyp`
 
-### 3.4 Quy tac fail-safe cho `unknown`
+### 4.4 Quy tắc fail-safe cho `unknown`
 
-Phai xac nhan:
+Phải xác nhận:
 
-- `unknown` co duoc bind/unbind khong
-- co dung `lockPosition` khong
-- neu dung `lockPosition` thi khoa vi tri nao
-- khi nao duoc mo lai vi tri
+- `unknown` có được phép bind/unbind hay không
+- có dùng `lockPosition` hay không
+- nếu có thì khóa vị trí nào
+- khi nào mở lại vị trí
 
-### 3.5 Callback tu HIK
+### 4.5 Callback
 
-Phai xac nhan:
+Phải xác nhận:
 
-- HIK co goi callback khong
-- callback base URL la gi
-- HIK dang goi theo path:
+- RCS có gọi callback hay không
+- callback base URL là gì
+- RCS đang gọi theo dạng:
   - `/service/rest/...`
   - hay `/service/rest/agvCallbackService/...`
 
-### 3.6 Quy tac nghiep vu cua doi tuong duoc quan ly
+### 4.6 Quy tắc object ID
 
-Phai xac nhan:
+Phải xác nhận:
 
-- doi tuong trong ROI la rack, trolley, pallet, container hay lot
-- object ID do la co dinh theo zone hay thay doi theo ngay/lenh
-- neu thay doi, he thong nao cap ID moi
+- object trong zone là rack, trolley, pallet, container hay lot
+- object ID là cố định theo zone hay thay đổi theo lệnh/ngày/sản xuất
+- nếu thay đổi thì hệ thống nào cấp ID đó
 
-### 3.7 Dieu kien mang va firewall
+### 4.7 Điều kiện mạng
 
-Phai xac nhan:
+Phải xác nhận:
 
-- Vision PC ping duoc HIK RCS
-- HIK RCS goi nguoc callback ve Vision PC duoc
-- port callback mo qua firewall
-- DNS hay IP co on dinh
+- Vision PC đi được tới RCS
+- RCS gọi ngược được về Vision callback server
+- port callback không bị firewall chặn
 
-### 3.8 Dieu kien nghiem thu
+### 4.8 Điều kiện nghiệm thu
 
-Phai xac nhan truoc:
+Phải xác nhận trước:
 
-- can bao nhieu zone test
-- can test nhung tinh huong nao
-- ai la nguoi ky xac nhan ben AGV/HIK/WMS
-
-Neu chua co du 8 nhom thong tin tren, chua du dieu kien de ket luan "co the di live".
+- test bao nhiêu zone
+- test những tình huống nào
+- ai là người xác nhận bên HIK/AGV/WMS
 
 ---
 
-## 4. File va module can nam long truoc khi deploy
+## 5. Cách dùng UI RCS để chốt đúng thông tin
 
-Trong du an nay, cac file quan trong nhat cho tich hop HIK/AGV la:
+Bạn đã có thêm `UIRCS.pdf`, đây là lợi thế rất lớn.
 
-- `run_forever.sh`
-- `run_forever.cmd`
-- `deploy/systemd/pidvn25006.service`
-- `configs/hik_rcs.json`
-- `mainProcess.py`
-- `core/hik_rcs_bridge.py`
-- `core/hik_rcs_client.py`
-- `core/hik_callback_server.py`
-- `tools/run_forever.py`
-- `tools/hik_rcs_cli.py`
-- `outputs/runtime/agv_latest.json`
-- `outputs/runtime/hik_rcs/http_exchange.jsonl`
-- `outputs/runtime/hik_rcs/bridge_state.json`
-- `outputs/runtime/hik_rcs/callbacks/`
-- `outputs/runtime/supervisor/supervisor.log`
+Từ thời điểm này, UI RCS không còn chỉ để “xem tham khảo”, mà phải được dùng để xác nhận từng field nghiệp vụ.
 
-Y nghia tung thanh phan:
+### 5.1 Những màn hình cần tìm trong UI RCS
 
-- `run_forever.sh`: lenh Linux/Ubuntu mot cham de khoi dong watchdog.
-- `run_forever.cmd`: lenh Windows mot cham de khoi dong watchdog.
-- `deploy/systemd/pidvn25006.service`: mau service cho Ubuntu Server de auto-start sau reboot.
-- `mainProcess.py`: backend Vision sinh ra zone state va goi bridge.
-- `hik_rcs_bridge.py`: map state Vision sang API HIK.
-- `hik_rcs_client.py`: gui HTTP POST JSON sang HIK.
-- `hik_callback_server.py`: nhan callback tu HIK.
-- `tools/run_forever.py`: supervisor giu backend/frontend song va tu restart khi crash.
-- `agv_latest.json`: snapshot local cho he thong AGV/noi bo neu can doc file.
-- `http_exchange.jsonl`: bang chung request/response that hoac dry-run.
+Khi xem `UIRCS.pdf` hoặc ngồi trực tiếp trước màn hình RCS, hãy tìm bằng được các nhóm màn hình sau:
 
----
+1. Màn hình system parameter hoặc integration parameter
+2. Màn hình cấu hình external interface hoặc callback
+3. Màn hình quản lý position/berth/bin
+4. Màn hình quản lý pod/rack/container/material lot
+5. Màn hình AGV status
+6. Màn hình task status
+7. Màn hình cảnh báo/warning/notification
 
-## 5. Hieu dung output cua Vision truoc khi noi vao HIK
+### 5.2 Khi nhìn một màn hình UI, phải tự hỏi 3 câu
 
-Truoc khi noi HIK, ban phai test Vision rieng va xac nhan 3 dieu:
+1. Màn hình này xác nhận được field nào trong config?
+2. Mã đang hiện trên UI là mã business thật hay chỉ là tên hiển thị?
+3. Trường này có đúng là `positionCode`, `podCode`, `ctnrCode`, `materialLot` không?
 
-1. Zone detect dung tren thuc te hien truong.
-2. Zone khong flicker bat thuong.
-3. `unknown` xuat hien dung ly do, khong phai vi config sai.
+### 5.3 Không được nhầm giữa “tên hiển thị” và “business code”
 
-Kiem tra tai:
+Ví dụ:
 
-- `outputs/runtime/agv_latest.json`
-- `outputs/runtime/process_latest.json`
-- `outputs/runtime/cameras/<camera_id>.json`
+- “Kệ A1”
+- “Zone rack đầu line”
+- “Pallet khu vực 3”
 
-Dieu ban can thay:
+Các chuỗi trên có thể chỉ là tên hiển thị.
 
-- moi `camera_id` co danh sach `zones`
-- moi `zone_id` co:
-  - `state`
-  - `value`
-  - `binding`
-  - `health`
-  - `score`
+Cái bạn cần cho tích hợp không phải tên mô tả, mà là business code thật dùng trong API, ví dụ:
 
-Chi khi output Vision da dung, moi tiep tuc setup HIK.
+- `P-A1`
+- `RACK-001`
+- `PALLET-001`
+- `LOT-ABC-001`
 
----
+### 5.4 Bảng quy đổi UI RCS -> file config
 
-## 6. Lap bang mapping nghiep vu truoc khi sua config
+Khi đọc UI RCS, hãy quy đổi như sau:
 
-Truoc khi mo file `configs/hik_rcs.json`, hay lap bang mapping day du nhu sau va xin ben HIK/WMS/AGV ky confirm.
-
-| camera_id | zone_id | method | positionCode | podCode | podDir | materialLot | ctnrCode | ctnrTyp | stgBinCode | binName | unknown_action |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| cam1 | A1 | bindPodAndBerth | P-A1 | RACK-001 | 0 |  |  |  |  |  | lockPosition |
-| cam1 | A2 | bindPodAndBerth | P-A2 | RACK-002 | 0 |  |  |  |  |  | lockPosition |
-| cam3 | A3 | bindPodAndMat | P-A3 | RACK-003 |  | LOT-ABC-001 |  |  |  |  | lockPosition |
-| cam4 | B1 | bindCtnrAndBin | P-B1 |  |  |  | PALLET-001 | PALLET | BIN-B1 |  | lockPosition |
-
-Quy tac lap bang:
-
-- moi dong la 1 `camera_id + zone_id`
-- 1 zone chi duoc chon 1 `method`
-- khong duoc de 1 zone vua la `bindPodAndBerth` vua la `bindCtnrAndBin`
-- neu object ID la co dinh theo zone, co the dien truc tiep
-- neu object ID sinh dong theo business, phai xac dinh adapter nao cap gia tri nay
-
-Khong duoc bo qua buoc ky xac nhan bang mapping.
-Day la buoc quan trong nhat cua toan bo commissioning.
+| Thông tin trên UI | Điền vào đâu |
+|---|---|
+| Server host/IP | `configs/hik_rcs.json -> host` |
+| RPC port | `rpc_port` |
+| DPS port | `dps_port` |
+| Client code | `client_code` |
+| Token code | `token_code` |
+| RPC path | `rpc_base_path` |
+| Query AGV path | `query_agv_path` |
+| Callback base URL | `callback_server.base_path` và phần cấu hình trên RCS |
+| Position code | `mapping.position_code` |
+| Pod code | `mapping.pod_code` |
+| Material lot | `mapping.material_lot` |
+| Container code | `mapping.ctnr_code` |
+| Container type | `mapping.ctnr_typ` |
+| Storage bin code | `mapping.stg_bin_code` |
+| Map short name | payload test `query-agv` |
+| Task code | payload test `query-task` |
 
 ---
 
-## 7. Giai thich day du file `configs/hik_rcs.json`
+## 6. Bảng mapping bắt buộc phải lập trước khi sửa config
 
-Day la file trung tam de cau hinh ket noi HIK.
+Tuyệt đối không sửa ngay `configs/hik_rcs.json` theo cảm tính.
 
-### 7.1 Cap toan cuc
+Trước hết phải lập bảng mapping này:
+
+| camera_id | zone_id | đối tượng thật ngoài hiện trường | mã business trên UI RCS | method | positionCode | podCode | materialLot | ctnrCode | ctnrTyp | stgBinCode | unknown_action | đã xác nhận với ai |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| cam1 | A1 |  |  |  |  |  |  |  |  |  | lockPosition |  |
+| cam1 | A2 |  |  |  |  |  |  |  |  |  | lockPosition |  |
+| cam2 | A1 |  |  |  |  |  |  |  |  |  | lockPosition |  |
+
+### 6.1 Quy tắc điền bảng mapping
+
+- Mỗi dòng là một `camera_id + zone_id`
+- Một zone chỉ được chọn một `method`
+- Không được để một zone vừa là `bindPodAndBerth` vừa là `bindCtnrAndBin`
+- Không được dùng mã suy đoán
+- Không được bỏ trống cột business code quan trọng rồi vẫn test live
+
+### 6.2 Đây là bước quan trọng nhất của toàn bộ commissioning
+
+HTTP client đúng nhưng mapping sai thì vẫn thất bại.
+
+Vì vậy, đừng coi `host/port/token` là khó nhất.
+Khó nhất luôn là:
+
+- zone nào
+- đối tượng nào
+- mã nào
+- API nào
+
+---
+
+## 7. Giải thích đầy đủ file `configs/hik_rcs.json`
+
+Đây là file trung tâm cho toàn bộ tích hợp.
+
+### 7.1 Nhóm cấu hình kết nối và xác thực
+
+Ví dụ:
 
 ```json
 {
@@ -313,98 +446,91 @@ Day la file trung tam de cau hinh ket noi HIK.
 }
 ```
 
-Giai thich tung field:
+Giải thích:
 
 - `enabled`
-  - `false`: bridge khong gui di bat ky request nao
-  - `true`: bridge duoc phep xet dispatch
+  - `false`: bridge không gửi request
+  - `true`: bridge được phép xét dispatch
 
 - `dry_run`
-  - `true`: van tao request logic nhung khong gui that
-  - `false`: gui HTTP that sang HIK
+  - `true`: vẫn chạy logic nhưng không gửi HTTP thật
+  - `false`: gửi request thật sang HIK
 
 - `scheme`
-  - `http` hoac `https`
-  - dung theo site thuc te
+  - `http` hoặc `https`
 
 - `host`
-  - IP hoac hostname HIK RCS
+  - IP hoặc hostname của HIK RCS
 
 - `rpc_port`
-  - port cho cac API trong `hikRpcService`
+  - port cho các API trong `hikRpcService`
 
 - `dps_port`
   - port cho `queryAgvStatus`
 
 - `rpc_base_path`
-  - mac dinh theo tai lieu
-  - chi doi khi HIK site dung path khac
+  - đường dẫn REST cho nhóm RPC API
 
 - `query_agv_path`
-  - path API query AGV status
+  - đường dẫn query AGV
 
 - `http_timeout_sec`
-  - timeout moi request
-  - site mang cham co the tang len `5.0` hoac `8.0`
+  - timeout mỗi request
 
 - `client_code`
-  - ma he thong Vision duoc HIK cap
+  - mã client do HIK cấp cho hệ thống Vision
 
 - `token_code`
-  - token xac thuc duoc HIK cap
+  - token xác thực
 
 - `include_interface_name`
-  - mot so deployment cu yeu cau field `interfaceName`
-  - neu HIK thong bao thieu field nay thi bat `true`
+  - một số deployment cũ yêu cầu field `interfaceName`
 
 - `require_online_health`
-  - neu `true`, camera/zone khong online thi bridge quy ve `unknown`
+  - nếu `true`, camera hoặc zone không online thì bridge coi là `unknown`
 
 - `min_score`
-  - score toi thieu de zone duoc phep dispatch
+  - ngưỡng score tối thiểu để cho phép dispatch
 
 - `retry_interval_sec`
-  - khoang cach retry khi request truoc do fail
+  - thời gian chờ trước khi retry nếu request trước đó fail
 
-### 7.2 Callback server
+### 7.2 Nhóm cấu hình callback server
+
+Ví dụ:
 
 ```json
 "callback_server": {
   "enabled": true,
   "host": "0.0.0.0",
   "port": 9000,
-  "base_path": "/service/rest",
+  "base_path": "/service/rest/agvCallbackService",
   "validate_token_code": false
 }
 ```
 
-Y nghia:
+Giải thích:
 
 - `enabled`
-  - `true`: mo HTTP server de nhan callback
-  - `false`: khong nhan callback
+  - `true`: bật HTTP server để nhận callback
 
 - `host`
-  - thuong de `0.0.0.0`
+  - thường để `0.0.0.0`
 
 - `port`
-  - port callback Vision PC mo ra
+  - port callback mở trên Vision PC
 
 - `base_path`
-  - co the dat:
+  - code hiện tại chấp nhận cả:
     - `/service/rest`
-    - hoac `/service/rest/agvCallbackService`
-  - code hien tai chap nhan ca hai dang
+    - hoặc `/service/rest/agvCallbackService`
 
 - `validate_token_code`
-  - neu `true`, callback den se bi kiem tra `tokenCode` va `clientCode`
-  - chi bat khi da xac nhan chuan callback that
+  - nếu `true`, callback phải mang đúng `tokenCode` và `clientCode`
 
-### 7.3 Mappings
+### 7.3 Nhóm mapping
 
-Moi mapping la 1 quy tac dispatch.
-
-Vi du 1:
+Ví dụ 1:
 
 ```json
 {
@@ -419,7 +545,7 @@ Vi du 1:
 }
 ```
 
-Vi du 2:
+Ví dụ 2:
 
 ```json
 {
@@ -435,7 +561,19 @@ Vi du 2:
 }
 ```
 
-Field quan trong trong mapping:
+Ví dụ 3 cho zone an toàn kiểu thang máy:
+
+```json
+{
+  "enabled": true,
+  "camera_id": "cam6",
+  "zone_id": "LIFT_1",
+  "method": "lockPosition",
+  "position_code": "LIFT-01"
+}
+```
+
+Field quan trọng:
 
 - `enabled`
 - `camera_id`
@@ -455,122 +593,118 @@ Field quan trong trong mapping:
 
 ### 7.4 Template field
 
-Code bridge co ho tro template nhu:
+Code hiện tại có hỗ trợ template như:
 
 - `pod_code_template`
 - `ctnr_code_template`
 
-Vi du:
+Ví dụ:
 
 ```json
 "ctnr_code_template": "CTNR_{camera_id}_{zone_id}"
 ```
 
-Chi dung template khi:
+Chỉ dùng template khi:
 
-- business chap nhan object ID sinh theo quy tac co dinh
-- hoac zone map 1-1 sang 1 object co ten co dinh
+- object ID thực sự cố định theo zone
+- hoặc business chấp nhận naming rule cố định
 
-Khong dung template neu object ID thay doi theo ca san xuat hoac theo lenh.
+Không dùng template nếu object ID thay đổi theo lệnh hoặc theo ngày.
 
 ---
 
-## 8. Quy tac an toan khi chinh config
+## 8. Quy tắc an toàn khi chỉnh config
 
-Hay dung thu tu sau va khong dao thu tu:
+Luôn làm theo đúng thứ tự này:
 
-1. Ban dau de:
-   - `"enabled": false`
-   - `"dry_run": true`
-2. Dien day du host, port, client, token, callback.
-3. Dien bang mapping.
-4. Review lai tung zone.
-5. Chuyen sang:
-   - `"enabled": true`
-   - `"dry_run": true`
+1. Ban đầu để:
+   - `enabled=false`
+   - `dry_run=true`
+2. Điền đầy đủ kết nối, auth, callback.
+3. Lập xong bảng mapping.
+4. Review lại từng zone.
+5. Chuyển sang:
+   - `enabled=true`
+   - `dry_run=true`
 6. Test logic.
-7. Chi khi pass moi doi:
-   - `"dry_run": false`
+7. Chỉ khi pass mới đổi:
+   - `dry_run=false`
 
-Khong duoc:
+Không được:
 
-- bat request that khi chua test dry-run
-- bat mapping that khi chua doi chieu business code
-- chuyen nhieu tham so cung luc ma khong ghi lai thay doi
-
-Khuyen nghi:
-
-- luu 1 ban `hik_rcs.json` cua tung site theo ten rieng
-- ghi changelog moi lan sua config
+- bật request thật khi chưa test dry-run
+- bật nhiều mapping live cùng lúc ở lần test đầu
+- đoán mã `positionCode` hoặc `podCode`
 
 ---
 
-## 9. Kiem tra ha tang truoc khi chay
+## 9. Checklist hạ tầng trước khi chạy
 
-Truoc khi mo backend, thuc hien checklist sau:
+### 9.1 Trên máy Vision
 
-### 9.1 Tren Vision PC
+Phải kiểm tra:
 
-- xac nhan Python environment chay duoc
-- xac nhan model va data duong dan dung
-- xac nhan camera RTSP/video chay duoc
+- môi trường Python chạy được
+- model đúng đường dẫn
+- cấu hình camera đúng
+- output Vision đang sinh bình thường
 
-### 9.2 Ket noi mang toi HIK
+### 9.2 Kết nối mạng tới RCS
 
-Kiem tra:
+Phải kiểm tra:
 
-- Vision PC ping duoc IP HIK RCS
-- neu co policy mang, xac nhan route va VLAN
-- neu callback dung port `9000`, xac nhan port nay mo 2 chieu
+- Vision PC đi được tới host RCS
+- callback từ RCS quay về được Vision PC
+- port callback không bị firewall chặn
 
-### 9.3 Kiem tra camera
+### 9.3 Camera
+
+Phải kiểm tra:
 
 - camera online
-- stream mo duoc
-- hinh dung camera, dung zone
+- stream mở được
+- ảnh đúng camera
+- ROI đúng hiện trường
 
-### 9.4 Kiem tra output Vision truoc bridge
+### 9.4 Output Vision trước bridge
 
-Mo:
+Phải xem:
 
 - `outputs/runtime/agv_latest.json`
+- `outputs/runtime/process_latest.json`
+- `outputs/runtime/cameras/<camera_id>.json`
 
-Xac nhan:
+Bạn chỉ được phép đi tiếp khi:
 
-- camera can test co trong danh sach
-- `zone_id` dung
-- `state`, `binding`, `score` hop ly
-
-Neu output Vision da sai, dung ngay va sua Vision truoc.
+- zone state đúng
+- không flicker bất thường
+- `unknown` xuất hiện hợp lý
 
 ---
 
-## 10. Trinh tu commissioning an toan tu dau den cuoi
+## 10. Trình tự commissioning chuẩn từ đầu đến cuối
 
-### BUOC 1 - Chay backend Vision khong bridge
+Đây là phần quan trọng nhất của tài liệu.
 
-Muc tieu:
+Hãy làm theo đúng thứ tự, không đảo bước.
 
-- xac nhan Vision tu no da on dinh
+### BƯỚC 1 - Xác nhận Vision độc lập, chưa bridge
 
-Dat:
+Mục tiêu:
 
-- `enabled=false`
+- xác nhận Vision tự nó đã đúng
 
-Chay:
+Thiết lập:
+
+- `configs/hik_rcs.json -> enabled=false`
+
+Chạy:
 
 ```bash
 python mainProcess.py
 ```
 
-Neu muon test backend theo cach van hanh gan production hon:
-
-```bash
-chmod +x run_forever.sh
-./run_forever.sh --no-frontend
-```
-
-Kiem tra:
+Kiểm tra:
 
 - `outputs/runtime/agv_latest.json`
 - `outputs/runtime/process_latest.json`
@@ -578,50 +712,123 @@ Kiem tra:
 
 Pass khi:
 
-- zone state cap nhat on dinh
-- `occupied/empty/unknown` phan anh dung hien truong
+- zone state cập nhật đúng
+- hiện trường có hàng -> `occupied`
+- hiện trường trống -> `empty`
+- khi camera lỗi hoặc dữ liệu không chắc -> `unknown`
 
-### BUOC 2 - Dien bang mapping va review noi bo
+Nếu bước này chưa pass, dừng lại và sửa Vision trước.
 
-Muc tieu:
+### BƯỚC 2 - Dùng UI RCS để lập bảng mapping
 
-- xac nhan file config dung nghiep vu
+Mục tiêu:
 
-Thao tac:
+- chốt đúng nghiệp vụ và business code
 
-1. Lap bang mapping.
-2. Dien vao `configs/hik_rcs.json`.
-3. Doc lai tung dong.
-4. So tung `camera_id`, `zone_id` voi file zone config.
-5. So tung `positionCode`, `podCode`, `ctnrCode`, `ctnrTyp` voi bang confirm cua HIK.
+Thao tác:
+
+1. Mở `UIRCS.pdf` hoặc vào trực tiếp UI RCS.
+2. Tìm màn hình position/berth/bin.
+3. Tìm màn hình pod/rack/container/material lot.
+4. Ghi lại đúng business code thật.
+5. Điền bảng mapping cho từng zone.
+6. Xác nhận lại với phía HIK/AGV/WMS nếu còn mơ hồ.
 
 Pass khi:
 
-- khong con dong mapping nao mo ho
-- khong con zone nao chua xac dinh API business
+- mỗi zone đã có đúng `method`
+- mỗi zone đã có đủ business code cần thiết
+- không còn dòng nào “để test tạm”
 
-### BUOC 3 - Test callback rieng
+Lưu ý riêng cho thang máy:
 
-Muc tieu:
+- Nếu mục tiêu là chặn AGV khi trong buồng thang máy có vật, ưu tiên hỏi đúng `positionCode` của thang máy trong RCS.
+- Không cố ép use-case này sang `bindPodAndBerth` nếu bản chất không có pod business thật.
+- Mapping đúng trong đa số trường hợp sẽ là `lockPosition`.
 
-- xac nhan HIK co the goi nguoc ve Vision
+### BƯỚC 3 - Điền `configs/hik_rcs.json`
 
-Dat:
+Mục tiêu:
+
+- đưa mapping và thông số thật vào config
+
+Thao tác:
+
+1. Điền `host`, `rpc_port`, `dps_port`, `client_code`, `token_code`
+2. Điền callback server config
+3. Chỉ bật đúng 1 mapping đầu tiên để test
+4. Để:
+   - `enabled=true`
+   - `dry_run=true`
+
+Ví dụ cấu hình test 1 zone:
+
+```json
+{
+  "enabled": true,
+  "dry_run": true,
+  "scheme": "http",
+  "host": "192.168.1.200",
+  "rpc_port": 8182,
+  "dps_port": 8083,
+  "rpc_base_path": "/rcms/services/rest/hikRpcService",
+  "query_agv_path": "/rcms-dps/rest/queryAgvStatus",
+  "http_timeout_sec": 5.0,
+  "client_code": "VISION01",
+  "token_code": "TOKEN_FROM_HIK",
+  "include_interface_name": false,
+  "require_online_health": true,
+  "min_score": 0.6,
+  "retry_interval_sec": 5.0,
+  "callback_server": {
+    "enabled": true,
+    "host": "0.0.0.0",
+    "port": 9000,
+    "base_path": "/service/rest/agvCallbackService",
+    "validate_token_code": false
+  },
+  "mappings": [
+    {
+      "enabled": true,
+      "camera_id": "cam1",
+      "zone_id": "A1",
+      "method": "bindPodAndBerth",
+      "position_code": "P-A1",
+      "pod_code": "RACK-001",
+      "pod_dir": "0",
+      "unknown_action": "lockPosition"
+    }
+  ]
+}
+```
+
+Pass khi:
+
+- config không còn field mơ hồ
+- chỉ còn 1 zone test đầu tiên được bật
+
+### BƯỚC 4 - Test callback riêng
+
+Mục tiêu:
+
+- xác nhận RCS gọi ngược về Vision được
+
+Thiết lập:
 
 - `callback_server.enabled=true`
 
-Chay:
+Chạy:
 
 ```bash
 python tools/hik_rcs_cli.py serve-callbacks
 ```
 
-Sau do:
+Sau đó:
 
-- nho ben HIK goi test callback
-- hoac dung cong cu noi bo neu co
+- nhờ bên HIK gửi callback test
+- hoặc dùng công cụ mô phỏng nội bộ nếu có
 
-Kiem tra:
+Kiểm tra:
 
 - `outputs/runtime/hik_rcs/callbacks/agvCallback_latest.json`
 - `outputs/runtime/hik_rcs/callbacks/warnCallback_latest.json`
@@ -629,66 +836,17 @@ Kiem tra:
 
 Pass khi:
 
-- callback den dung path
-- file callback duoc tao
-- neu bat validate token thi callback pass xac thuc
+- callback đến đúng path
+- file callback được tạo
+- nếu bật validate token thì callback pass xác thực
 
-### BUOC 4 - Bat bridge o che do dry-run
+### BƯỚC 5 - Test logic dry-run bằng CLI
 
-Dat:
+Mục tiêu:
 
-```json
-"enabled": true,
-"dry_run": true
-```
+- xác nhận mapping của zone đầu tiên là đúng logic
 
-Chay:
-
-```bash
-python mainProcess.py
-```
-
-Neu dang setup tren may van hanh, khuyen nghi chay:
-
-```bash
-chmod +x run_forever.sh
-./run_forever.sh
-```
-
-Luc nay:
-
-- bridge van doc state that
-- van tao request dung theo logic
-- nhung khong gui ra HIK
-- neu backend/frontend crash, watchdog se tu khoi dong lai
-
-Kiem tra:
-
-- `outputs/runtime/hik_rcs/bridge_state.json`
-- log backend
-- `outputs/runtime/supervisor/supervisor.log`
-
-Luu y:
-
-- do `dry_run` trong code hien tai tra response gia va khong ghi `http_exchange.jsonl`
-- vi vay o buoc nay hay tap trung xem:
-  - state trong `bridge_state.json`
-  - log console cua backend
-
-Pass khi:
-
-- moi zone doi state tao dung `bind_dispatch` hoac `lock_dispatch`
-- state `occupied` sinh `indBind=1`
-- state `empty` sinh `indBind=0`
-- state `unknown` sinh `lockPosition(indBind=0)` neu mapping yeu cau
-
-### BUOC 5 - Test tung zone bang CLI truoc
-
-Muc tieu:
-
-- test logic dispatch tung zone ma khong can doi camera
-
-Lenh:
+Chạy:
 
 ```bash
 python tools/hik_rcs_cli.py bind-zone --camera-id cam1 --zone-id A1 --state occupied --dry-run
@@ -696,26 +854,59 @@ python tools/hik_rcs_cli.py bind-zone --camera-id cam1 --zone-id A1 --state empt
 python tools/hik_rcs_cli.py bind-zone --camera-id cam1 --zone-id A1 --state unknown --dry-run
 ```
 
-Voi moi zone can nghiem thu, lap lai 3 lenh tren.
+Bạn phải kiểm tra:
 
-Ban phai ghi lai:
-
-- API nao duoc chon
-- payload business field la gi
-- req_code co duoc tao
-- `unknown` co dispatch `lockPosition` hay khong
+- API nào được chọn
+- payload business field là gì
+- `occupied` có ra `indBind=1` không
+- `empty` có ra `indBind=0` không
+- `unknown` có sinh `lockPosition(indBind=0)` không
 
 Pass khi:
 
-- logic trung khop bang mapping da duoc ky xac nhan
+- đúng hoàn toàn theo mapping đã chốt
 
-### BUOC 6 - Test request tay voi HIK that
+Với zone thang máy dùng `method=lockPosition`, kỳ vọng phải là:
 
-Muc tieu:
+- `occupied` -> dispatch `lock:disable`
+- `empty` -> dispatch `lock:enable`
+- `unknown` -> dispatch `lock:disable`
 
-- xac nhan host, port, token, path, xac thuc deu dung
+### BƯỚC 6 - Test bridge dry-run từ backend thật
 
-Chay tung API truoc:
+Mục tiêu:
+
+- xác nhận luồng Vision thật -> bridge thật là đúng
+
+Thiết lập:
+
+- `enabled=true`
+- `dry_run=true`
+
+Chạy:
+
+```bash
+python mainProcess.py
+```
+
+Kiểm tra:
+
+- log console
+- `outputs/runtime/hik_rcs/bridge_state.json`
+
+Pass khi:
+
+- zone đổi trạng thái thì bridge sinh dispatch đúng
+- không có bind/unbind sai logic
+- `unknown` được xử lý đúng fail-safe
+
+### BƯỚC 7 - Test request thủ công tới HIK thật
+
+Mục tiêu:
+
+- xác nhận endpoint, auth, path đều đúng
+
+Ưu tiên test theo thứ tự:
 
 ```bash
 python tools/hik_rcs_cli.py query-task --task-code TASK-001
@@ -724,7 +915,7 @@ python tools/hik_rcs_cli.py lock-position --position-code P-A1 --action disable
 python tools/hik_rcs_cli.py lock-position --position-code P-A1 --action enable
 ```
 
-Neu co mot payload JSON duoc HIK cap:
+Nếu bên HIK cung cấp payload mẫu:
 
 ```bash
 python tools/hik_rcs_cli.py call-rpc genAgvSchedulingTask payload.json
@@ -732,414 +923,296 @@ python tools/hik_rcs_cli.py call-rpc genAgvSchedulingTask payload.json
 
 Pass khi:
 
-- HIK tra response hop le
-- khong bao loi auth
-- khong bao loi sai path
+- không lỗi auth
+- không lỗi path
+- response hợp lệ
 
-### BUOC 7 - Bat request that cho 1 zone duy nhat
+Nếu các lệnh này chưa pass, tuyệt đối chưa chuyển sang bind live.
 
-Muc tieu:
+### BƯỚC 8 - Test live 1 zone duy nhất
 
-- khoanh pham vi rui ro
+Mục tiêu:
 
-Thao tac:
+- thu hẹp rủi ro
 
-1. Trong `configs/hik_rcs.json`, chi bat `enabled=true` cho 1 mapping.
-2. Dat:
-   - `"enabled": true`
-   - `"dry_run": false`
-3. Restart backend:
+Thiết lập:
+
+- chỉ 1 mapping `enabled=true`
+- `dry_run=false`
+
+Chạy backend:
 
 ```bash
 python mainProcess.py
 ```
 
-Khuyen nghi o site that:
-
-```bash
-chmod +x run_forever.sh
-./run_forever.sh
-```
-
-Kiem tra:
+Kiểm tra:
 
 - `outputs/runtime/hik_rcs/http_exchange.jsonl`
-- console backend
+- `outputs/runtime/hik_rcs/bridge_state.json`
 - callback files
-- phan ung thuc te cua HIK/AGV
-- `outputs/runtime/supervisor/supervisor.log`
+- trạng thái thực tế trên UI RCS
+- hành vi thực tế của AGV/AMR nếu có liên động
 
 Pass khi:
 
-- request gui that dung API
-- payload dung code business
-- response `code="0"` hoac thanh cong theo site
-- neu co callback thi callback den
-- AGV/AMR phan ung dung nghiep vu
+- request đi đúng endpoint
+- payload đúng business code
+- response thành công
+- callback nếu có thì quay về đúng
+- RCS/AGV phản ứng đúng nghiệp vụ
 
-### BUOC 8 - Lap lai cho tung zone con lai
+### BƯỚC 9 - Mở rộng từng zone còn lại
 
-Sau khi 1 zone dau tien pass:
+Sau khi zone đầu tiên pass:
 
-1. Bat them 1 mapping nua.
-2. Test lai 3 tinh huong:
+1. Bật thêm 1 mapping nữa
+2. Test lại đủ 3 tình huống:
    - `occupied`
    - `empty`
    - `unknown`
-3. Ghi lai bien ban.
+3. Ghi biên bản
 
-Khong bat toan bo zone cung luc neu chua co nghiem thu zone dau tien.
+Không được bật toàn bộ zone cùng lúc ở lần đầu.
 
-### BUOC 9 - Chay nghiem thu toan he thong
+### BƯỚC 10 - Nghiệm thu toàn luồng
 
-Muc tieu:
+Cần test các tình huống:
 
-- xac nhan toan bo luong van hanh end-to-end
-
-Ban test phai co:
-
-- nguoi phu trach Vision
-- ky su HIK/RCS
-- nguoi phu trach AGV/AMR
-- neu can, nguoi WMS/MES
-
-Can test:
-
-- co hang
-- khong co hang
+- có hàng
+- không có hàng
 - che camera
-- mat mang camera
+- camera mất kết nối
 - restart backend
-- callback ve
-- request fail va retry
+- callback về
+- request fail rồi retry
 
 ---
 
-## 11. Quy tac pass/fail cho tung tinh huong nghiem thu
+## 11. Checklist riêng cho callback
 
-### 11.1 Tinh huong `occupied`
+Phải chốt rõ 5 câu hỏi:
 
-Ky vong:
+1. RCS gọi callback về host nào của Vision?
+2. RCS gọi vào base path nào?
+3. RCS có gửi `tokenCode` và `clientCode` không?
+4. RCS có dùng cả 3 callback hay chỉ một phần?
+5. Firewall có chặn port callback không?
 
-- Vision xuat `state=occupied`
-- `binding=bind`
-- bridge dispatch API business dung
-- `indBind=1`
-- response HIK thanh cong
-- AGV/AMR hanh xu dung theo quy trinh
+### 11.1 Đường callback mà code hiện tại hỗ trợ
 
-### 11.2 Tinh huong `empty`
+Code hiện tại chấp nhận các endpoint:
 
-Ky vong:
+- `/service/rest/agvCallbackService/agvCallback`
+- `/service/rest/agvCallbackService/warnCallback`
+- `/service/rest/agvCallbackService/bindNotify`
 
-- Vision xuat `state=empty`
-- `binding=unbind`
-- bridge dispatch API business dung
-- `indBind=0`
-- response HIK thanh cong
-- AGV/AMR hanh xu dung theo quy trinh
+Ngoài ra, code cũng chấp nhận biến thể base path cấu hình theo:
 
-### 11.3 Tinh huong `unknown`
+- `/service/rest`
+- hoặc `/service/rest/agvCallbackService`
 
-Ky vong:
+Điều này giúp tương thích với nhiều cách cấu hình trên site.
 
-- Vision xuat `state=unknown`
-- bridge khong bind/unbind mu
-- neu mapping yeu cau:
-  - `lockPosition(indBind=0)`
-- AGV/AMR khong duoc coi zone nay la an toan cho scheduling
+---
 
-### 11.4 Tinh huong callback
+## 12. Quy tắc pass/fail cho từng tình huống
 
-Ky vong:
+### 12.1 Tình huống `occupied`
 
-- callback file duoc tao trong `outputs/runtime/hik_rcs/callbacks/`
-- token/client dung neu callback validation dang bat
-- callback payload luu lai duoc
+Kỳ vọng:
 
-### 11.5 Tinh huong request loi
+- Vision ra `state=occupied`
+- bridge chọn đúng API business
+- request có `indBind=1`
+- response thành công
 
-Ky vong:
+### 12.2 Tình huống `empty`
 
-- request duoc ghi vao `http_exchange.jsonl`
-- bridge khong spam lien tuc
+Kỳ vọng:
+
+- Vision ra `state=empty`
+- bridge chọn đúng API business
+- request có `indBind=0`
+- response thành công
+
+### 12.3 Tình huống `unknown`
+
+Kỳ vọng:
+
+- Vision ra `state=unknown`
+- bridge không bind/unbind mù
+- nếu cấu hình fail-safe:
+  - gọi `lockPosition(indBind=0)`
+
+### 12.4 Tình huống callback
+
+Kỳ vọng:
+
+- callback file được tạo
+- route callback đúng
+- payload callback lưu lại được
+
+### 12.5 Tình huống request lỗi
+
+Kỳ vọng:
+
+- request/response được log
+- không spam liên tục
 - retry theo `retry_interval_sec`
 
 ---
 
-## 12. Cach doc cac file log va bang chung commissioning
+## 13. Cách đọc log và bằng chứng commissioning
 
-### 12.1 `outputs/runtime/agv_latest.json`
+### 13.1 `outputs/runtime/agv_latest.json`
 
-Dung de xac nhan:
+Dùng để xác nhận:
 
-- output Vision noi bo
-- camera nao dang online/offline
-- zone state hien tai
+- output Vision nội bộ
+- state zone hiện tại
 
-### 12.2 `outputs/runtime/process_latest.json`
+### 13.2 `outputs/runtime/process_latest.json`
 
-Dung de xac nhan:
+Dùng để xác nhận:
 
-- snapshot backend day du hon
-- camera nao co debug
+- snapshot backend tổng quát hơn
 
-### 12.3 `outputs/runtime/hik_rcs/bridge_state.json`
+### 13.3 `outputs/runtime/hik_rcs/bridge_state.json`
 
-Dung de xac nhan:
+Dùng để xác nhận:
 
-- zone nao da duoc dispatch
-- req_code cuoi cung la gi
-- response cuoi cung la gi
-- lock state va bound state hien tai
+- zone nào đã dispatch
+- `req_code` cuối cùng
+- response cuối cùng
+- `bound_state`
+- `lock_state`
 
-### 12.4 `outputs/runtime/hik_rcs/http_exchange.jsonl`
+### 13.4 `outputs/runtime/hik_rcs/http_exchange.jsonl`
 
-Dung de xac nhan:
+Dùng để xác nhận:
 
-- request that gui den dau
-- payload that gui di la gi
-- http_status la bao nhieu
-- HIK tra `code`, `message` gi
+- request thật đã gửi đi chưa
+- gửi tới URL nào
+- payload thực tế là gì
+- response HIK ra sao
 
-### 12.5 `outputs/runtime/hik_rcs/callbacks/`
+### 13.5 `outputs/runtime/hik_rcs/callbacks/`
 
-Dung de xac nhan:
+Dùng để xác nhận:
 
-- HIK co goi nguoc callback hay khong
-- route callback la gi
-- payload callback co du du lieu nghiep vu hay khong
-
----
-
-## 13. Nhung diem can dac biet luu y khi di site that
-
-### 13.1 `agv_latest.json` khong phai la HIK request
-
-Day chi la snapshot local.
-
-Neu co ben thu ba muon doc file local de tich hop rieng, co the dung file nay.
-Nhung voi HIK RCS/AMR, phan truyen thong thuc te van la REST bridge.
-
-### 13.2 Mapping dung quan trong hon HTTP client
-
-HTTP client dung nhung mapping sai van that bai nghiep vu.
-Day la ly do khong duoc tu dien `positionCode` hoac `podCode`.
-
-### 13.3 Token dung nhung path sai van that bai
-
-Neu HIK bao:
-
-- 404
-- unsupported interface
-- invalid request
-
-Can kiem tra:
-
-- `rpc_base_path`
-- `query_agv_path`
-- `include_interface_name`
-
-### 13.4 `unknown` phai duoc coi la fail-safe
-
-Khong duoc coi `unknown` nhu `empty`.
-Neu coi `unknown` la `empty`, AGV co the thao tac sai vi tri.
-
-### 13.5 Khong mo rong pham vi test qua nhanh
-
-Chi test:
-
-- 1 zone
-- roi 1 camera
-- roi 1 nhom camera
-- roi moi den toan bo line
-
-### 13.6 Watchdog khong thay the `systemd` hoac service manager cua OS
-
-`run_forever.sh`, `run_forever.cmd` va `tools/run_forever.py` se giu he thong song khi:
-
-- backend crash
-- frontend crash
-- child process exit bat thuong
-
-Nhung watchdog nay van song trong user session hien tai.
-
-Vi vay:
-
-- neu may shutdown, watchdog cung dung
-- neu user logoff hoac desktop session ket thuc, watchdog cung dung
-- tren Ubuntu, neu muon auto-run sau reboot, phai cau hinh them `systemd`
-- tren Windows, neu muon auto-run sau reboot hoac sau logon, phai cau hinh them Task Scheduler hoac service Windows
-
-### 13.7 Khuyen nghi cho Ubuntu Server
-
-Neu may la Ubuntu Server va nhiem vu chinh la:
-
-- sinh output runtime
-- bridge sang HIK RCS
-- khong can mo GUI tai chinh may do
-
-Thi khuyen nghi production:
-
-- chay `run_forever.sh --no-frontend`
-- dang ky bang `systemd`
-- chi mo frontend tren may desktop giam sat rieng neu can
-- neu ky su quen khong truyen `--no-frontend` tren Linux headless, supervisor se tu phat hien khong co `DISPLAY`/`WAYLAND_DISPLAY` va ha xuong backend-only
+- callback có quay về không
+- route nào đã được gọi
+- payload callback là gì
 
 ---
 
-## 14. Troubleshooting chi tiet
+## 14. Những lỗi thường gặp và cách nghĩ đúng để xử lý
 
-### Loi 1 - Bridge khong gui gi ca
+### 14.1 Vision đúng nhưng HIK không phản ứng
 
-Kiem tra theo thu tu:
+Đừng kết luận ngay là lỗi code.
 
-1. `configs/hik_rcs.json` co `enabled=true` chua
-2. mapping co `enabled=true` chua
-3. `camera_id` va `zone_id` trong mapping co ton tai that khong
-4. zone co dang `unknown` vi health/score khong dat khong
-5. co dang de `dry_run=true` khong
+Hãy kiểm tra theo đúng thứ tự:
 
-### Loi 2 - GUI thay dung nhung HIK khong co request
+1. mapping có đúng business code không
+2. API method đã chọn có đúng use-case không
+3. auth có đúng không
+4. path có đúng không
+5. callback có về không
+6. scheduling rule phía RCS có cho phép không
 
-Kiem tra:
+### 14.2 `unknown` xuất hiện nhiều
 
-1. `agv_latest.json` co state dung khong
-2. `bridge_state.json` co dispatch entry khong
-3. `http_exchange.jsonl` co exchange khong
-4. host/port dung khong
-5. firewall co chan outbound khong
-
-### Loi 3 - HIK tra loi auth fail
-
-Kiem tra:
-
-- `client_code`
-- `token_code`
-- sai moi truong test/prod
-- token da het han hay chua
-
-### Loi 4 - HIK tra loi sai du lieu
-
-Kiem tra:
-
-- sai `method`
-- sai `positionCode`
-- sai `podCode`
-- sai `ctnrCode`
-- thieu `ctnrTyp`
-- thieu `stgBinCode` va `positionCode`
-- object code khong ton tai trong RCS
-
-### Loi 5 - Callback khong ve
-
-Kiem tra:
-
-- callback server co dang chay khong
-- `callback_server.enabled=true` chua
-- HIK co dang goi dung URL khong
-- port co mo khong
-- firewall Windows co chan khong
-- ben HIK dang goi `/service/rest/...` hay `/service/rest/agvCallbackService/...`
-
-### Loi 6 - `unknown` xuat hien nhieu lam bridge khoa lien tuc
-
-Kiem tra:
+Hãy kiểm tra:
 
 - camera rung
-- anh sang thay doi
+- ánh sáng thay đổi
 - ROI sai
-- threshold score qua cao
-- camera health khong on dinh
-- `require_online_health` co phu hop site khong
+- ngưỡng score quá cao
+- camera health không ổn định
 
-### Loi 7 - Request thanh cong nhung AGV khong phan ung
+Không được tự động coi `unknown` như `empty`.
 
-Kiem tra:
+### 14.3 Query được nhưng bind không thành công
 
-- HIK da nhan request business dung chua
-- callback/notification co ve khong
-- scheduling rule ben RCS co cho phep khong
-- AGV dang o trang thai san sang khong
-- use-case da chon dung API business chua
+Điều này thường có nghĩa:
 
----
+- kết nối và auth có thể đã đúng
+- nhưng mapping nghiệp vụ còn sai
 
-## 15. Bien ban nghiem thu de khuyen nghi lap tai site
+Tức là vấn đề không nằm ở HTTP client, mà nằm ở business code hoặc method.
 
-Voi moi zone, lap 1 dong bien ban:
+### 14.4 Callback không về
 
-| ngay gio | camera_id | zone_id | method | tinh huong | Vision state | payload gui | response HIK | callback | hanh vi AGV | ket qua |
-|---|---|---|---|---|---|---|---|---|---|---|
-| 2026-03-24 10:30 | cam1 | A1 | bindPodAndBerth | co hang | occupied | indBind=1 | code=0 | co | dung | PASS |
+Hãy kiểm tra:
 
-Tinh huong toi thieu phai co:
-
-- co hang
-- khong co hang
-- unknown
-- restart backend
-- callback
-
-Chua co bien ban nay thi chua nen chot production-ready.
+- callback server có đang chạy không
+- RCS có gọi đúng base path không
+- port callback có mở không
+- firewall Windows có chặn không
+- token/client callback có khớp không
 
 ---
 
-## 16. Tieu chi de duoc phep bat live
+## 15. Tiêu chí để được phép kết luận “đủ điều kiện live”
 
-Chi bat live khi dat du tat ca dieu kien sau:
+Chỉ được phép nói hệ thống đã đủ điều kiện khi đồng thời đạt tất cả điều kiện sau:
 
-1. Vision detect dung tai hien truong.
-2. Bang mapping duoc HIK/WMS/AGV xac nhan.
-3. Dry-run pass.
-4. Test API tay pass.
-5. It nhat 1 zone gui request that pass.
-6. Callback test pass.
-7. AGV/AMR phan ung dung tren hien truong.
-8. Da lap bien ban nghiem thu.
+1. Vision detect đúng ngoài hiện trường.
+2. Bảng mapping đã được xác nhận.
+3. Callback test pass.
+4. Dry-run pass.
+5. Test manual `query` và `lockPosition` pass.
+6. Ít nhất 1 zone live pass.
+7. Có log request/response/callback làm bằng chứng.
+8. AGV/RCS phản ứng đúng nghiệp vụ.
 
-Thieu bat ky dieu kien nao o tren:
-
-- khong bat live toan bo he thong.
+Thiếu bất kỳ điều kiện nào, chưa được phép kết luận là production-ready.
 
 ---
 
-## 17. Thu tu thao tac chuan khi ra nha may
+## 16. Quy trình thao tác chuẩn để mang ra hiện trường
 
-Hay in muc nay ra giay va danh dau tung buoc.
+Đây là phiên bản checklist ngắn gọn nhất để mang theo khi đi site:
 
-1. Xac nhan camera online.
-2. Xac nhan output Vision dung.
-3. Xac nhan host/port HIK.
-4. Xac nhan token/client code.
-5. Xac nhan bang mapping.
-6. Sua `configs/hik_rcs.json`.
-7. Bat callback server.
-8. Test callback.
-9. Bat bridge `enabled=true`, `dry_run=true`.
-10. Test tung zone bang CLI.
-11. Test tung zone bang camera that.
-12. Test API tay voi HIK that.
-13. Chuyen `dry_run=false` cho 1 mapping.
-14. Test 1 zone live.
-15. Test callback live.
-16. Test AGV phan ung live.
-17. Lap lai cho tung zone con lai.
+1. Xác nhận camera online.
+2. Xác nhận output Vision đúng.
+3. Xác nhận host/port RCS.
+4. Xác nhận `client_code` và `token_code`.
+5. Mở UI RCS, chốt business code thật.
+6. Lập bảng mapping.
+7. Sửa `configs/hik_rcs.json`.
+8. Bật callback server.
+9. Test callback.
+10. Bật bridge ở `dry_run=true`.
+11. Test `bind-zone` cho 1 zone bằng CLI.
+12. Chạy backend dry-run với camera thật.
+13. Test `query-task`, `query-agv`, `lock-position`.
+14. Chuyển `dry_run=false` cho 1 mapping duy nhất.
+15. Test live 1 zone.
+16. Kiểm tra log, callback, UI RCS và hành vi AGV.
+17. Mở rộng từng zone.
 18. Test `unknown`.
 19. Test restart backend.
-20. Chot bien ban nghiem thu.
+20. Lập biên bản nghiệm thu.
 
 ---
 
-## 18. Ket luan thuc te nhat
+## 17. Kết luận thực chiến cuối cùng
 
-Phan code cua du an nay da san sang de tich hop ve mat ky thuat.
+Phần code của dự án này đã sẵn sàng cho tích hợp về mặt kỹ thuật.
 
-Phan quyet dinh thanh cong khi ra hien truong nam o 4 diem:
+Muốn triển khai thành công ngoài hiện trường, bạn không cần nghĩ bài toán là “làm sao viết thêm giao thức truyền thông”.
 
-- mapping nghiep vu dung
-- auth dung
-- callback dung
-- test tung zone day du
+Bạn phải nghĩ đúng bài toán là:
 
-Neu ban di dung thu tu trong tai lieu nay, khong bo qua buoc nao, va luon luu bang chung log/callback/bien ban test, thi ban se setup he thong theo cach an toan va co the kiem soat duoc rui ro trong commissioning.
+- zone nào
+- object nào
+- mã business nào
+- API nào
+- auth nào
+- callback nào
+- test theo thứ tự nào
+
+Nếu bạn đi đúng toàn bộ trình tự trong tài liệu này thì giao tiếp giữa Vision và HIK RCS sẽ không còn là một vùng mơ hồ nữa, mà trở thành một quy trình commissioning có thể kiểm soát, có thể kiểm chứng và có thể hoàn thành.

@@ -61,7 +61,7 @@
     "source_type": "video",
     "source_path": "dataTest/videoTest/192.168.1.64_01_2026021011130621.mp4",
     "model_path": "weights/best.pt",
-    "zone_config": "",
+    "zone_config": "configs/zones_cam6.json",
     "infer_every_n_frames": 2,
     "enabled": true
   },
@@ -72,7 +72,7 @@
     "source_type": "video",
     "source_path": "dataTest/videoTest/192.168.1.64_01_2026021011130621.mp4",
     "model_path": "weights/best.pt",
-    "zone_config": "",
+    "zone_config": "configs/zones_cam7.json",
     "infer_every_n_frames": 2,
     "enabled": true
   },
