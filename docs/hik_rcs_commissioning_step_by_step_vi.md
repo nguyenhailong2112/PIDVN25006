@@ -269,10 +269,10 @@ Truoc khi mo file `configs/hik_rcs.json`, hay lap bang mapping day du nhu sau va
 
 | camera_id | zone_id | method | positionCode | podCode | podDir | materialLot | ctnrCode | ctnrTyp | stgBinCode | binName | unknown_action |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| cam101 | A1 | bindPodAndBerth | P-A1 | RACK-001 | 0 |  |  |  |  |  | lockPosition |
-| cam101 | A2 | bindPodAndBerth | P-A2 | RACK-002 | 0 |  |  |  |  |  | lockPosition |
-| cam103 | A3 | bindPodAndMat | P-A3 | RACK-003 |  | LOT-ABC-001 |  |  |  |  | lockPosition |
-| cam104 | B1 | bindCtnrAndBin | P-B1 |  |  |  | PALLET-001 | PALLET | BIN-B1 |  | lockPosition |
+| cam1 | A1 | bindPodAndBerth | P-A1 | RACK-001 | 0 |  |  |  |  |  | lockPosition |
+| cam1 | A2 | bindPodAndBerth | P-A2 | RACK-002 | 0 |  |  |  |  |  | lockPosition |
+| cam3 | A3 | bindPodAndMat | P-A3 | RACK-003 |  | LOT-ABC-001 |  |  |  |  | lockPosition |
+| cam4 | B1 | bindCtnrAndBin | P-B1 |  |  |  | PALLET-001 | PALLET | BIN-B1 |  | lockPosition |
 
 Quy tac lap bang:
 
@@ -409,7 +409,7 @@ Vi du 1:
 ```json
 {
   "enabled": true,
-  "camera_id": "cam101",
+  "camera_id": "cam1",
   "zone_id": "A1",
   "method": "bindPodAndBerth",
   "position_code": "P-A1",
@@ -424,7 +424,7 @@ Vi du 2:
 ```json
 {
   "enabled": true,
-  "camera_id": "cam104",
+  "camera_id": "cam4",
   "zone_id": "B1",
   "method": "bindCtnrAndBin",
   "position_code": "P-B1",
@@ -691,9 +691,9 @@ Muc tieu:
 Lenh:
 
 ```bash
-python tools/hik_rcs_cli.py bind-zone --camera-id cam101 --zone-id A1 --state occupied --dry-run
-python tools/hik_rcs_cli.py bind-zone --camera-id cam101 --zone-id A1 --state empty --dry-run
-python tools/hik_rcs_cli.py bind-zone --camera-id cam101 --zone-id A1 --state unknown --dry-run
+python tools/hik_rcs_cli.py bind-zone --camera-id cam1 --zone-id A1 --state occupied --dry-run
+python tools/hik_rcs_cli.py bind-zone --camera-id cam1 --zone-id A1 --state empty --dry-run
+python tools/hik_rcs_cli.py bind-zone --camera-id cam1 --zone-id A1 --state unknown --dry-run
 ```
 
 Voi moi zone can nghiem thu, lap lai 3 lenh tren.
@@ -1071,7 +1071,7 @@ Voi moi zone, lap 1 dong bien ban:
 
 | ngay gio | camera_id | zone_id | method | tinh huong | Vision state | payload gui | response HIK | callback | hanh vi AGV | ket qua |
 |---|---|---|---|---|---|---|---|---|---|---|
-| 2026-03-24 10:30 | cam101 | A1 | bindPodAndBerth | co hang | occupied | indBind=1 | code=0 | co | dung | PASS |
+| 2026-03-24 10:30 | cam1 | A1 | bindPodAndBerth | co hang | occupied | indBind=1 | code=0 | co | dung | PASS |
 
 Tinh huong toi thieu phai co:
 

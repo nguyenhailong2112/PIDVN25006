@@ -24,7 +24,7 @@
   "mappings": [
     {
       "enabled": false,
-      "camera_id": "cam101",
+      "camera_id": "cam1",
       "zone_id": "A1",
       "method": "bindPodAndBerth",
       "position_code": "P-A1",
@@ -35,7 +35,7 @@
     },
     {
       "enabled": false,
-      "camera_id": "cam104",
+      "camera_id": "cam4",
       "zone_id": "A1",
       "method": "bindCtnrAndBin",
       "stg_bin_code": "BIN-A1",

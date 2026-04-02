@@ -42,8 +42,8 @@ def convert_pixel_roi_to_normalized(
 
 if __name__ == "__main__":
     convert_pixel_roi_to_normalized(
-        input_path="ROI_Cam101.json",
-        output_path="configs/zones_cam101.json",
+        input_path="ROI_Cam1.json",
+        output_path="configs/zones_cam1.json",
         image_width=1920,
         image_height=1080,
         target_object="trolley",

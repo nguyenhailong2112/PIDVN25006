@@ -365,7 +365,7 @@ File nay dung de truy vet:
 ### 7.4 Chạy test bridge HIK ở chế độ giả lập
 
 ```bash
-python tools/hik_rcs_cli.py bind-zone --camera-id cam101 --zone-id A1 --state occupied --dry-run
+python tools/hik_rcs_cli.py bind-zone --camera-id cam1 --zone-id A1 --state occupied --dry-run
 ```
 
 ---

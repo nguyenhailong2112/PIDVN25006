@@ -1,9 +1,9 @@
 {
-  "source": "C:\\Users\\longn\\PycharmProjects\\PIDVN25006\\dataTest\\imageTest\\Cam104\\192.168.1.104_01_20260210165120689.jpg",
+  "source": "C:\\Users\\longn\\PycharmProjects\\PIDVN25006\\dataTest\\imageTest\\Cam105\\192.168.1.105_01_202602101541051.jpg",
   "target_object": "pallet",
   "zones": [
     {
-      "zone_id": "A1",
+      "zone_id": "D1",
       "target_object": "pallet",
       "polygon": [
         [
@@ -29,7 +29,7 @@
       ]
     },
     {
-      "zone_id": "A2",
+      "zone_id": "D2",
       "target_object": "pallet",
       "polygon": [
         [
@@ -55,7 +55,7 @@
       ]
     },
     {
-      "zone_id": "A3",
+      "zone_id": "D3",
       "target_object": "pallet",
       "polygon": [
         [
@@ -81,7 +81,7 @@
       ]
     },
     {
-      "zone_id": "A4",
+      "zone_id": "D4",
       "target_object": "pallet",
       "polygon": [
         [
@@ -107,7 +107,7 @@
       ]
     },
     {
-      "zone_id": "B1",
+      "zone_id": "E1",
       "target_object": "pallet",
       "polygon": [
         [
@@ -133,7 +133,7 @@
       ]
     },
     {
-      "zone_id": "B2",
+      "zone_id": "E2",
       "target_object": "pallet",
       "polygon": [
         [
@@ -159,7 +159,7 @@
       ]
     },
     {
-      "zone_id": "B3",
+      "zone_id": "E3",
       "target_object": "pallet",
       "polygon": [
         [
@@ -185,7 +185,7 @@
       ]
     },
     {
-      "zone_id": "B4",
+      "zone_id": "E4",
       "target_object": "pallet",
       "polygon": [
         [
@@ -211,7 +211,7 @@
       ]
     },
     {
-      "zone_id": "C1",
+      "zone_id": "F1",
       "target_object": "pallet",
       "polygon": [
         [
@@ -237,7 +237,7 @@
       ]
     },
     {
-      "zone_id": "C2",
+      "zone_id": "F2",
       "target_object": "pallet",
       "polygon": [
         [
@@ -263,7 +263,7 @@
       ]
     },
     {
-      "zone_id": "C3",
+      "zone_id": "F3",
       "target_object": "pallet",
       "polygon": [
         [
@@ -289,7 +289,7 @@
       ]
     },
     {
-      "zone_id": "C4",
+      "zone_id": "F4",
       "target_object": "pallet",
       "polygon": [
         [

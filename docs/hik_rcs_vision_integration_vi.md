@@ -84,7 +84,7 @@ Vi du:
 ```json
 {
   "enabled": true,
-  "camera_id": "cam101",
+  "camera_id": "cam1",
   "zone_id": "A1",
   "method": "bindPodAndBerth",
   "position_code": "P-A1",
@@ -105,7 +105,7 @@ Su dung khi Vision dai dien cho quan he rack va lot vat tu.
 ```json
 {
   "enabled": true,
-  "camera_id": "cam103",
+  "camera_id": "cam3",
   "zone_id": "A3",
   "method": "bindPodAndMat",
   "pod_code": "RACK-003",
@@ -121,7 +121,7 @@ Su dung khi bai toan nghiep vu la pallet/container/bin.
 ```json
 {
   "enabled": true,
-  "camera_id": "cam104",
+  "camera_id": "cam4",
   "zone_id": "A1",
   "method": "bindCtnrAndBin",
   "ctnr_code": "PALLET-001",
@@ -178,7 +178,7 @@ Khi zone thay doi, xem log va file:
 ### 8.2 Test bang CLI
 Gui mot zone state gia lap:
 ```bash
-python tools/hik_rcs_cli.py bind-zone --camera-id cam101 --zone-id A1 --state occupied --dry-run
+python tools/hik_rcs_cli.py bind-zone --camera-id cam1 --zone-id A1 --state occupied --dry-run
 ```
 
 Query AGV:
