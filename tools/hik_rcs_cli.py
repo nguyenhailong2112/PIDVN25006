@@ -54,6 +54,18 @@ def cmd_call_rpc(args) -> None:
     print(json.dumps(response, ensure_ascii=False, indent=2))
 
 
+def cmd_probe_bin(args) -> None:
+    client = make_client(load_config())
+    response = client.probe_ctnr_binding(
+        ctnr_typ=args.ctnr_typ,
+        probe_ctnr_code=args.probe_ctnr_code,
+        stg_bin_code=args.stg_bin_code,
+        position_code=args.position_code,
+        bin_name=args.bin_name,
+    )
+    print(json.dumps(response, ensure_ascii=False, indent=2))
+
+
 def cmd_bind_zone(args) -> None:
     config = load_config()
     bridge = HikRcsBridge(config, PROJECT_ROOT)
@@ -127,6 +139,14 @@ def build_parser() -> argparse.ArgumentParser:
     call_rpc.add_argument("api_name", help="RCS RPC API name, e.g. genAgvSchedulingTask")
     call_rpc.add_argument("payload_file", help="Path to a JSON payload file")
     call_rpc.set_defaults(func=cmd_call_rpc)
+
+    probe_bin = sub.add_parser("probe-bin", help="Probe whether a pallet/bin is empty or already bound in RCS")
+    probe_bin.add_argument("--ctnr-typ", required=True, help="Container type expected by bindCtnrAndBin")
+    probe_bin.add_argument("--probe-ctnr-code", default="VISION_PROBE", help="Temporary probe container code")
+    probe_bin.add_argument("--stg-bin-code", default="", help="Storage bin code if available")
+    probe_bin.add_argument("--position-code", default="", help="Position code if available")
+    probe_bin.add_argument("--bin-name", default="", help="Optional bin name")
+    probe_bin.set_defaults(func=cmd_probe_bin)
 
     bind_zone = sub.add_parser("bind-zone", help="Simulate one Vision zone state and dispatch the mapped RCS action")
     bind_zone.add_argument("--camera-id", required=True)

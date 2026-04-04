@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import time
 from pathlib import Path
 from typing import Any
@@ -146,9 +147,94 @@ class HikRcsClient:
             req_code=req_code,
         )
 
+    def probe_ctnr_binding(
+        self,
+        *,
+        ctnr_typ: str,
+        probe_ctnr_code: str,
+        stg_bin_code: str | None = None,
+        position_code: str | None = None,
+        bin_name: str | None = None,
+        character_value: str | None = None,
+    ) -> dict[str, Any]:
+        if not stg_bin_code and not position_code:
+            return {
+                "code": "CONFIG_ERROR",
+                "message": "one of stg_bin_code/position_code is required",
+                "reqCode": "",
+                "bound": None,
+                "bound_ctnr_code": "",
+            }
+
+        bind_req_code = self.make_req_code(
+            f"probe-bind:{ctnr_typ}:{probe_ctnr_code}:{stg_bin_code or ''}:{position_code or ''}"
+        )
+        bind_response = self.bind_ctnr_and_bin(
+            req_code=bind_req_code,
+            ctnr_code=probe_ctnr_code,
+            ctnr_typ=ctnr_typ,
+            ind_bind="1",
+            stg_bin_code=stg_bin_code,
+            position_code=position_code,
+            bin_name=bin_name,
+            character_value=character_value,
+        )
+
+        result: dict[str, Any] = {
+            "code": str(bind_response.get("code", "")),
+            "message": str(bind_response.get("message", "")),
+            "reqCode": str(bind_response.get("reqCode", bind_req_code)),
+            "bound": None,
+            "bound_ctnr_code": "",
+            "probe_response": bind_response,
+        }
+
+        if self.is_success(bind_response):
+            cleanup_req_code = self.make_req_code(
+                f"probe-unbind:{ctnr_typ}:{probe_ctnr_code}:{stg_bin_code or ''}:{position_code or ''}"
+            )
+            cleanup_response = self.bind_ctnr_and_bin(
+                req_code=cleanup_req_code,
+                ctnr_code=probe_ctnr_code,
+                ctnr_typ=ctnr_typ,
+                ind_bind="0",
+                stg_bin_code=stg_bin_code,
+                position_code=position_code,
+                bin_name=bin_name,
+                character_value=character_value,
+            )
+            result.update(
+                {
+                    "bound": False,
+                    "bound_ctnr_code": "",
+                    "cleanup_response": cleanup_response,
+                }
+            )
+            return result
+
+        existing_ctnr_code = self.extract_bound_ctnr_code(bind_response)
+        if existing_ctnr_code:
+            result.update(
+                {
+                    "bound": True,
+                    "bound_ctnr_code": existing_ctnr_code,
+                }
+            )
+        return result
+
     @staticmethod
     def is_success(response: dict[str, Any]) -> bool:
         return str(response.get("code", "")) == "0"
+
+    @staticmethod
+    def extract_bound_ctnr_code(response: dict[str, Any]) -> str:
+        message = str(response.get("message", "")).strip()
+        if not message:
+            return ""
+        match = re.search(r"has bind container code[:\s]+([^\s,;]+)", message, flags=re.IGNORECASE)
+        if match:
+            return match.group(1).strip()
+        return ""
 
     def _post_json(self, url: str, api_name: str, payload: dict[str, Any]) -> dict[str, Any]:
         started = time.time()

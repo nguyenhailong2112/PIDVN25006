@@ -211,6 +211,16 @@ Query task:
 python tools/hik_rcs_cli.py query-task --task-code TASK-001
 ```
 
+Probe bind state cua 1 pallet/bin:
+```bash
+python tools/hik_rcs_cli.py probe-bin --ctnr-typ 1 --stg-bin-code 00000101501013 --position-code P-A1
+```
+
+Y nghia:
+- neu probe bind thanh cong va duoc unbind lai ngay -> bin dang rong
+- neu response bao `has bind container code ...` -> bin dang co container code do
+- day la ky thuat duoc hoc tu codebase cu da tung truyen thong thanh cong
+
 Khoa/mo vi tri thu cong:
 ```bash
 python tools/hik_rcs_cli.py lock-position --position-code P-A1 --action disable

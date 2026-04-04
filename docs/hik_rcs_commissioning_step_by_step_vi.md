@@ -921,6 +921,18 @@ Nếu bên HIK cung cấp payload mẫu:
 python tools/hik_rcs_cli.py call-rpc genAgvSchedulingTask payload.json
 ```
 
+Nếu bài toán pallet chưa rõ `ctnrCode`, có thể dùng thêm:
+
+```bash
+python tools/hik_rcs_cli.py probe-bin --ctnr-typ 1 --stg-bin-code 00000101501013 --position-code P-A1
+```
+
+Ý nghĩa:
+
+- nếu probe bind thành công rồi unbind lại ngay: bin đang rỗng
+- nếu response báo `has bind container code ...`: bin đang được bind với container code đó
+- đây là một kỹ thuật thực dụng để truy vết trạng thái container khi UI chưa cho thấy rõ
+
 Pass khi:
 
 - không lỗi auth
