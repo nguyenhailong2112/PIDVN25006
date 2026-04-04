@@ -13,7 +13,7 @@ Thay vao do, RCS lam viec theo nghiep vu:
 - bind/unbind container voi bin: `bindCtnrAndBin`
 - khoa/mo vi tri de scheduling khong su dung vi tri khong an toan: `lockPosition`
 
-Vi vay, de Vision truyen thong tin dung nghia cho HIK RCS, can map moi `camera_id + zone_id`
+Vi vay, de Vision truyen thong tin dung nghia cho HIK RCS, can ma moi `camera_id + zone_id`
 voi ma nghiep vu cua HIK:
 - `positionCode`
 - `podCode` hoac `materialLot` hoac `ctnrCode + ctnrTyp`
