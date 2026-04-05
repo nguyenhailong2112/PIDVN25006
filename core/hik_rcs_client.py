@@ -27,12 +27,29 @@ class HikRcsClient:
         self.host = str(config.get("host", "127.0.0.1")).strip()
         self.rpc_port = int(config.get("rpc_port", 8182))
         self.dps_port = int(config.get("dps_port", 8083))
+        self.rpc_ports = self._parse_ports(config.get("rpc_ports"), fallback=self.rpc_port)
+        self.dps_ports = self._parse_ports(config.get("dps_ports"), fallback=self.dps_port)
         self.rpc_base_path = str(config.get("rpc_base_path", "/rcms/services/rest/hikRpcService")).rstrip("/")
         self.query_agv_path = str(config.get("query_agv_path", "/rcms-dps/rest/queryAgvStatus")).strip()
         self.timeout_sec = float(config.get("http_timeout_sec", 3.0))
         self.client_code = str(config.get("client_code", "")).strip()
         self.token_code = str(config.get("token_code", "")).strip()
         self.include_interface_name = bool(config.get("include_interface_name", False))
+
+    @staticmethod
+    def _parse_ports(raw_value: Any, *, fallback: int) -> list[int]:
+        ports: list[int] = []
+        if isinstance(raw_value, list):
+            for value in raw_value:
+                try:
+                    port = int(value)
+                except (TypeError, ValueError):
+                    continue
+                if port not in ports:
+                    ports.append(port)
+        if fallback not in ports:
+            ports.append(fallback)
+        return ports
 
     @staticmethod
     def make_req_code(seed: str) -> str:
@@ -59,8 +76,11 @@ class HikRcsClient:
         merged.update({key: value for key, value in payload.items() if value is not None})
         if self.include_interface_name:
             merged.setdefault("interfaceName", api_name)
-        url = f"{self.scheme}://{self.host}:{self.rpc_port}{self.rpc_base_path}/{api_name}"
-        return self._post_json(url, api_name, merged)
+        urls = [
+            f"{self.scheme}://{self.host}:{port}{self.rpc_base_path}/{api_name}"
+            for port in self.rpc_ports
+        ]
+        return self._post_json_with_fallback(urls, api_name, merged)
 
     def query_agv_status(self, payload: dict[str, Any], req_code: str | None = None) -> dict[str, Any]:
         req_code = req_code or self.make_req_code(f"queryAgvStatus:{json.dumps(payload, sort_keys=True, ensure_ascii=False)}")
@@ -68,8 +88,11 @@ class HikRcsClient:
         merged.update({key: value for key, value in payload.items() if value is not None})
         if self.include_interface_name:
             merged.setdefault("interfaceName", "queryAgvStatus")
-        url = f"{self.scheme}://{self.host}:{self.dps_port}{self.query_agv_path}"
-        return self._post_json(url, "queryAgvStatus", merged)
+        urls = [
+            f"{self.scheme}://{self.host}:{port}{self.query_agv_path}"
+            for port in self.dps_ports
+        ]
+        return self._post_json_with_fallback(urls, "queryAgvStatus", merged)
 
     def bind_pod_and_berth(
         self,
@@ -290,6 +313,24 @@ class HikRcsClient:
             response_payload.get("message", ""),
         )
         return response_payload
+
+    def _post_json_with_fallback(self, urls: list[str], api_name: str, payload: dict[str, Any]) -> dict[str, Any]:
+        last_response: dict[str, Any] = {
+            "code": "HTTP_ERROR",
+            "message": "no endpoint configured",
+            "reqCode": payload.get("reqCode", ""),
+        }
+        for index, url in enumerate(urls):
+            response = self._post_json(url, api_name, payload)
+            code = str(response.get("code", ""))
+            if code == "0":
+                return response
+            if code not in {"HTTP_ERROR", "404"}:
+                return response
+            last_response = response
+            if index < len(urls) - 1:
+                logger.warning("[HIK-RCS] fallback api=%s next_url=%s", api_name, urls[index + 1])
+        return last_response
 
     @staticmethod
     def _append_jsonl(path: Path, payload: dict[str, Any]) -> None:

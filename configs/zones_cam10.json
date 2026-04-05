@@ -3,7 +3,7 @@
   "target_object": "pallet",
   "zones": [
     {
-      "zone_id": "B1",
+      "zone_id": "FG-B1",
       "target_object": "pallet",
       "polygon": [
         [
@@ -29,7 +29,7 @@
       ]
     },
     {
-      "zone_id": "B2",
+      "zone_id": "FG-B2",
       "target_object": "pallet",
       "polygon": [
         [
@@ -55,7 +55,7 @@
       ]
     },
     {
-      "zone_id": "B3",
+      "zone_id": "FG-B3",
       "target_object": "pallet",
       "polygon": [
         [
@@ -81,7 +81,7 @@
       ]
     },
     {
-      "zone_id": "B4",
+      "zone_id": "FG-B4",
       "target_object": "pallet",
       "polygon": [
         [
@@ -107,7 +107,7 @@
       ]
     },
     {
-      "zone_id": "B5",
+      "zone_id": "FG-B5",
       "target_object": "pallet",
       "polygon": [
         [
@@ -133,7 +133,7 @@
       ]
     },
     {
-      "zone_id": "B6",
+      "zone_id": "FG-B6",
       "target_object": "pallet",
       "polygon": [
         [

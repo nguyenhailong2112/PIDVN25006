@@ -1,65 +1,94 @@
 {
-  "enabled": false,
+  "enabled": true,
   "dry_run": true,
   "scheme": "http",
-  "host": "127.0.0.1",
+  "host": "192.168.3.100",
   "rpc_port": 8182,
+  "rpc_ports": [8182],
   "dps_port": 8083,
+  "dps_ports": [8083],
   "rpc_base_path": "/rcms/services/rest/hikRpcService",
   "query_agv_path": "/rcms-dps/rest/queryAgvStatus",
-  "http_timeout_sec": 3.0,
-  "client_code": "VISION01",
-  "token_code": "",
+  "http_timeout_sec": 10.0,
   "include_interface_name": false,
   "require_online_health": true,
   "min_score": 0.6,
   "retry_interval_sec": 5.0,
+
+  "client_code": "",
+  "token_code": "",
+
   "callback_server": {
-    "enabled": false,
+    "enabled": true,
     "host": "0.0.0.0",
     "port": 9000,
     "base_path": "/service/rest/agvCallbackService",
     "validate_token_code": false
   },
+
   "mappings": [
     {
-      "enabled": false,
-      "camera_id": "cam1",
-      "zone_id": "A1",
-      "method": "bindPodAndBerth",
-      "position_code": "P-A1",
-      "pod_code_template": "POD_{camera_id}_{zone_id}",
-      "pod_dir": "0",
+      "enabled": true,
+      "camera_id": "cam4",
+      "zone_id": "PK-A1",
+
+      "method": "bindCtnrAndBin",
+
+      "stg_bin_code": "11111103501013",
+      "position_code": "",
+
+      "ctnr_typ": "1",
+      "ctnr_code": "PALLET_CAM4_A1",
+
       "unknown_action": "lockPosition",
-      "notes": "Example mapping. Replace position_code/pod_code with the real HIK RCS business codes."
+      "debounce_sec": 2.0,
+      "notes": "Office test profile. stg_bin_code from RCS test server."
+    },
+    {
+      "enabled": true,
+      "camera_id": "cam4",
+      "zone_id": "PK-A2",
+
+      "method": "bindCtnrAndBin",
+
+      "stg_bin_code": "11111203501013",
+      "position_code": "",
+
+      "ctnr_typ": "1",
+      "ctnr_code": "PALLET_CAM4_A2",
+
+      "unknown_action": "lockPosition",
+      "debounce_sec": 2.0,
+      "notes": "Office test profile. stg_bin_code from RCS test server."
     },
     {
       "enabled": false,
       "camera_id": "cam4",
-      "zone_id": "A1",
+      "zone_id": "PK-A3",
+
       "method": "bindCtnrAndBin",
-      "stg_bin_code": "BIN-A1",
-      "ctnr_code_template": "CTNR_{camera_id}_{zone_id}",
-      "ctnr_typ": "PALLET",
+
+      "stg_bin_code": "11111303501013",
+      "position_code": "",
+
+      "ctnr_typ": "1",
+      "ctnr_code": "PALLET_CAM4_A3",
+
       "unknown_action": "lockPosition",
-      "position_code": "P-A1",
-      "notes": "Example mapping for a pallet/container style flow."
+      "debounce_sec": 2.0,
+      "notes": "Office test profile. Third clean demo bin from RCS test server."
     },
     {
       "enabled": false,
       "camera_id": "cam6",
       "zone_id": "LIFT_1",
+
       "method": "lockPosition",
-      "position_code": "LIFT-01",
-      "notes": "Elevator safety interlock example. occupied/unknown -> lockPosition(indBind=0), empty -> lockPosition(indBind=1). Replace position_code with the real RCS code."
-    },
-    {
-      "enabled": false,
-      "camera_id": "cam7",
-      "zone_id": "LIFT_2",
-      "method": "lockPosition",
-      "position_code": "LIFT-02",
-      "notes": "Elevator safety interlock example. occupied/unknown -> lockPosition(indBind=0), empty -> lockPosition(indBind=1). Replace position_code with the real RCS code."
+      "position_code": "LIFT_IN_01",
+
+      "unknown_action": "lockPosition",
+      "debounce_sec": 1.0,
+      "notes": "Chi bat khi AGV team xac nhan logic thang may"
     }
   ]
 }
