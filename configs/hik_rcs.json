@@ -30,7 +30,7 @@
     {
       "enabled": true,
       "camera_id": "cam4",
-      "zone_id": "PK-A1",
+      "zone_id": "A1",
 
       "method": "bindCtnrAndBin",
 
@@ -47,7 +47,7 @@
     {
       "enabled": true,
       "camera_id": "cam4",
-      "zone_id": "PK-A2",
+      "zone_id": "A2",
 
       "method": "bindCtnrAndBin",
 
@@ -64,7 +64,7 @@
     {
       "enabled": false,
       "camera_id": "cam4",
-      "zone_id": "PK-A3",
+      "zone_id": "A3",
 
       "method": "bindCtnrAndBin",
 
