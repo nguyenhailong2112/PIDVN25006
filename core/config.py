@@ -79,7 +79,7 @@ def load_rule_config(path: str | Path) -> RuleConfig:
     img_size = int(img_size) if img_size not in (None, "") else None
 
     return RuleConfig(
-        spatial_method=str(data.get("spatial_method", "bbox_all_corners")),
+        spatial_method=str(data.get("spatial_method", "bbox_intersects")),
         enter_window=int(data["enter_window"]),
         enter_count=int(data["enter_count"]),
         exit_window=int(data["exit_window"]),

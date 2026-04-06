@@ -1,5 +1,5 @@
 {
-  "spatial_method": "bbox_all_corners",
+  "spatial_method": "bbox_intersects",
   "enter_window": 5,
   "enter_count": 3,
   "exit_window": 7,

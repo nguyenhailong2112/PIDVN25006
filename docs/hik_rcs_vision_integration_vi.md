@@ -264,3 +264,23 @@ Thu viec con lai de chay production dung 100% la:
 - chot API bind nao la API dung cho bai toan cua ban
 - chot xu ly `unknown`
 - test voi RCS that
+
+## 11. Trang thai he thong hien tai
+
+Den giai doan hien tai cua project, cac quy uoc da duoc chot nhu sau:
+
+- Spatial rule mac dinh cua he thong da doi sang `bbox_intersects`
+- Pallet va trolley zones deu dung logic:
+  - co object cham ROI -> `occupied`
+  - khong co object trong ROI -> `empty`
+- HIK RCS bridge da duoc chuan hoa theo zone runtime that, khong dung zone alias sai lech nua
+- Profile `configs/hik_rcs.json` hien tai da du du lieu de di commissioning onsite cho 4 camera pallet:
+  - `cam4`: `A1` -> `C4`
+  - `cam5`: `D1` -> `F4`
+  - `cam9`: `A1` -> `A7`
+  - `cam10`: `B1` -> `B6`
+- Quy uoc business code hien tai:
+  - Packing: `PK_<zone>`
+  - FG: `FG_<zone>`
+- `stg_bin_code` duoc de trong de dien onsite theo data that tu AGV/RCS
+- Elevator mappings van de `enabled=false` cho den khi AGV team chot workflow xu ly cabin

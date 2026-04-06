@@ -1,4 +1,4 @@
-{
+﻿{
   "enabled": true,
   "dry_run": true,
   "scheme": "http",
@@ -9,15 +9,13 @@
   "dps_ports": [8083],
   "rpc_base_path": "/rcms/services/rest/hikRpcService",
   "query_agv_path": "/rcms-dps/rest/queryAgvStatus",
-  "http_timeout_sec": 10.0,
+  "http_timeout_sec": 15.0,
   "include_interface_name": false,
   "require_online_health": true,
   "min_score": 0.6,
   "retry_interval_sec": 5.0,
-
   "client_code": "",
   "token_code": "",
-
   "callback_server": {
     "enabled": true,
     "host": "0.0.0.0",
@@ -25,70 +23,436 @@
     "base_path": "/service/rest/agvCallbackService",
     "validate_token_code": false
   },
-
   "mappings": [
     {
       "enabled": true,
       "camera_id": "cam4",
       "zone_id": "A1",
-
       "method": "bindCtnrAndBin",
-
-      "stg_bin_code": "11111103501013",
-      "position_code": "",
-
+      "position_code": "PK_A1",
+      "stg_bin_code": "",
+      "ctnr_code": "PK_A1",
       "ctnr_typ": "1",
-      "ctnr_code": "PALLET_CAM4_A1",
-
       "unknown_action": "lockPosition",
-      "debounce_sec": 2.0,
-      "notes": "Office test profile. stg_bin_code from RCS test server."
+      "notes": "Packing cam4 A1. Fill stg_bin_code onsite when AGV team confirms the real bin."
     },
     {
       "enabled": true,
       "camera_id": "cam4",
       "zone_id": "A2",
-
       "method": "bindCtnrAndBin",
-
-      "stg_bin_code": "11111203501013",
-      "position_code": "",
-
+      "position_code": "PK_A2",
+      "stg_bin_code": "",
+      "ctnr_code": "PK_A2",
       "ctnr_typ": "1",
-      "ctnr_code": "PALLET_CAM4_A2",
-
-      "unknown_action": "lockPosition",
-      "debounce_sec": 2.0,
-      "notes": "Office test profile. stg_bin_code from RCS test server."
+      "unknown_action": "lockPosition"
     },
     {
-      "enabled": false,
+      "enabled": true,
       "camera_id": "cam4",
       "zone_id": "A3",
-
       "method": "bindCtnrAndBin",
-
-      "stg_bin_code": "11111303501013",
-      "position_code": "",
-
+      "position_code": "PK_A3",
+      "stg_bin_code": "",
+      "ctnr_code": "PK_A3",
       "ctnr_typ": "1",
-      "ctnr_code": "PALLET_CAM4_A3",
-
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": true,
+      "camera_id": "cam4",
+      "zone_id": "A4",
+      "method": "bindCtnrAndBin",
+      "position_code": "PK_A4",
+      "stg_bin_code": "",
+      "ctnr_code": "PK_A4",
+      "ctnr_typ": "1",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": true,
+      "camera_id": "cam4",
+      "zone_id": "B1",
+      "method": "bindCtnrAndBin",
+      "position_code": "PK_B1",
+      "stg_bin_code": "",
+      "ctnr_code": "PK_B1",
+      "ctnr_typ": "1",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": true,
+      "camera_id": "cam4",
+      "zone_id": "B2",
+      "method": "bindCtnrAndBin",
+      "position_code": "PK_B2",
+      "stg_bin_code": "",
+      "ctnr_code": "PK_B2",
+      "ctnr_typ": "1",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": true,
+      "camera_id": "cam4",
+      "zone_id": "B3",
+      "method": "bindCtnrAndBin",
+      "position_code": "PK_B3",
+      "stg_bin_code": "",
+      "ctnr_code": "PK_B3",
+      "ctnr_typ": "1",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": true,
+      "camera_id": "cam4",
+      "zone_id": "B4",
+      "method": "bindCtnrAndBin",
+      "position_code": "PK_B4",
+      "stg_bin_code": "",
+      "ctnr_code": "PK_B4",
+      "ctnr_typ": "1",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": true,
+      "camera_id": "cam4",
+      "zone_id": "C1",
+      "method": "bindCtnrAndBin",
+      "position_code": "PK_C1",
+      "stg_bin_code": "",
+      "ctnr_code": "PK_C1",
+      "ctnr_typ": "1",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": true,
+      "camera_id": "cam4",
+      "zone_id": "C2",
+      "method": "bindCtnrAndBin",
+      "position_code": "PK_C2",
+      "stg_bin_code": "",
+      "ctnr_code": "PK_C2",
+      "ctnr_typ": "1",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": true,
+      "camera_id": "cam4",
+      "zone_id": "C3",
+      "method": "bindCtnrAndBin",
+      "position_code": "PK_C3",
+      "stg_bin_code": "",
+      "ctnr_code": "PK_C3",
+      "ctnr_typ": "1",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": true,
+      "camera_id": "cam4",
+      "zone_id": "C4",
+      "method": "bindCtnrAndBin",
+      "position_code": "PK_C4",
+      "stg_bin_code": "",
+      "ctnr_code": "PK_C4",
+      "ctnr_typ": "1",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": true,
+      "camera_id": "cam5",
+      "zone_id": "D1",
+      "method": "bindCtnrAndBin",
+      "position_code": "PK_D1",
+      "stg_bin_code": "",
+      "ctnr_code": "PK_D1",
+      "ctnr_typ": "1",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": true,
+      "camera_id": "cam5",
+      "zone_id": "D2",
+      "method": "bindCtnrAndBin",
+      "position_code": "PK_D2",
+      "stg_bin_code": "",
+      "ctnr_code": "PK_D2",
+      "ctnr_typ": "1",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": true,
+      "camera_id": "cam5",
+      "zone_id": "D3",
+      "method": "bindCtnrAndBin",
+      "position_code": "PK_D3",
+      "stg_bin_code": "",
+      "ctnr_code": "PK_D3",
+      "ctnr_typ": "1",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": true,
+      "camera_id": "cam5",
+      "zone_id": "D4",
+      "method": "bindCtnrAndBin",
+      "position_code": "PK_D4",
+      "stg_bin_code": "",
+      "ctnr_code": "PK_D4",
+      "ctnr_typ": "1",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": true,
+      "camera_id": "cam5",
+      "zone_id": "E1",
+      "method": "bindCtnrAndBin",
+      "position_code": "PK_E1",
+      "stg_bin_code": "",
+      "ctnr_code": "PK_E1",
+      "ctnr_typ": "1",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": true,
+      "camera_id": "cam5",
+      "zone_id": "E2",
+      "method": "bindCtnrAndBin",
+      "position_code": "PK_E2",
+      "stg_bin_code": "",
+      "ctnr_code": "PK_E2",
+      "ctnr_typ": "1",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": true,
+      "camera_id": "cam5",
+      "zone_id": "E3",
+      "method": "bindCtnrAndBin",
+      "position_code": "PK_E3",
+      "stg_bin_code": "",
+      "ctnr_code": "PK_E3",
+      "ctnr_typ": "1",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": true,
+      "camera_id": "cam5",
+      "zone_id": "E4",
+      "method": "bindCtnrAndBin",
+      "position_code": "PK_E4",
+      "stg_bin_code": "",
+      "ctnr_code": "PK_E4",
+      "ctnr_typ": "1",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": true,
+      "camera_id": "cam5",
+      "zone_id": "F1",
+      "method": "bindCtnrAndBin",
+      "position_code": "PK_F1",
+      "stg_bin_code": "",
+      "ctnr_code": "PK_F1",
+      "ctnr_typ": "1",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": true,
+      "camera_id": "cam5",
+      "zone_id": "F2",
+      "method": "bindCtnrAndBin",
+      "position_code": "PK_F2",
+      "stg_bin_code": "",
+      "ctnr_code": "PK_F2",
+      "ctnr_typ": "1",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": true,
+      "camera_id": "cam5",
+      "zone_id": "F3",
+      "method": "bindCtnrAndBin",
+      "position_code": "PK_F3",
+      "stg_bin_code": "",
+      "ctnr_code": "PK_F3",
+      "ctnr_typ": "1",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": true,
+      "camera_id": "cam5",
+      "zone_id": "F4",
+      "method": "bindCtnrAndBin",
+      "position_code": "PK_F4",
+      "stg_bin_code": "",
+      "ctnr_code": "PK_F4",
+      "ctnr_typ": "1",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": true,
+      "camera_id": "cam9",
+      "zone_id": "A1",
+      "method": "bindCtnrAndBin",
+      "position_code": "FG_A1",
+      "stg_bin_code": "",
+      "ctnr_code": "FG_A1",
+      "ctnr_typ": "1",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": true,
+      "camera_id": "cam9",
+      "zone_id": "A2",
+      "method": "bindCtnrAndBin",
+      "position_code": "FG_A2",
+      "stg_bin_code": "",
+      "ctnr_code": "FG_A2",
+      "ctnr_typ": "1",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": true,
+      "camera_id": "cam9",
+      "zone_id": "A3",
+      "method": "bindCtnrAndBin",
+      "position_code": "FG_A3",
+      "stg_bin_code": "",
+      "ctnr_code": "FG_A3",
+      "ctnr_typ": "1",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": true,
+      "camera_id": "cam9",
+      "zone_id": "A4",
+      "method": "bindCtnrAndBin",
+      "position_code": "FG_A4",
+      "stg_bin_code": "",
+      "ctnr_code": "FG_A4",
+      "ctnr_typ": "1",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": true,
+      "camera_id": "cam9",
+      "zone_id": "A5",
+      "method": "bindCtnrAndBin",
+      "position_code": "FG_A5",
+      "stg_bin_code": "",
+      "ctnr_code": "FG_A5",
+      "ctnr_typ": "1",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": true,
+      "camera_id": "cam9",
+      "zone_id": "A6",
+      "method": "bindCtnrAndBin",
+      "position_code": "FG_A6",
+      "stg_bin_code": "",
+      "ctnr_code": "FG_A6",
+      "ctnr_typ": "1",
       "unknown_action": "lockPosition",
-      "debounce_sec": 2.0,
-      "notes": "Office test profile. Third clean demo bin from RCS test server."
+      "notes": "Check ROI onsite. Current zone file shows A6 and A7 with identical polygons."
+    },
+    {
+      "enabled": true,
+      "camera_id": "cam9",
+      "zone_id": "A7",
+      "method": "bindCtnrAndBin",
+      "position_code": "FG_A7",
+      "stg_bin_code": "",
+      "ctnr_code": "FG_A7",
+      "ctnr_typ": "1",
+      "unknown_action": "lockPosition",
+      "notes": "Check ROI onsite. Current zone file shows A6 and A7 with identical polygons."
+    },
+    {
+      "enabled": true,
+      "camera_id": "cam10",
+      "zone_id": "B1",
+      "method": "bindCtnrAndBin",
+      "position_code": "FG_B1",
+      "stg_bin_code": "",
+      "ctnr_code": "FG_B1",
+      "ctnr_typ": "1",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": true,
+      "camera_id": "cam10",
+      "zone_id": "B2",
+      "method": "bindCtnrAndBin",
+      "position_code": "FG_B2",
+      "stg_bin_code": "",
+      "ctnr_code": "FG_B2",
+      "ctnr_typ": "1",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": true,
+      "camera_id": "cam10",
+      "zone_id": "B3",
+      "method": "bindCtnrAndBin",
+      "position_code": "FG_B3",
+      "stg_bin_code": "",
+      "ctnr_code": "FG_B3",
+      "ctnr_typ": "1",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": true,
+      "camera_id": "cam10",
+      "zone_id": "B4",
+      "method": "bindCtnrAndBin",
+      "position_code": "FG_B4",
+      "stg_bin_code": "",
+      "ctnr_code": "FG_B4",
+      "ctnr_typ": "1",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": true,
+      "camera_id": "cam10",
+      "zone_id": "B5",
+      "method": "bindCtnrAndBin",
+      "position_code": "FG_B5",
+      "stg_bin_code": "",
+      "ctnr_code": "FG_B5",
+      "ctnr_typ": "1",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": true,
+      "camera_id": "cam10",
+      "zone_id": "B6",
+      "method": "bindCtnrAndBin",
+      "position_code": "FG_B6",
+      "stg_bin_code": "",
+      "ctnr_code": "FG_B6",
+      "ctnr_typ": "1",
+      "unknown_action": "lockPosition"
     },
     {
       "enabled": false,
       "camera_id": "cam6",
       "zone_id": "LIFT_1",
-
       "method": "lockPosition",
-      "position_code": "LIFT_IN_01",
-
+      "position_code": "LIFT_1",
       "unknown_action": "lockPosition",
-      "debounce_sec": 1.0,
-      "notes": "Chi bat khi AGV team xac nhan logic thang may"
+      "notes": "Keep disabled until AGV team confirms elevator workflow handling."
+    },
+    {
+      "enabled": false,
+      "camera_id": "cam7",
+      "zone_id": "LIFT_2",
+      "method": "lockPosition",
+      "position_code": "LIFT_2",
+      "unknown_action": "lockPosition",
+      "notes": "Keep disabled until AGV team confirms elevator workflow handling."
     }
   ]
 }
+
+
