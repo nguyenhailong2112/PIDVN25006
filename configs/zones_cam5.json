@@ -3,7 +3,7 @@
   "target_object": "pallet",
   "zones": [
     {
-      "zone_id": "PK-D1",
+      "zone_id": "D1",
       "target_object": "pallet",
       "polygon": [
         [
@@ -29,7 +29,7 @@
       ]
     },
     {
-      "zone_id": "PK-D2",
+      "zone_id": "D2",
       "target_object": "pallet",
       "polygon": [
         [
@@ -55,7 +55,7 @@
       ]
     },
     {
-      "zone_id": "PK-D3",
+      "zone_id": "D3",
       "target_object": "pallet",
       "polygon": [
         [
@@ -81,7 +81,7 @@
       ]
     },
     {
-      "zone_id": "PK-D4",
+      "zone_id": "D4",
       "target_object": "pallet",
       "polygon": [
         [
@@ -107,7 +107,7 @@
       ]
     },
     {
-      "zone_id": "PK-E1",
+      "zone_id": "E1",
       "target_object": "pallet",
       "polygon": [
         [
@@ -133,7 +133,7 @@
       ]
     },
     {
-      "zone_id": "PK-E2",
+      "zone_id": "E2",
       "target_object": "pallet",
       "polygon": [
         [
@@ -159,7 +159,7 @@
       ]
     },
     {
-      "zone_id": "PK-E3",
+      "zone_id": "E3",
       "target_object": "pallet",
       "polygon": [
         [
@@ -185,7 +185,7 @@
       ]
     },
     {
-      "zone_id": "PK-E4",
+      "zone_id": "E4",
       "target_object": "pallet",
       "polygon": [
         [
@@ -211,7 +211,7 @@
       ]
     },
     {
-      "zone_id": "PK-F1",
+      "zone_id": "F1",
       "target_object": "pallet",
       "polygon": [
         [
@@ -237,7 +237,7 @@
       ]
     },
     {
-      "zone_id": "PK-F2",
+      "zone_id": "F2",
       "target_object": "pallet",
       "polygon": [
         [
@@ -263,7 +263,7 @@
       ]
     },
     {
-      "zone_id": "PK-F3",
+      "zone_id": "F3",
       "target_object": "pallet",
       "polygon": [
         [
@@ -289,7 +289,7 @@
       ]
     },
     {
-      "zone_id": "PK-F4",
+      "zone_id": "F4",
       "target_object": "pallet",
       "polygon": [
         [

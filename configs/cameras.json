@@ -55,17 +55,6 @@
     "enabled": true
   },
   {
-    "camera_id": "cam6",
-    "camera_type": "general_monitoring",
-    "name": "Thang May 1",
-    "source_type": "rtsp",
-    "source_path": "rtsp://admin:rtctech!@192.168.11.6:554/Streaming/Channels/101",
-    "model_path": "weights/best.pt",
-    "zone_config": "configs/zones_cam6.json",
-    "infer_every_n_frames": 2,
-    "enabled": true
-  },
-  {
     "camera_id": "cam7",
     "camera_type": "general_monitoring",
     "name": "Thang May 2",
