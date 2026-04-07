@@ -353,7 +353,7 @@
       "stg_bin_code": "",
       "ctnr_code": "FG_A6",
       "ctnr_typ": "1",
-      "unknown_action": "lockPosition",
+      "unknown_action": "lockPosition"
     },
     {
       "enabled": true,
