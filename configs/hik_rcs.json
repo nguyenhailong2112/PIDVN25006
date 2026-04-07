@@ -1,8 +1,8 @@
 ﻿{
   "enabled": true,
-  "dry_run": true,
+  "dry_run": false,
   "scheme": "http",
-  "host": "192.168.3.100",
+  "host": "192.168.10.38",
   "rpc_port": 8182,
   "rpc_ports": [8182],
   "dps_port": 8083,
@@ -352,18 +352,6 @@
       "position_code": "FG_A6",
       "stg_bin_code": "",
       "ctnr_code": "FG_A6",
-      "ctnr_typ": "1",
-      "unknown_action": "lockPosition",
-      "notes": "Check ROI onsite. Current zone file shows A6 and A7 with identical polygons."
-    },
-    {
-      "enabled": true,
-      "camera_id": "cam9",
-      "zone_id": "A7",
-      "method": "bindCtnrAndBin",
-      "position_code": "FG_A7",
-      "stg_bin_code": "",
-      "ctnr_code": "FG_A7",
       "ctnr_typ": "1",
       "unknown_action": "lockPosition",
       "notes": "Check ROI onsite. Current zone file shows A6 and A7 with identical polygons."

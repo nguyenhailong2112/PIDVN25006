@@ -18,7 +18,7 @@ CONFIG_PATH = PROJECT_ROOT / "configs" / "hik_rcs.json"
 
 
 def load_config() -> dict:
-    return json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+    return json.loads(CONFIG_PATH.read_text(encoding="utf-8-sig"))
 
 
 def make_client(config: dict) -> HikRcsClient:
@@ -54,7 +54,7 @@ def cmd_lock_position(args) -> None:
 
 def cmd_call_rpc(args) -> None:
     client = make_client(load_config())
-    payload = json.loads(Path(args.payload_file).read_text(encoding="utf-8"))
+    payload = json.loads(Path(args.payload_file).read_text(encoding="utf-8-sig"))
     response = client.call_rpc(args.api_name, payload)
     print(json.dumps(response, ensure_ascii=False, indent=2))
 

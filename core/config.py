@@ -20,7 +20,7 @@ def _expand_env(value: str) -> str:
 
 def load_camera_configs(path: str | Path) -> list[CameraConfig]:
     path = ensure_exists(path, "Camera config")
-    data = json.loads(path.read_text(encoding="utf-8"))
+    data = json.loads(path.read_text(encoding="utf-8-sig"))
     configs: list[CameraConfig] = []
 
     for item in data:
@@ -48,7 +48,7 @@ def load_camera_configs(path: str | Path) -> list[CameraConfig]:
 
 def load_zone_configs(path: str | Path) -> list[ZoneConfig]:
     path = ensure_exists(path, "Zone config")
-    data = json.loads(path.read_text(encoding="utf-8"))
+    data = json.loads(path.read_text(encoding="utf-8-sig"))
     zone_items = data["zones"]
     allowed_spatial_methods = {"bbox_center", "bbox_all_corners", "bbox_intersects", ""}
 
@@ -74,7 +74,7 @@ def load_zone_configs(path: str | Path) -> list[ZoneConfig]:
 
 def load_rule_config(path: str | Path) -> RuleConfig:
     path = ensure_exists(path, "Rule config")
-    data = json.loads(path.read_text(encoding="utf-8"))
+    data = json.loads(path.read_text(encoding="utf-8-sig"))
     img_size = data.get("img_size")
     img_size = int(img_size) if img_size not in (None, "") else None
 
@@ -94,7 +94,7 @@ def load_rule_config(path: str | Path) -> RuleConfig:
 
 def load_ingest_config(path: str | Path) -> IngestConfig:
     path = ensure_exists(path, "Ingest config")
-    data = json.loads(path.read_text(encoding="utf-8"))
+    data = json.loads(path.read_text(encoding="utf-8-sig"))
 
     return IngestConfig(
         stream_profile=str(data.get("stream_profile", "main")).lower(),
@@ -111,7 +111,7 @@ def load_ingest_config(path: str | Path) -> IngestConfig:
 
 def load_json_dict(path: str | Path) -> dict:
     path = ensure_exists(path, "JSON config")
-    return json.loads(path.read_text(encoding="utf-8"))
+    return json.loads(path.read_text(encoding="utf-8-sig"))
 
 
 def validate_camera_configs(configs: list[CameraConfig]) -> None:
