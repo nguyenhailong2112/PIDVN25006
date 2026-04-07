@@ -9,7 +9,7 @@
   "dps_ports": [8083],
   "rpc_base_path": "/rcms/services/rest/hikRpcService",
   "query_agv_path": "/rcms-dps/rest/queryAgvStatus",
-  "http_timeout_sec": 15.0,
+  "http_timeout_sec": 10.0,
   "include_interface_name": false,
   "require_online_health": true,
   "min_score": 0.6,
@@ -19,7 +19,7 @@
   "callback_server": {
     "enabled": true,
     "host": "0.0.0.0",
-    "port": 9000,
+    "port": 2112,
     "base_path": "/service/rest/agvCallbackService",
     "validate_token_code": false
   },
@@ -354,7 +354,6 @@
       "ctnr_code": "FG_A6",
       "ctnr_typ": "1",
       "unknown_action": "lockPosition",
-      "notes": "Check ROI onsite. Current zone file shows A6 and A7 with identical polygons."
     },
     {
       "enabled": true,
