@@ -6,16 +6,11 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 
+from core.file_utils import append_jsonl_rotating, write_json_atomic
 from core.logger_config import get_logger
 
 
 logger = get_logger(__name__)
-
-
-def _append_jsonl(path: Path, payload: dict[str, Any]) -> None:
-    with path.open("a", encoding="utf-8") as f:
-        f.write(json.dumps(payload, ensure_ascii=False) + "\n")
-
 
 class HikCallbackServer:
     """Receives callbacks from RCS-2000 and stores them locally for audit/debug."""
@@ -30,6 +25,8 @@ class HikCallbackServer:
         self.validate_token_code = bool(config.get("validate_token_code", False))
         self.expected_token_code = str(config.get("token_code", "")).strip()
         self.expected_client_code = str(config.get("client_code", "")).strip()
+        self.log_max_bytes = max(0, int(float(config.get("log_max_mb", 10.0)) * 1024 * 1024))
+        self.log_backup_count = max(0, int(config.get("log_backup_count", 5)))
         self._server: ThreadingHTTPServer | None = None
         self._thread: threading.Thread | None = None
 
@@ -122,8 +119,13 @@ class HikCallbackServer:
     def _store_callback(self, route_name: str, payload: dict[str, Any]) -> None:
         latest_path = self.output_dir / f"{route_name}_latest.json"
         history_path = self.output_dir / f"{route_name}.jsonl"
-        latest_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-        _append_jsonl(history_path, payload)
+        write_json_atomic(latest_path, payload)
+        append_jsonl_rotating(
+            history_path,
+            payload,
+            max_bytes=self.log_max_bytes,
+            backup_count=self.log_backup_count,
+        )
         logger.info("[HIK-RCS] callback=%s stored", route_name)
 
     def _accepted_base_paths(self) -> list[str]:

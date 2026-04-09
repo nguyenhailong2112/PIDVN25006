@@ -31,6 +31,8 @@ from core.runtime_bridge import (
     camera_snapshot_path,
     ensure_runtime_dirs,
     load_selected_cameras,
+    write_image_atomic,
+    write_json_atomic,
 )
 from core.state_tracker import StateTracker
 from core.types import CameraConfig, Detection, DetectionResult
@@ -82,7 +84,16 @@ class CentralBackendRuntime:
         validate_rule_config(self.rule_cfg)
         validate_ingest_config(self.ingest_cfg)
 
-        self.history_logger = HistoryLogger(HISTORY_DIR)
+        history_log_max_bytes = max(
+            0,
+            int(float(self.runtime_cfg.get("history_log_max_mb", 10.0)) * 1024 * 1024),
+        )
+        history_log_backup_count = max(0, int(self.runtime_cfg.get("history_log_backup_count", 7)))
+        self.history_logger = HistoryLogger(
+            HISTORY_DIR,
+            max_bytes=history_log_max_bytes,
+            backup_count=history_log_backup_count,
+        )
         self.last_logged_ts = {}
         self.export_interval_sec = max(0.02, float(self.runtime_cfg.get("export_interval_ms", 100)) / 1000.0)
         self.debug_export_interval_sec = 1.0 / max(1.0, float(self.runtime_cfg.get("debug_export_fps", 15.0)))
@@ -315,8 +326,8 @@ class CentralBackendRuntime:
             return
         if (now_ts - worker.last_preview_export_ts) < self.preview_export_interval_sec:
             return
-        preview = cv2.resize(live_frame.frame, (self.preview_width, self.preview_height), interpolation=cv2.INTER_AREA)
-        cv2.imwrite(str(camera_preview_path(worker.camera_cfg.camera_id)), preview)
+        preview = cv2.resize(live_frame.frame.copy(), (self.preview_width, self.preview_height), interpolation=cv2.INTER_AREA)
+        write_image_atomic(camera_preview_path(worker.camera_cfg.camera_id), preview)
         worker.last_preview_export_ts = now_ts
 
     def _export_worker_snapshot(self, worker: CameraWorker, selected_cameras: set[str], now_ts: float) -> dict:
@@ -328,14 +339,14 @@ class CentralBackendRuntime:
         debug_requested = camera_id in selected_cameras
         debug_path = camera_debug_path(camera_id)
         if debug_requested and payload.get("debug_frame") is not None and (now_ts - worker.last_debug_export_ts) >= self.debug_export_interval_sec:
-            cv2.imwrite(str(debug_path), payload["debug_frame"])
+            write_image_atomic(debug_path, payload["debug_frame"])
             worker.last_debug_export_ts = now_ts
 
         export_payload = {key: value for key, value in payload.items() if key != "debug_frame"}
         export_payload["debug_enabled"] = debug_requested
         export_payload["debug_frame_path"] = str(debug_path) if debug_requested else None
         export_payload["preview_frame_path"] = str(camera_preview_path(camera_id))
-        camera_snapshot_path(camera_id).write_text(json.dumps(export_payload, ensure_ascii=False, indent=2), encoding="utf-8")
+        write_json_atomic(camera_snapshot_path(camera_id), export_payload)
         return export_payload
 
     def _export_agv_snapshot(self, cameras_payload: list[dict], now_ts: float) -> None:
@@ -352,7 +363,7 @@ class CentralBackendRuntime:
                 for payload in cameras_payload
             ],
         }
-        AGV_SNAPSHOT_PATH.write_text(json.dumps(agv_payload, ensure_ascii=False, indent=2), encoding="utf-8")
+        write_json_atomic(AGV_SNAPSHOT_PATH, agv_payload)
 
     def run(self) -> None:
         while True:
@@ -365,10 +376,7 @@ class CentralBackendRuntime:
 
             if (now_ts - self.last_export_ts) >= self.export_interval_sec:
                 cameras_payload = [self._export_worker_snapshot(worker, selected_cameras, now_ts) for worker in self.workers]
-                PROCESS_SNAPSHOT_PATH.write_text(
-                    json.dumps({"timestamp": now_ts, "camera_count": len(cameras_payload), "cameras": cameras_payload}, ensure_ascii=False, indent=2),
-                    encoding="utf-8",
-                )
+                write_json_atomic(PROCESS_SNAPSHOT_PATH, {"timestamp": now_ts, "camera_count": len(cameras_payload), "cameras": cameras_payload})
                 self._export_agv_snapshot(cameras_payload, now_ts)
                 self.hik_bridge.sync(cameras_payload, now_ts)
                 self.last_export_ts = now_ts

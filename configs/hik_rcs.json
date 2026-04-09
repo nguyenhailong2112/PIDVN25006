@@ -16,12 +16,16 @@
   "retry_interval_sec": 5.0,
   "client_code": "",
   "token_code": "",
+  "http_log_max_mb": 20.0,
+  "http_log_backup_count": 5,
   "callback_server": {
     "enabled": true,
     "host": "0.0.0.0",
     "port": 2112,
     "base_path": "/service/rest/agvCallbackService",
-    "validate_token_code": false
+    "validate_token_code": false,
+    "log_max_mb": 10.0,
+    "log_backup_count": 5
   },
   "mappings": [
     {
@@ -423,6 +427,197 @@
     },
     {
       "enabled": false,
+      "camera_id": "cam1",
+      "zone_id": "A1",
+      "method": "bindPodAndBerth",
+      "position_code": "",
+      "pod_code": "",
+      "pod_dir": "0",
+      "unknown_action": "lockPosition",
+      "notes": "Trolley placeholder. Fill real position_code/pod_code from RCS before enabling."
+    },
+    {
+      "enabled": false,
+      "camera_id": "cam1",
+      "zone_id": "A2",
+      "method": "bindPodAndBerth",
+      "position_code": "",
+      "pod_code": "",
+      "pod_dir": "0",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": false,
+      "camera_id": "cam1",
+      "zone_id": "A3",
+      "method": "bindPodAndBerth",
+      "position_code": "",
+      "pod_code": "",
+      "pod_dir": "0",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": false,
+      "camera_id": "cam1",
+      "zone_id": "B1",
+      "method": "bindPodAndBerth",
+      "position_code": "",
+      "pod_code": "",
+      "pod_dir": "0",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": false,
+      "camera_id": "cam1",
+      "zone_id": "B2",
+      "method": "bindPodAndBerth",
+      "position_code": "",
+      "pod_code": "",
+      "pod_dir": "0",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": false,
+      "camera_id": "cam1",
+      "zone_id": "B3",
+      "method": "bindPodAndBerth",
+      "position_code": "",
+      "pod_code": "",
+      "pod_dir": "0",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": false,
+      "camera_id": "cam2",
+      "zone_id": "A5",
+      "method": "bindPodAndBerth",
+      "position_code": "",
+      "pod_code": "",
+      "pod_dir": "0",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": false,
+      "camera_id": "cam3",
+      "zone_id": "A3",
+      "method": "bindPodAndBerth",
+      "position_code": "",
+      "pod_code": "",
+      "pod_dir": "0",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": false,
+      "camera_id": "cam3",
+      "zone_id": "A4",
+      "method": "bindPodAndBerth",
+      "position_code": "",
+      "pod_code": "",
+      "pod_dir": "0",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": false,
+      "camera_id": "cam3",
+      "zone_id": "A5",
+      "method": "bindPodAndBerth",
+      "position_code": "",
+      "pod_code": "",
+      "pod_dir": "0",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": false,
+      "camera_id": "cam8",
+      "zone_id": "A1",
+      "method": "bindPodAndBerth",
+      "position_code": "",
+      "pod_code": "",
+      "pod_dir": "0",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": false,
+      "camera_id": "cam8",
+      "zone_id": "A2",
+      "method": "bindPodAndBerth",
+      "position_code": "",
+      "pod_code": "",
+      "pod_dir": "0",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": false,
+      "camera_id": "cam8",
+      "zone_id": "A3",
+      "method": "bindPodAndBerth",
+      "position_code": "",
+      "pod_code": "",
+      "pod_dir": "0",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": false,
+      "camera_id": "cam8",
+      "zone_id": "B1",
+      "method": "bindPodAndBerth",
+      "position_code": "",
+      "pod_code": "",
+      "pod_dir": "0",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": false,
+      "camera_id": "cam8",
+      "zone_id": "B2",
+      "method": "bindPodAndBerth",
+      "position_code": "",
+      "pod_code": "",
+      "pod_dir": "0",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": false,
+      "camera_id": "cam8",
+      "zone_id": "B3",
+      "method": "bindPodAndBerth",
+      "position_code": "",
+      "pod_code": "",
+      "pod_dir": "0",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": false,
+      "camera_id": "cam8",
+      "zone_id": "C1",
+      "method": "bindPodAndBerth",
+      "position_code": "",
+      "pod_code": "",
+      "pod_dir": "0",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": false,
+      "camera_id": "cam8",
+      "zone_id": "C2",
+      "method": "bindPodAndBerth",
+      "position_code": "",
+      "pod_code": "",
+      "pod_dir": "0",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": false,
+      "camera_id": "cam8",
+      "zone_id": "C3",
+      "method": "bindPodAndBerth",
+      "position_code": "",
+      "pod_code": "",
+      "pod_dir": "0",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": false,
       "camera_id": "cam6",
       "zone_id": "LIFT_1",
       "method": "lockPosition",
@@ -441,5 +636,3 @@
     }
   ]
 }
-
-

@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 from urllib import error, request
 
+from core.file_utils import append_jsonl_rotating
 from core.logger_config import get_logger
 
 
@@ -35,6 +36,8 @@ class HikRcsClient:
         self.client_code = str(config.get("client_code", "")).strip()
         self.token_code = str(config.get("token_code", "")).strip()
         self.include_interface_name = bool(config.get("include_interface_name", False))
+        self.http_log_max_bytes = max(0, int(float(config.get("http_log_max_mb", 20.0)) * 1024 * 1024))
+        self.http_log_backup_count = max(0, int(config.get("http_log_backup_count", 5)))
 
     @staticmethod
     def _parse_ports(raw_value: Any, *, fallback: int) -> list[int]:
@@ -304,7 +307,12 @@ class HikRcsClient:
             "request": payload,
             "response": response_payload,
         }
-        self._append_jsonl(self.log_path, exchange)
+        self._append_jsonl(
+            self.log_path,
+            exchange,
+            max_bytes=self.http_log_max_bytes,
+            backup_count=self.http_log_backup_count,
+        )
         logger.info(
             "[HIK-RCS] api=%s req=%s code=%s message=%s",
             api_name,
@@ -333,6 +341,5 @@ class HikRcsClient:
         return last_response
 
     @staticmethod
-    def _append_jsonl(path: Path, payload: dict[str, Any]) -> None:
-        with path.open("a", encoding="utf-8") as f:
-            f.write(json.dumps(payload, ensure_ascii=False) + "\n")
+    def _append_jsonl(path: Path, payload: dict[str, Any], *, max_bytes: int, backup_count: int) -> None:
+        append_jsonl_rotating(path, payload, max_bytes=max_bytes, backup_count=backup_count)

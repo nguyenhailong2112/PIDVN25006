@@ -31,6 +31,7 @@ Y nghia:
 
 ## 3. File da duoc bo sung
 - `configs/hik_rcs.json`
+- `configs/hik_rcs_trolley_template.json`
 - `core/hik_rcs_client.py`
 - `core/hik_callback_server.py`
 - `core/hik_rcs_bridge.py`
@@ -38,6 +39,10 @@ Y nghia:
 
 Bridge da duoc noi vao `mainProcess.py`.
 Moi lan backend export camera snapshot, bridge se doc zone state va dispatch sang RCS neu config cho phep.
+Tu phien ban hien tai:
+- pallet mappings va trolley placeholder mappings co the cung song trong `configs/hik_rcs.json`
+- trolley mappings mac dinh de `enabled=false` cho toi khi AGV/RCS chot business code that
+- log HTTP/callback va history zone da co gioi han xoay vong de tranh phinh bo nho theo thoi gian
 
 ## 4. Cach cau hinh
 Mo file `configs/hik_rcs.json`.

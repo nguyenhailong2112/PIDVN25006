@@ -214,8 +214,8 @@ class CctvMonitorWindow(QMainWindow):
         backend.setdefault("timestamp", 0.0)
         backend.setdefault("detect_ms", 0.0)
         backend.setdefault("current_states", backend.get("zones", []))
-        backend["raw_frame"] = self._read_image(camera_preview_path(camera_id))
-        backend["debug_frame"] = self._read_image(camera_debug_path(camera_id))
+        backend["raw_frame"] = self._read_image(camera_preview_path(camera_id)) or window.origin_panel.last_frame_bgr
+        backend["debug_frame"] = self._read_image(camera_debug_path(camera_id)) or window.processed_panel.last_frame_bgr
         window.update_result(backend)
 
     def update_views(self):
@@ -234,7 +234,9 @@ class CctvMonitorWindow(QMainWindow):
                 continue
             self.last_preview_mtime[camera_cfg.camera_id] = mtime
             tile.set_title(f"{camera_cfg.name} ({camera_cfg.camera_id})")
-            tile.set_frame(self._read_image(preview_path))
+            frame = self._read_image(preview_path)
+            if frame is not None:
+                tile.set_frame(frame)
 
         now_ts = time.time()
         selected = load_selected_cameras()

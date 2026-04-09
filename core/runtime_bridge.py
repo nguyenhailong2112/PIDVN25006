@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 from typing import Iterable
 
+from core.file_utils import write_image_atomic, write_json_atomic, write_text_atomic
 from core.path_utils import PROJECT_ROOT
 
 RUNTIME_DIR = PROJECT_ROOT / "outputs" / "runtime"
@@ -37,11 +38,7 @@ def load_selected_cameras() -> set[str]:
 def save_selected_cameras(camera_ids: Iterable[str]) -> Path:
     ensure_runtime_dirs()
     ordered = sorted({str(camera_id) for camera_id in camera_ids})
-    SELECTED_CAMERAS_PATH.write_text(
-        json.dumps({"camera_ids": ordered}, ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
-    return SELECTED_CAMERAS_PATH
+    return write_json_atomic(SELECTED_CAMERAS_PATH, {"camera_ids": ordered})
 
 
 def camera_snapshot_path(camera_id: str) -> Path:

@@ -8,6 +8,8 @@
   "detail_display_fps": 25.0,
   "export_interval_ms": 100,
   "debug_export_fps": 10.0,
+  "history_log_max_mb": 10.0,
+  "history_log_backup_count": 7,
   "schedule_sleep_ms": 5,
   "selected_priority_boost": 1000.0,
   "detail_priority_boost": 1200.0,

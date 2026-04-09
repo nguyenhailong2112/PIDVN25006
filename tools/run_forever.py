@@ -8,6 +8,7 @@ import subprocess
 import sys
 import time
 from dataclasses import dataclass
+from logging.handlers import TimedRotatingFileHandler
 from pathlib import Path
 
 
@@ -26,7 +27,14 @@ def setup_logger() -> logging.Logger:
     logger.setLevel(logging.INFO)
     formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(message)s")
 
-    file_handler = logging.FileHandler(SUPERVISOR_LOG_PATH, encoding="utf-8")
+    file_handler = TimedRotatingFileHandler(
+        SUPERVISOR_LOG_PATH,
+        when="D",
+        interval=1,
+        backupCount=10,
+        encoding="utf-8",
+        delay=True,
+    )
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)
 

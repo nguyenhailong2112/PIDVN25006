@@ -7,6 +7,7 @@ from typing import Any
 
 from core.hik_callback_server import HikCallbackServer
 from core.hik_rcs_client import HikRcsClient
+from core.file_utils import write_json_atomic
 from core.logger_config import get_logger
 
 
@@ -351,10 +352,9 @@ class HikRcsBridge:
         return False
 
     def _prepare_dispatch(self, dispatch: dict[str, Any], desired_key: str, now_ts: float) -> str:
-        if dispatch.get("key") != desired_key:
-            req_code = self.client.make_req_code(f"{desired_key}:{int(now_ts * 1000)}")
-            dispatch["key"] = desired_key
-            dispatch["req_code"] = req_code
+        req_code = self.client.make_req_code(f"{desired_key}:{int(now_ts * 1000)}")
+        dispatch["key"] = desired_key
+        dispatch["req_code"] = req_code
         dispatch["attempt_ts"] = round(now_ts, 3)
         return str(dispatch.get("req_code", ""))
 
@@ -368,13 +368,13 @@ class HikRcsBridge:
         if not self.state_path.exists():
             return {"zones": {}}
         try:
-            return json.loads(self.state_path.read_text(encoding="utf-8"))
+            return json.loads(self.state_path.read_text(encoding="utf-8-sig"))
         except json.JSONDecodeError:
             logger.warning("[HIK-RCS] Invalid state file, reset bridge state")
             return {"zones": {}}
 
     def _save_state(self) -> None:
-        self.state_path.write_text(json.dumps(self.state, ensure_ascii=False, indent=2), encoding="utf-8")
+        write_json_atomic(self.state_path, self.state)
 
     def _validate_config(self) -> None:
         if not self.enabled and not self.config.get("callback_server", {}).get("enabled", False):
@@ -389,8 +389,12 @@ class HikRcsBridge:
         if self.enabled and not enabled_mappings:
             logger.warning("[HIK-RCS] Bridge enabled but no mapping is enabled")
 
+        seen_mapping_keys: set[str] = set()
         for mapping in enabled_mappings:
             mapping_key = self._mapping_key(mapping)
+            if mapping_key in seen_mapping_keys:
+                logger.warning("[HIK-RCS] Duplicate enabled mapping key=%s", mapping_key)
+            seen_mapping_keys.add(mapping_key)
             method = str(mapping.get("method", "")).strip()
             if method not in self.SUPPORTED_METHODS:
                 logger.warning("[HIK-RCS] %s has unsupported method=%s", mapping_key, method)
@@ -399,3 +403,14 @@ class HikRcsBridge:
                 logger.warning("[HIK-RCS] %s has unsupported unknown_action=%s", mapping_key, unknown_action)
             if not mapping.get("camera_id") or not mapping.get("zone_id"):
                 logger.warning("[HIK-RCS] Invalid mapping with missing camera_id/zone_id: %s", mapping)
+            if method == "bindPodAndBerth":
+                if not mapping.get("pod_code") or not mapping.get("position_code"):
+                    logger.warning("[HIK-RCS] %s missing pod_code/position_code for bindPodAndBerth", mapping_key)
+            elif method == "bindPodAndMat":
+                if not mapping.get("pod_code") or not mapping.get("material_lot"):
+                    logger.warning("[HIK-RCS] %s missing pod_code/material_lot for bindPodAndMat", mapping_key)
+            elif method == "bindCtnrAndBin":
+                if not mapping.get("ctnr_code") or not mapping.get("ctnr_typ"):
+                    logger.warning("[HIK-RCS] %s missing ctnr_code/ctnr_typ for bindCtnrAndBin", mapping_key)
+                if not mapping.get("stg_bin_code") and not mapping.get("position_code"):
+                    logger.warning("[HIK-RCS] %s missing both stg_bin_code and position_code", mapping_key)

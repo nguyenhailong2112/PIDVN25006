@@ -1,6 +1,6 @@
-import json
 from pathlib import Path
 
+from core.file_utils import write_json_atomic
 from core.types import ZoneState
 
 
@@ -25,5 +25,4 @@ class StateExporter:
         }
 
         output_path = self.output_dir / f"{camera_id}_latest.json"
-        output_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
-        return output_path
+        return write_json_atomic(output_path, payload)
