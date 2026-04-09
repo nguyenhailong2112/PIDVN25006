@@ -182,6 +182,10 @@ class CctvMonitorWindow(QMainWindow):
             return None
         return cv2.imread(str(path))
 
+    @staticmethod
+    def _coalesce_frame(primary_frame, fallback_frame):
+        return primary_frame if primary_frame is not None else fallback_frame
+
     def on_tile_clicked(self, index: int):
         if index >= len(self.camera_configs):
             return
@@ -214,8 +218,10 @@ class CctvMonitorWindow(QMainWindow):
         backend.setdefault("timestamp", 0.0)
         backend.setdefault("detect_ms", 0.0)
         backend.setdefault("current_states", backend.get("zones", []))
-        backend["raw_frame"] = self._read_image(camera_preview_path(camera_id)) or window.origin_panel.last_frame_bgr
-        backend["debug_frame"] = self._read_image(camera_debug_path(camera_id)) or window.processed_panel.last_frame_bgr
+        preview_frame = self._read_image(camera_preview_path(camera_id))
+        debug_frame = self._read_image(camera_debug_path(camera_id))
+        backend["raw_frame"] = self._coalesce_frame(preview_frame, window.origin_panel.last_frame_bgr)
+        backend["debug_frame"] = self._coalesce_frame(debug_frame, window.processed_panel.last_frame_bgr)
         window.update_result(backend)
 
     def update_views(self):
