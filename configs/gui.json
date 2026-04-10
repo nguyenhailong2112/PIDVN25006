@@ -1,6 +1,6 @@
 {
   "window_title": "RTC-PIDVN AGV-VISION CCTV Monitor",
-  "grid_rows": 3,
+  "grid_rows": 4,
   "grid_cols": 4,
   "cell_min_width": 416,
   "cell_min_height": 234,

@@ -36,9 +36,8 @@
       "position_code": "PK_A1",
       "stg_bin_code": "",
       "ctnr_code": "PK_A1",
-      "ctnr_typ": "1",
-      "unknown_action": "lockPosition",
-      "notes": "Packing cam4 A1. Fill stg_bin_code onsite when AGV team confirms the real bin."
+      "ctnr_typ": "Pallet_Pana",
+      "unknown_action": "lockPosition"
     },
     {
       "enabled": true,
@@ -48,7 +47,7 @@
       "position_code": "PK_A2",
       "stg_bin_code": "",
       "ctnr_code": "PK_A2",
-      "ctnr_typ": "1",
+      "ctnr_typ": "Pallet_Pana",
       "unknown_action": "lockPosition"
     },
     {
@@ -59,7 +58,7 @@
       "position_code": "PK_A3",
       "stg_bin_code": "",
       "ctnr_code": "PK_A3",
-      "ctnr_typ": "1",
+      "ctnr_typ": "Pallet_Pana",
       "unknown_action": "lockPosition"
     },
     {
@@ -70,7 +69,7 @@
       "position_code": "PK_A4",
       "stg_bin_code": "",
       "ctnr_code": "PK_A4",
-      "ctnr_typ": "1",
+      "ctnr_typ": "Pallet_Pana",
       "unknown_action": "lockPosition"
     },
     {
@@ -81,7 +80,7 @@
       "position_code": "PK_B1",
       "stg_bin_code": "",
       "ctnr_code": "PK_B1",
-      "ctnr_typ": "1",
+      "ctnr_typ": "Pallet_Pana",
       "unknown_action": "lockPosition"
     },
     {
@@ -92,7 +91,7 @@
       "position_code": "PK_B2",
       "stg_bin_code": "",
       "ctnr_code": "PK_B2",
-      "ctnr_typ": "1",
+      "ctnr_typ": "Pallet_Pana",
       "unknown_action": "lockPosition"
     },
     {
@@ -103,7 +102,7 @@
       "position_code": "PK_B3",
       "stg_bin_code": "",
       "ctnr_code": "PK_B3",
-      "ctnr_typ": "1",
+      "ctnr_typ": "Pallet_Pana",
       "unknown_action": "lockPosition"
     },
     {
@@ -114,7 +113,7 @@
       "position_code": "PK_B4",
       "stg_bin_code": "",
       "ctnr_code": "PK_B4",
-      "ctnr_typ": "1",
+      "ctnr_typ": "Pallet_Pana",
       "unknown_action": "lockPosition"
     },
     {
@@ -125,7 +124,7 @@
       "position_code": "PK_C1",
       "stg_bin_code": "",
       "ctnr_code": "PK_C1",
-      "ctnr_typ": "1",
+      "ctnr_typ": "Pallet_Pana",
       "unknown_action": "lockPosition"
     },
     {
@@ -136,7 +135,7 @@
       "position_code": "PK_C2",
       "stg_bin_code": "",
       "ctnr_code": "PK_C2",
-      "ctnr_typ": "1",
+      "ctnr_typ": "Pallet_Pana",
       "unknown_action": "lockPosition"
     },
     {
@@ -147,7 +146,7 @@
       "position_code": "PK_C3",
       "stg_bin_code": "",
       "ctnr_code": "PK_C3",
-      "ctnr_typ": "1",
+      "ctnr_typ": "Pallet_Pana",
       "unknown_action": "lockPosition"
     },
     {
@@ -158,7 +157,7 @@
       "position_code": "PK_C4",
       "stg_bin_code": "",
       "ctnr_code": "PK_C4",
-      "ctnr_typ": "1",
+      "ctnr_typ": "Pallet_Pana",
       "unknown_action": "lockPosition"
     },
     {
@@ -169,7 +168,7 @@
       "position_code": "PK_D1",
       "stg_bin_code": "",
       "ctnr_code": "PK_D1",
-      "ctnr_typ": "1",
+      "ctnr_typ": "Pallet_Pana",
       "unknown_action": "lockPosition"
     },
     {
@@ -180,7 +179,7 @@
       "position_code": "PK_D2",
       "stg_bin_code": "",
       "ctnr_code": "PK_D2",
-      "ctnr_typ": "1",
+      "ctnr_typ": "Pallet_Pana",
       "unknown_action": "lockPosition"
     },
     {
@@ -191,7 +190,7 @@
       "position_code": "PK_D3",
       "stg_bin_code": "",
       "ctnr_code": "PK_D3",
-      "ctnr_typ": "1",
+      "ctnr_typ": "Pallet_Pana",
       "unknown_action": "lockPosition"
     },
     {
@@ -202,7 +201,7 @@
       "position_code": "PK_D4",
       "stg_bin_code": "",
       "ctnr_code": "PK_D4",
-      "ctnr_typ": "1",
+      "ctnr_typ": "Pallet_Pana",
       "unknown_action": "lockPosition"
     },
     {
@@ -213,7 +212,7 @@
       "position_code": "PK_E1",
       "stg_bin_code": "",
       "ctnr_code": "PK_E1",
-      "ctnr_typ": "1",
+      "ctnr_typ": "Pallet_Pana",
       "unknown_action": "lockPosition"
     },
     {
@@ -224,7 +223,7 @@
       "position_code": "PK_E2",
       "stg_bin_code": "",
       "ctnr_code": "PK_E2",
-      "ctnr_typ": "1",
+      "ctnr_typ": "Pallet_Pana",
       "unknown_action": "lockPosition"
     },
     {
@@ -235,7 +234,7 @@
       "position_code": "PK_E3",
       "stg_bin_code": "",
       "ctnr_code": "PK_E3",
-      "ctnr_typ": "1",
+      "ctnr_typ": "Pallet_Pana",
       "unknown_action": "lockPosition"
     },
     {
@@ -246,7 +245,7 @@
       "position_code": "PK_E4",
       "stg_bin_code": "",
       "ctnr_code": "PK_E4",
-      "ctnr_typ": "1",
+      "ctnr_typ": "Pallet_Pana",
       "unknown_action": "lockPosition"
     },
     {
@@ -257,7 +256,7 @@
       "position_code": "PK_F1",
       "stg_bin_code": "",
       "ctnr_code": "PK_F1",
-      "ctnr_typ": "1",
+      "ctnr_typ": "Pallet_Pana",
       "unknown_action": "lockPosition"
     },
     {
@@ -268,7 +267,7 @@
       "position_code": "PK_F2",
       "stg_bin_code": "",
       "ctnr_code": "PK_F2",
-      "ctnr_typ": "1",
+      "ctnr_typ": "Pallet_Pana",
       "unknown_action": "lockPosition"
     },
     {
@@ -279,7 +278,7 @@
       "position_code": "PK_F3",
       "stg_bin_code": "",
       "ctnr_code": "PK_F3",
-      "ctnr_typ": "1",
+      "ctnr_typ": "Pallet_Pana",
       "unknown_action": "lockPosition"
     },
     {
@@ -290,7 +289,7 @@
       "position_code": "PK_F4",
       "stg_bin_code": "",
       "ctnr_code": "PK_F4",
-      "ctnr_typ": "1",
+      "ctnr_typ": "Pallet_Pana",
       "unknown_action": "lockPosition"
     },
     {
@@ -299,9 +298,9 @@
       "zone_id": "A1",
       "method": "bindCtnrAndBin",
       "position_code": "FG_A1",
-      "stg_bin_code": "",
+      "stg_bin_code": "PA000101501013",
       "ctnr_code": "FG_A1",
-      "ctnr_typ": "1",
+      "ctnr_typ": "Pallet_Pana",
       "unknown_action": "lockPosition"
     },
     {
@@ -310,9 +309,9 @@
       "zone_id": "A2",
       "method": "bindCtnrAndBin",
       "position_code": "FG_A2",
-      "stg_bin_code": "",
+      "stg_bin_code": "PA000201501013",
       "ctnr_code": "FG_A2",
-      "ctnr_typ": "1",
+      "ctnr_typ": "Pallet_Pana",
       "unknown_action": "lockPosition"
     },
     {
@@ -321,9 +320,9 @@
       "zone_id": "A3",
       "method": "bindCtnrAndBin",
       "position_code": "FG_A3",
-      "stg_bin_code": "",
+      "stg_bin_code": "PA000301501013",
       "ctnr_code": "FG_A3",
-      "ctnr_typ": "1",
+      "ctnr_typ": "Pallet_Pana",
       "unknown_action": "lockPosition"
     },
     {
@@ -332,9 +331,9 @@
       "zone_id": "A4",
       "method": "bindCtnrAndBin",
       "position_code": "FG_A4",
-      "stg_bin_code": "",
+      "stg_bin_code": "PA000401501013",
       "ctnr_code": "FG_A4",
-      "ctnr_typ": "1",
+      "ctnr_typ": "Pallet_Pana",
       "unknown_action": "lockPosition"
     },
     {
@@ -343,9 +342,9 @@
       "zone_id": "A5",
       "method": "bindCtnrAndBin",
       "position_code": "FG_A5",
-      "stg_bin_code": "",
+      "stg_bin_code": "PA000501501013",
       "ctnr_code": "FG_A5",
-      "ctnr_typ": "1",
+      "ctnr_typ": "Pallet_Pana",
       "unknown_action": "lockPosition"
     },
     {
@@ -354,9 +353,9 @@
       "zone_id": "A6",
       "method": "bindCtnrAndBin",
       "position_code": "FG_A6",
-      "stg_bin_code": "",
+      "stg_bin_code": "PA000601501013",
       "ctnr_code": "FG_A6",
-      "ctnr_typ": "1",
+      "ctnr_typ": "Pallet_Pana",
       "unknown_action": "lockPosition"
     },
     {
@@ -365,9 +364,9 @@
       "zone_id": "B1",
       "method": "bindCtnrAndBin",
       "position_code": "FG_B1",
-      "stg_bin_code": "",
+      "stg_bin_code": "PA000701501013",
       "ctnr_code": "FG_B1",
-      "ctnr_typ": "1",
+      "ctnr_typ": "Pallet_Pana",
       "unknown_action": "lockPosition"
     },
     {
@@ -376,9 +375,9 @@
       "zone_id": "B2",
       "method": "bindCtnrAndBin",
       "position_code": "FG_B2",
-      "stg_bin_code": "",
+      "stg_bin_code": "PA000801501013",
       "ctnr_code": "FG_B2",
-      "ctnr_typ": "1",
+      "ctnr_typ": "Pallet_Pana",
       "unknown_action": "lockPosition"
     },
     {
@@ -387,9 +386,9 @@
       "zone_id": "B3",
       "method": "bindCtnrAndBin",
       "position_code": "FG_B3",
-      "stg_bin_code": "",
+      "stg_bin_code": "PA000901501013",
       "ctnr_code": "FG_B3",
-      "ctnr_typ": "1",
+      "ctnr_typ": "Pallet_Pana",
       "unknown_action": "lockPosition"
     },
     {
@@ -398,9 +397,9 @@
       "zone_id": "B4",
       "method": "bindCtnrAndBin",
       "position_code": "FG_B4",
-      "stg_bin_code": "",
+      "stg_bin_code": "PA001001501013",
       "ctnr_code": "FG_B4",
-      "ctnr_typ": "1",
+      "ctnr_typ": "Pallet_Pana",
       "unknown_action": "lockPosition"
     },
     {
@@ -409,9 +408,9 @@
       "zone_id": "B5",
       "method": "bindCtnrAndBin",
       "position_code": "FG_B5",
-      "stg_bin_code": "",
+      "stg_bin_code": "PA001101501013",
       "ctnr_code": "FG_B5",
-      "ctnr_typ": "1",
+      "ctnr_typ": "Pallet_Pana",
       "unknown_action": "lockPosition"
     },
     {
@@ -420,9 +419,9 @@
       "zone_id": "B6",
       "method": "bindCtnrAndBin",
       "position_code": "FG_B6",
-      "stg_bin_code": "",
+      "stg_bin_code": "PA001201501013",
       "ctnr_code": "FG_B6",
-      "ctnr_typ": "1",
+      "ctnr_typ": "Pallet_Pana",
       "unknown_action": "lockPosition"
     },
     {
