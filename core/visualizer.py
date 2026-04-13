@@ -12,9 +12,9 @@ STATE_COLORS = {
 
 DET_COLORS = {
     "person": (0, 255, 0),
-    "obstacle": (0, 165, 255),
+    "obstacle": (0, 150, 255),
     "pallet": (255, 0, 0),
-    "trolley": (255, 255, 0),
+    "trolley": (255, 150, 0),
 }
 
 def draw_debug_frame(
@@ -44,7 +44,7 @@ def draw_debug_frame(
 
         label = f"{zone.zone_id}: {state_name}"
         font = cv2.FONT_HERSHEY_DUPLEX
-        font_scale = 0.5
+        font_scale = 0.6
 
         (tw, th), _ = cv2.getTextSize(label, font, font_scale, 1)
         x, y = points[0]
@@ -65,8 +65,8 @@ def draw_debug_frame(
 
             label = f"{cls_name} {conf:.2f}"
 
-            font = cv2.FONT_HERSHEY_DUPLEX
-            font_scale = 0.5
+            font = cv2.FONT_HERSHEY_SIMPLEX
+            font_scale = 0.65
             font_thickness = 1
 
             (tw, th), _ = cv2.getTextSize(label, font, font_scale, font_thickness)
