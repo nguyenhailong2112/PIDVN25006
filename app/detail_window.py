@@ -4,7 +4,6 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QImage, QPixmap, QIcon
 from PyQt6.QtWidgets import (
     QGridLayout,
-    QHBoxLayout,
     QLabel,
     QMainWindow,
     QVBoxLayout,
@@ -59,17 +58,6 @@ class ImagePanel(QLabel):
         self._render()
 
 
-class InfoCard(QLabel):
-    def __init__(self, title: str):
-        super().__init__(title)
-        self.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
-        self.setWordWrap(True)
-        self.setStyleSheet(
-            "background-color: #17191d; color: #f0f0f0; padding: 12px; "
-            "border: 1px solid #2d3138; font-size: 15px;"
-        )
-
-
 class ZoneGridCard(QFrame):
     def __init__(self):
         super().__init__()
@@ -77,6 +65,8 @@ class ZoneGridCard(QFrame):
         self.layout = QGridLayout(self)
         self.layout.setContentsMargins(10, 10, 10, 10)
         self.layout.setSpacing(8)
+        self.zone_labels: dict[str, QLabel] = {}
+        self.layout_signature = None
 
     def clear_grid(self):
         while self.layout.count():
@@ -84,14 +74,15 @@ class ZoneGridCard(QFrame):
             widget = item.widget()
             if widget is not None:
                 widget.deleteLater()
+        self.zone_labels = {}
 
     def update_states(self, states):
-        self.clear_grid()
-
         if not states:
+            self.clear_grid()
             label = QLabel("No zone-based state available")
             label.setStyleSheet("color: #f0f0f0; font-size: 14px;")
             self.layout.addWidget(label, 0, 0)
+            self.layout_signature = None
             return
 
         ordered = sorted(states, key=lambda s: s.zone_id)
@@ -101,19 +92,37 @@ class ZoneGridCard(QFrame):
             rows.setdefault(row_key, []).append(state)
 
         sorted_row_keys = sorted(rows.keys())
+        signature = tuple(
+            (row_key, tuple(item.zone_id for item in sorted(rows[row_key], key=lambda s: s.zone_id))) for row_key in
+            sorted_row_keys)
+        if signature != self.layout_signature:
+            self.clear_grid()
+            self.layout_signature = signature
         max_cols = 0
         for r, row_key in enumerate(sorted_row_keys):
             row_states = sorted(rows[row_key], key=lambda s: s.zone_id)
             max_cols = max(max_cols, len(row_states))
             for c, state in enumerate(row_states):
-                label = QLabel(f"{state.zone_id}\n{state.state}")
+                label = self.zone_labels.get(state.zone_id)
+                if label is None:
+                    label = QLabel()
+                    label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                    label.setStyleSheet(
+                        "color: white; font-size: 16px; font-weight: 700; "
+                        "padding: 14px; border: 1px solid #3a3f46;"
+                    )
+                    self.zone_labels[state.zone_id] = label
+                    self.layout.addWidget(label, r, c)
+
+                occupied_since = getattr(state, "occupied_since_text", None)
+                occupied_line = f"\nĐặt lúc: {occupied_since}" if state.state == "occupied" and occupied_since else ""
+                label.setText(f"{state.zone_id}\n{state.state}{occupied_line}")
                 label.setAlignment(Qt.AlignmentFlag.AlignCenter)
                 color = "#1f6f43" if state.state == "empty" else "#8a6d1d" if state.state == "unknown" else "#7a1f1f"
                 label.setStyleSheet(
                     f"background-color: {color}; color: white; font-size: 16px; font-weight: 700; "
                     "padding: 14px; border: 1px solid #3a3f46;"
                 )
-                self.layout.addWidget(label, r, c)
 
         for c in range(max_cols):
             self.layout.setColumnStretch(c, 1)
@@ -143,9 +152,6 @@ class DetailWindow(QMainWindow):
         self.origin_panel = ImagePanel("Original View")
         self.processed_panel = ImagePanel("Processed View")
 
-        self.camera_info = InfoCard("Camera Info")
-        self.runtime_info = InfoCard("Runtime Info")
-
         self.zone_grid = ZoneGridCard()
 
         image_grid = QGridLayout()
@@ -156,17 +162,11 @@ class DetailWindow(QMainWindow):
         image_grid.setColumnStretch(0, 1)
         image_grid.setColumnStretch(1, 1)
 
-        info_row = QHBoxLayout()
-        info_row.setSpacing(8)
-        info_row.addWidget(self.camera_info, 1)
-        info_row.addWidget(self.runtime_info, 1)
-
         layout = QVBoxLayout(central)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(8)
         layout.addWidget(self.header)
         layout.addLayout(image_grid, 2)
-        layout.addLayout(info_row, 1)
         layout.addWidget(self.zone_grid, 1)
 
     @staticmethod
@@ -191,36 +191,8 @@ class DetailWindow(QMainWindow):
         self.processed_panel.set_frame(result.get("debug_frame"))
 
         states = self._normalize_states(result.get("current_states", []))
-        detect_ms = float(result.get("detect_ms", 0.0))
-        frame_id = result.get("frame_id", -1)
-        timestamp = result.get("timestamp", 0.0)
-        camera_health = result.get("camera_health", "unknown")
-
-        self.camera_info.setText(
-            "\n".join(
-                [
-                    "Camera Info",
-                    f"Camera ID   : {camera_id}",
-                    f"Camera Name : {camera_name}",
-                    f"Camera Type : {camera_type}",
-                ]
-            )
-        )
-
-        self.runtime_info.setText(
-            "\n".join(
-                [
-                    "Runtime Info",
-                    f"Frame ID      : {frame_id}",
-                    f"Timestamp     : {timestamp:.3f}",
-                    f"Detect Time   : {detect_ms:.2f} ms",
-                    f"Zone Count    : {len(states)}",
-                    f"Health        : {camera_health}",
-                ]
-            )
-        )
-
-        signature = tuple((state.zone_id, state.state) for state in sorted(states, key=lambda s: s.zone_id))
+        signature = tuple((state.zone_id, state.state, getattr(state, "occupied_since_text", None)) for state in
+                          sorted(states, key=lambda s: s.zone_id))
         if signature != self._last_zone_signature:
             self.zone_grid.update_states(states)
             self._last_zone_signature = signature

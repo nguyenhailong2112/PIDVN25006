@@ -4,6 +4,7 @@ import json
 import time
 from dataclasses import dataclass
 from threading import Lock, Thread
+from datetime import datetime
 
 import cv2
 
@@ -120,6 +121,7 @@ class CentralBackendRuntime:
         self._hik_sync_running = False
         self._hik_sync_payload: list[dict] | None = None
         self._hik_sync_timestamp: float | None = None
+        self.zone_occupied_since_ts: dict[str, float] = {}
         logger.info("CentralBackendRuntime started with %d cameras", len(self.workers))
 
     def _decode_fps_for(self, camera_cfg) -> float:
@@ -254,7 +256,19 @@ class CentralBackendRuntime:
         return processed
 
     @staticmethod
-    def _zone_state_payload(state) -> dict:
+    def _format_wall_clock(ts: float | None) -> str | None:
+        if ts is None:
+            return None
+        try:
+            return datetime.fromtimestamp(float(ts)).strftime("%H:%M:%S")
+        except Exception:
+            return None
+
+    @staticmethod
+    def _zone_key(camera_id: str, zone_id: str) -> str:
+        return f"{camera_id}:{zone_id}"
+
+    def _zone_state_payload(self, state, occupied_since_ts: float | None = None) -> dict:
         if state.state == "occupied":
             value = 1
             binding = "bind"
@@ -271,7 +285,17 @@ class CentralBackendRuntime:
             "state": state.state,
             "health": state.health,
             "score": round(float(state.score), 4),
+            "occupied_since_ts": occupied_since_ts,
+            "occupied_since_text": self._format_wall_clock(occupied_since_ts),
         }
+
+    def _update_occupied_since(self, states: list) -> None:
+        for state in states:
+            key = self._zone_key(state.camera_id, state.zone_id)
+            if state.state == "occupied":
+                self.zone_occupied_since_ts.setdefault(key, float(state.timestamp))
+            else:
+                self.zone_occupied_since_ts.pop(key, None)
 
     def _empty_payload(self, worker: CameraWorker, live_frame) -> dict:
         return {
@@ -305,7 +329,12 @@ class CentralBackendRuntime:
                     self.history_logger.log_zone_states(worker.camera_cfg.camera_id, changed_states, live_frame.timestamp)
                     self.last_logged_ts[worker.camera_cfg.camera_id] = live_frame.timestamp
 
-        zones = [self._zone_state_payload(state) for state in current_states]
+        self._update_occupied_since(current_states)
+        zones = []
+        for state in current_states:
+            zone_key = self._zone_key(state.camera_id, state.zone_id)
+            occupied_since_ts = self.zone_occupied_since_ts.get(zone_key)
+            zones.append(self._zone_state_payload(state, occupied_since_ts=occupied_since_ts))
         debug_frame = None
         if worker.camera_cfg.camera_id in selected_cameras:
             debug_frame = draw_debug_frame(live_frame.frame, detection_result, worker.zone_configs, current_states)
