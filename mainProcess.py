@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import time
 from dataclasses import dataclass
+from threading import Lock, Thread
 
 import cv2
 
@@ -114,6 +115,11 @@ class CentralBackendRuntime:
         self.workers = [self._build_worker(cfg) for cfg in self.camera_configs]
         self.model_bundles = {}
         self.hik_bridge = HikRcsBridge(load_json_dict(HIK_RCS_CONFIG_PATH), PROJECT_ROOT)
+        self._hik_sync_lock = Lock()
+        self._hik_sync_worker: Thread | None = None
+        self._hik_sync_running = False
+        self._hik_sync_payload: list[dict] | None = None
+        self._hik_sync_timestamp: float | None = None
         logger.info("CentralBackendRuntime started with %d cameras", len(self.workers))
 
     def _decode_fps_for(self, camera_cfg) -> float:
@@ -378,18 +384,52 @@ class CentralBackendRuntime:
                 cameras_payload = [self._export_worker_snapshot(worker, selected_cameras, now_ts) for worker in self.workers]
                 write_json_atomic(PROCESS_SNAPSHOT_PATH, {"timestamp": now_ts, "camera_count": len(cameras_payload), "cameras": cameras_payload})
                 self._export_agv_snapshot(cameras_payload, now_ts)
-                self.hik_bridge.sync(cameras_payload, now_ts)
+                self._schedule_hik_sync(cameras_payload, now_ts)
                 self.last_export_ts = now_ts
 
             time.sleep(self.schedule_sleep_sec)
 
     def close(self) -> None:
+        self._wait_hik_sync_worker(timeout_sec=2.0)
         try:
             self.hik_bridge.close()
         except Exception:
             logger.exception("Failed to close HIK bridge cleanly")
         for worker in self.workers:
             worker.reader.stop()
+
+    def _schedule_hik_sync(self, cameras_payload: list[dict], now_ts: float) -> None:
+        with self._hik_sync_lock:
+            self._hik_sync_payload = cameras_payload
+            self._hik_sync_timestamp = now_ts
+            if self._hik_sync_running:
+                return
+            self._hik_sync_running = True
+            self._hik_sync_worker = Thread(target=self._hik_sync_loop, daemon=True)
+            self._hik_sync_worker.start()
+
+    def _hik_sync_loop(self) -> None:
+        while True:
+            with self._hik_sync_lock:
+                payload = self._hik_sync_payload
+                timestamp = self._hik_sync_timestamp
+                self._hik_sync_payload = None
+                self._hik_sync_timestamp = None
+            if payload is None or timestamp is None:
+                with self._hik_sync_lock:
+                    self._hik_sync_running = False
+                    self._hik_sync_worker = None
+                return
+            try:
+                self.hik_bridge.sync(payload, timestamp)
+            except Exception:
+                logger.exception("HIK bridge async sync failed")
+
+    def _wait_hik_sync_worker(self, timeout_sec: float) -> None:
+        worker = self._hik_sync_worker
+        if worker is None:
+            return
+        worker.join(timeout=max(0.0, float(timeout_sec)))
 
 
 def main() -> None:

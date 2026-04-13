@@ -66,17 +66,6 @@
     "enabled": true
   },
   {
-    "camera_id": "cam7",
-    "camera_type": "general_monitoring",
-    "name": "Thang May 2",
-    "source_type": "rtsp",
-    "source_path": "rtsp://admin:rtctech!@192.168.11.7:554/Streaming/Channels/101",
-    "model_path": "weights/best.pt",
-    "zone_config": "configs/zones_cam7.json",
-    "infer_every_n_frames": 2,
-    "enabled": true
-  },
-  {
     "camera_id": "cam8",
     "camera_type": "trolley_slot",
     "name": "Trolley 3T",

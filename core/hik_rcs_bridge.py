@@ -149,11 +149,46 @@ class HikRcsBridge:
         desired_key = f"{method}:{ind_bind}"
         if not self._should_dispatch(dispatch, desired_key, now_ts):
             return changed
-        req_code = self._prepare_dispatch(dispatch, desired_key, now_ts)
-        response = self._send_main_binding(method, mapping, context, req_code, ind_bind)
+        req_code = self._prepare_dispatch(
+            dispatch,
+            desired_key,
+            now_ts,
+            mapping_key=self._mapping_key(mapping),
+        )
+        ctnr_code_override = self._resolve_ctnr_code_for_dispatch(
+            method=method,
+            entry=entry,
+            mapping=mapping,
+            context=context,
+            ind_bind=ind_bind,
+        )
+        response = self._send_main_binding(
+            method,
+            mapping,
+            context,
+            req_code,
+            ind_bind,
+            ctnr_code_override=ctnr_code_override,
+        )
+        response = self._normalize_response(
+            response=response,
+            method=method,
+            mapping=mapping,
+            context=context,
+            ind_bind=ind_bind,
+        )
         self._commit_dispatch(dispatch, response, now_ts)
+        bound_ctnr_hint = str(response.get("_bound_ctnr_code_hint", "")).strip()
+        if bound_ctnr_hint:
+            entry["last_bound_ctnr_code"] = bound_ctnr_hint
         if self.client.is_success(response):
             entry["bound_state"] = vision_state
+            if method == "bindCtnrAndBin" and ind_bind == "1":
+                used_ctnr = ctnr_code_override or self._resolve_field(mapping, "ctnr_code", context) or ""
+                if used_ctnr:
+                    entry["last_bound_ctnr_code"] = used_ctnr
+            elif method == "bindCtnrAndBin" and ind_bind == "0":
+                entry["last_bound_ctnr_code"] = ""
         changed = True
         return changed
 
@@ -164,6 +199,8 @@ class HikRcsBridge:
         context: dict[str, Any],
         req_code: str,
         ind_bind: str,
+        *,
+        ctnr_code_override: str | None = None,
     ) -> dict[str, Any]:
         if method == "bindPodAndBerth":
             pod_code = self._resolve_field(mapping, "pod_code", context)
@@ -212,7 +249,7 @@ class HikRcsBridge:
             )
 
         if method == "bindCtnrAndBin":
-            ctnr_code = self._resolve_field(mapping, "ctnr_code", context)
+            ctnr_code = ctnr_code_override or self._resolve_field(mapping, "ctnr_code", context)
             ctnr_typ = self._resolve_field(mapping, "ctnr_typ", context)
             stg_bin_code = self._resolve_field(mapping, "stg_bin_code", context)
             position_code = self._resolve_field(mapping, "position_code", context)
@@ -248,6 +285,25 @@ class HikRcsBridge:
 
         return {"code": "CONFIG_ERROR", "message": f"unsupported method={method}", "reqCode": req_code}
 
+    def _resolve_ctnr_code_for_dispatch(
+        self,
+        *,
+        method: str,
+        entry: dict[str, Any],
+        mapping: dict[str, Any],
+        context: dict[str, Any],
+        ind_bind: str,
+    ) -> str | None:
+        if method != "bindCtnrAndBin":
+            return None
+        if ind_bind == "1":
+            return None
+
+        last_bound_ctnr = str(entry.get("last_bound_ctnr_code", "")).strip()
+        if last_bound_ctnr:
+            return last_bound_ctnr
+        return self._resolve_field(mapping, "ctnr_code", context)
+
     def _send_lock_position(self, *, req_code: str, position_code: str, ind_bind: str) -> dict[str, Any]:
         return self._dispatch(
             "lockPosition",
@@ -275,9 +331,21 @@ class HikRcsBridge:
             return False
         if not self._should_dispatch(dispatch, desired_key, now_ts):
             return False
-        req_code = self._prepare_dispatch(dispatch, desired_key, now_ts)
+        req_code = self._prepare_dispatch(
+            dispatch,
+            desired_key,
+            now_ts,
+            mapping_key=self._mapping_key(mapping),
+        )
         ind_bind = "1" if desired_state == "enabled" else "0"
         response = self._send_lock_position(req_code=req_code, position_code=position_code, ind_bind=ind_bind)
+        response = self._normalize_response(
+            response=response,
+            method="lockPosition",
+            mapping=mapping,
+            context=context,
+            ind_bind=ind_bind,
+        )
         self._commit_dispatch(dispatch, response, now_ts)
         if self.client.is_success(response):
             entry["lock_state"] = desired_state
@@ -347,21 +415,109 @@ class HikRcsBridge:
     def _should_dispatch(self, dispatch: dict[str, Any], desired_key: str, now_ts: float) -> bool:
         if dispatch.get("key") != desired_key:
             return True
+        if dispatch.get("non_retryable", False):
+            return False
         if not dispatch.get("success", False):
             return (now_ts - float(dispatch.get("attempt_ts", 0.0))) >= self.retry_interval_sec
         return False
 
-    def _prepare_dispatch(self, dispatch: dict[str, Any], desired_key: str, now_ts: float) -> str:
-        req_code = self.client.make_req_code(f"{desired_key}:{int(now_ts * 1000)}")
+    def _prepare_dispatch(
+        self,
+        dispatch: dict[str, Any],
+        desired_key: str,
+        now_ts: float,
+        *,
+        mapping_key: str,
+    ) -> str:
+        req_seed = f"{mapping_key}:{desired_key}:{time.time_ns()}"
+        req_code = self.client.make_req_code(req_seed)
         dispatch["key"] = desired_key
         dispatch["req_code"] = req_code
         dispatch["attempt_ts"] = round(now_ts, 3)
         return str(dispatch.get("req_code", ""))
 
+    def _normalize_response(
+        self,
+        *,
+        response: dict[str, Any],
+        method: str,
+        mapping: dict[str, Any],
+        context: dict[str, Any],
+        ind_bind: str,
+    ) -> dict[str, Any]:
+        if self.client.is_success(response):
+            return response
+
+        message = str(response.get("message", "")).strip().lower()
+        if "handled successfully" in message and "same reqcode" in message:
+            normalized = dict(response)
+            normalized["code"] = "0"
+            return normalized
+
+        if method == "bindCtnrAndBin" and ind_bind == "1":
+            requested_ctnr = self._resolve_field(mapping, "ctnr_code", context) or ""
+            existing_ctnr = self.client.extract_bound_ctnr_code(response)
+            if requested_ctnr and existing_ctnr and requested_ctnr.strip().lower() == existing_ctnr.strip().lower():
+                normalized = dict(response)
+                normalized["code"] = "0"
+                normalized["message"] = f"already bound to desired container: {existing_ctnr}"
+                normalized["_bound_ctnr_code_hint"] = existing_ctnr
+                return normalized
+            if existing_ctnr:
+                normalized = dict(response)
+                normalized["_bound_ctnr_code_hint"] = existing_ctnr
+                return normalized
+
+        if self._is_non_retryable_response(method=method, response=response):
+            normalized = dict(response)
+            normalized["_non_retryable"] = True
+            return normalized
+
+        return response
+
+    @staticmethod
+    def _is_non_retryable_response(*, method: str, response: dict[str, Any]) -> bool:
+        if str(response.get("code", "")).upper() == "CONFIG_ERROR":
+            return True
+        if str(response.get("code", "")) == "0":
+            return False
+
+        message = str(response.get("message", "")).strip().lower()
+        if not message:
+            return False
+
+        lock_non_retryable_patterns = (
+            "point code is not exist",
+            "position code is not exist",
+        )
+        bind_non_retryable_patterns = (
+            "has been locked",
+            "has been frozen by user",
+            "has bind container code",
+            "not bound to this storage bin",
+            "has incomplete task",
+        )
+        common_non_retryable_patterns = (
+            "parameter error",
+            "invalid parameter",
+        )
+
+        if any(token in message for token in common_non_retryable_patterns):
+            return True
+        if method == "lockPosition" and any(token in message for token in lock_non_retryable_patterns):
+            return True
+        if method == "bindCtnrAndBin" and any(token in message for token in bind_non_retryable_patterns):
+            return True
+        return False
+
     @staticmethod
     def _commit_dispatch(dispatch: dict[str, Any], response: dict[str, Any], now_ts: float) -> None:
         dispatch["success"] = str(response.get("code", "")) == "0"
-        dispatch["response"] = response
+        dispatch["non_retryable"] = bool(response.get("_non_retryable", False))
+        clean_response = dict(response)
+        clean_response.pop("_non_retryable", None)
+        clean_response.pop("_bound_ctnr_code_hint", None)
+        dispatch["response"] = clean_response
         dispatch["response_ts"] = round(now_ts, 3)
 
     def _load_state(self) -> dict[str, Any]:

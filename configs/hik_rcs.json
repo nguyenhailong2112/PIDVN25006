@@ -34,42 +34,9 @@
       "zone_id": "A1",
       "method": "bindCtnrAndBin",
       "position_code": "PK_A1",
-      "stg_bin_code": "",
+      "stg_bin_code": "PA000101501013",
       "ctnr_code": "PK_A1",
-      "ctnr_typ": "Pallet_Pana",
-      "unknown_action": "lockPosition"
-    },
-    {
-      "enabled": true,
-      "camera_id": "cam4",
-      "zone_id": "A2",
-      "method": "bindCtnrAndBin",
-      "position_code": "PK_A2",
-      "stg_bin_code": "",
-      "ctnr_code": "PK_A2",
-      "ctnr_typ": "Pallet_Pana",
-      "unknown_action": "lockPosition"
-    },
-    {
-      "enabled": true,
-      "camera_id": "cam4",
-      "zone_id": "A3",
-      "method": "bindCtnrAndBin",
-      "position_code": "PK_A3",
-      "stg_bin_code": "",
-      "ctnr_code": "PK_A3",
-      "ctnr_typ": "Pallet_Pana",
-      "unknown_action": "lockPosition"
-    },
-    {
-      "enabled": true,
-      "camera_id": "cam4",
-      "zone_id": "A4",
-      "method": "bindCtnrAndBin",
-      "position_code": "PK_A4",
-      "stg_bin_code": "",
-      "ctnr_code": "PK_A4",
-      "ctnr_typ": "Pallet_Pana",
+      "ctnr_typ": "1",
       "unknown_action": "lockPosition"
     },
     {
@@ -78,9 +45,9 @@
       "zone_id": "B1",
       "method": "bindCtnrAndBin",
       "position_code": "PK_B1",
-      "stg_bin_code": "",
+      "stg_bin_code": "PA000201501013",
       "ctnr_code": "PK_B1",
-      "ctnr_typ": "Pallet_Pana",
+      "ctnr_typ": "1",
       "unknown_action": "lockPosition"
     },
     {
@@ -89,31 +56,9 @@
       "zone_id": "B2",
       "method": "bindCtnrAndBin",
       "position_code": "PK_B2",
-      "stg_bin_code": "",
+      "stg_bin_code": "PA000301501013",
       "ctnr_code": "PK_B2",
-      "ctnr_typ": "Pallet_Pana",
-      "unknown_action": "lockPosition"
-    },
-    {
-      "enabled": true,
-      "camera_id": "cam4",
-      "zone_id": "B3",
-      "method": "bindCtnrAndBin",
-      "position_code": "PK_B3",
-      "stg_bin_code": "",
-      "ctnr_code": "PK_B3",
-      "ctnr_typ": "Pallet_Pana",
-      "unknown_action": "lockPosition"
-    },
-    {
-      "enabled": true,
-      "camera_id": "cam4",
-      "zone_id": "B4",
-      "method": "bindCtnrAndBin",
-      "position_code": "PK_B4",
-      "stg_bin_code": "",
-      "ctnr_code": "PK_B4",
-      "ctnr_typ": "Pallet_Pana",
+      "ctnr_typ": "1",
       "unknown_action": "lockPosition"
     },
     {
@@ -122,218 +67,9 @@
       "zone_id": "C1",
       "method": "bindCtnrAndBin",
       "position_code": "PK_C1",
-      "stg_bin_code": "",
-      "ctnr_code": "PK_C1",
-      "ctnr_typ": "Pallet_Pana",
-      "unknown_action": "lockPosition"
-    },
-    {
-      "enabled": true,
-      "camera_id": "cam4",
-      "zone_id": "C2",
-      "method": "bindCtnrAndBin",
-      "position_code": "PK_C2",
-      "stg_bin_code": "",
-      "ctnr_code": "PK_C2",
-      "ctnr_typ": "Pallet_Pana",
-      "unknown_action": "lockPosition"
-    },
-    {
-      "enabled": true,
-      "camera_id": "cam4",
-      "zone_id": "C3",
-      "method": "bindCtnrAndBin",
-      "position_code": "PK_C3",
-      "stg_bin_code": "",
-      "ctnr_code": "PK_C3",
-      "ctnr_typ": "Pallet_Pana",
-      "unknown_action": "lockPosition"
-    },
-    {
-      "enabled": true,
-      "camera_id": "cam4",
-      "zone_id": "C4",
-      "method": "bindCtnrAndBin",
-      "position_code": "PK_C4",
-      "stg_bin_code": "",
-      "ctnr_code": "PK_C4",
-      "ctnr_typ": "Pallet_Pana",
-      "unknown_action": "lockPosition"
-    },
-    {
-      "enabled": true,
-      "camera_id": "cam5",
-      "zone_id": "D1",
-      "method": "bindCtnrAndBin",
-      "position_code": "PK_D1",
-      "stg_bin_code": "",
-      "ctnr_code": "PK_D1",
-      "ctnr_typ": "Pallet_Pana",
-      "unknown_action": "lockPosition"
-    },
-    {
-      "enabled": true,
-      "camera_id": "cam5",
-      "zone_id": "D2",
-      "method": "bindCtnrAndBin",
-      "position_code": "PK_D2",
-      "stg_bin_code": "",
-      "ctnr_code": "PK_D2",
-      "ctnr_typ": "Pallet_Pana",
-      "unknown_action": "lockPosition"
-    },
-    {
-      "enabled": true,
-      "camera_id": "cam5",
-      "zone_id": "D3",
-      "method": "bindCtnrAndBin",
-      "position_code": "PK_D3",
-      "stg_bin_code": "",
-      "ctnr_code": "PK_D3",
-      "ctnr_typ": "Pallet_Pana",
-      "unknown_action": "lockPosition"
-    },
-    {
-      "enabled": true,
-      "camera_id": "cam5",
-      "zone_id": "D4",
-      "method": "bindCtnrAndBin",
-      "position_code": "PK_D4",
-      "stg_bin_code": "",
-      "ctnr_code": "PK_D4",
-      "ctnr_typ": "Pallet_Pana",
-      "unknown_action": "lockPosition"
-    },
-    {
-      "enabled": true,
-      "camera_id": "cam5",
-      "zone_id": "E1",
-      "method": "bindCtnrAndBin",
-      "position_code": "PK_E1",
-      "stg_bin_code": "",
-      "ctnr_code": "PK_E1",
-      "ctnr_typ": "Pallet_Pana",
-      "unknown_action": "lockPosition"
-    },
-    {
-      "enabled": true,
-      "camera_id": "cam5",
-      "zone_id": "E2",
-      "method": "bindCtnrAndBin",
-      "position_code": "PK_E2",
-      "stg_bin_code": "",
-      "ctnr_code": "PK_E2",
-      "ctnr_typ": "Pallet_Pana",
-      "unknown_action": "lockPosition"
-    },
-    {
-      "enabled": true,
-      "camera_id": "cam5",
-      "zone_id": "E3",
-      "method": "bindCtnrAndBin",
-      "position_code": "PK_E3",
-      "stg_bin_code": "",
-      "ctnr_code": "PK_E3",
-      "ctnr_typ": "Pallet_Pana",
-      "unknown_action": "lockPosition"
-    },
-    {
-      "enabled": true,
-      "camera_id": "cam5",
-      "zone_id": "E4",
-      "method": "bindCtnrAndBin",
-      "position_code": "PK_E4",
-      "stg_bin_code": "",
-      "ctnr_code": "PK_E4",
-      "ctnr_typ": "Pallet_Pana",
-      "unknown_action": "lockPosition"
-    },
-    {
-      "enabled": true,
-      "camera_id": "cam5",
-      "zone_id": "F1",
-      "method": "bindCtnrAndBin",
-      "position_code": "PK_F1",
-      "stg_bin_code": "",
-      "ctnr_code": "PK_F1",
-      "ctnr_typ": "Pallet_Pana",
-      "unknown_action": "lockPosition"
-    },
-    {
-      "enabled": true,
-      "camera_id": "cam5",
-      "zone_id": "F2",
-      "method": "bindCtnrAndBin",
-      "position_code": "PK_F2",
-      "stg_bin_code": "",
-      "ctnr_code": "PK_F2",
-      "ctnr_typ": "Pallet_Pana",
-      "unknown_action": "lockPosition"
-    },
-    {
-      "enabled": true,
-      "camera_id": "cam5",
-      "zone_id": "F3",
-      "method": "bindCtnrAndBin",
-      "position_code": "PK_F3",
-      "stg_bin_code": "",
-      "ctnr_code": "PK_F3",
-      "ctnr_typ": "Pallet_Pana",
-      "unknown_action": "lockPosition"
-    },
-    {
-      "enabled": true,
-      "camera_id": "cam5",
-      "zone_id": "F4",
-      "method": "bindCtnrAndBin",
-      "position_code": "PK_F4",
-      "stg_bin_code": "",
-      "ctnr_code": "PK_F4",
-      "ctnr_typ": "Pallet_Pana",
-      "unknown_action": "lockPosition"
-    },
-    {
-      "enabled": true,
-      "camera_id": "cam9",
-      "zone_id": "A1",
-      "method": "bindCtnrAndBin",
-      "position_code": "FG_A1",
-      "stg_bin_code": "PA000101501013",
-      "ctnr_code": "FG_A1",
-      "ctnr_typ": "Pallet_Pana",
-      "unknown_action": "lockPosition"
-    },
-    {
-      "enabled": true,
-      "camera_id": "cam9",
-      "zone_id": "A2",
-      "method": "bindCtnrAndBin",
-      "position_code": "FG_A2",
-      "stg_bin_code": "PA000201501013",
-      "ctnr_code": "FG_A2",
-      "ctnr_typ": "Pallet_Pana",
-      "unknown_action": "lockPosition"
-    },
-    {
-      "enabled": true,
-      "camera_id": "cam9",
-      "zone_id": "A3",
-      "method": "bindCtnrAndBin",
-      "position_code": "FG_A3",
-      "stg_bin_code": "PA000301501013",
-      "ctnr_code": "FG_A3",
-      "ctnr_typ": "Pallet_Pana",
-      "unknown_action": "lockPosition"
-    },
-    {
-      "enabled": true,
-      "camera_id": "cam9",
-      "zone_id": "A4",
-      "method": "bindCtnrAndBin",
-      "position_code": "FG_A4",
       "stg_bin_code": "PA000401501013",
-      "ctnr_code": "FG_A4",
-      "ctnr_typ": "Pallet_Pana",
+      "ctnr_code": "PK_C1",
+      "ctnr_typ": "1",
       "unknown_action": "lockPosition"
     },
     {
@@ -344,7 +80,7 @@
       "position_code": "FG_A5",
       "stg_bin_code": "PA000501501013",
       "ctnr_code": "FG_A5",
-      "ctnr_typ": "Pallet_Pana",
+      "ctnr_typ": "1",
       "unknown_action": "lockPosition"
     },
     {
@@ -355,7 +91,7 @@
       "position_code": "FG_A6",
       "stg_bin_code": "PA000601501013",
       "ctnr_code": "FG_A6",
-      "ctnr_typ": "Pallet_Pana",
+      "ctnr_typ": "1",
       "unknown_action": "lockPosition"
     },
     {
@@ -366,7 +102,7 @@
       "position_code": "FG_B1",
       "stg_bin_code": "PA000701501013",
       "ctnr_code": "FG_B1",
-      "ctnr_typ": "Pallet_Pana",
+      "ctnr_typ": "1",
       "unknown_action": "lockPosition"
     },
     {
@@ -377,7 +113,7 @@
       "position_code": "FG_B2",
       "stg_bin_code": "PA000801501013",
       "ctnr_code": "FG_B2",
-      "ctnr_typ": "Pallet_Pana",
+      "ctnr_typ": "1",
       "unknown_action": "lockPosition"
     },
     {
@@ -388,7 +124,7 @@
       "position_code": "FG_B3",
       "stg_bin_code": "PA000901501013",
       "ctnr_code": "FG_B3",
-      "ctnr_typ": "Pallet_Pana",
+      "ctnr_typ": "1",
       "unknown_action": "lockPosition"
     },
     {
@@ -399,7 +135,7 @@
       "position_code": "FG_B4",
       "stg_bin_code": "PA001001501013",
       "ctnr_code": "FG_B4",
-      "ctnr_typ": "Pallet_Pana",
+      "ctnr_typ": "1",
       "unknown_action": "lockPosition"
     },
     {
@@ -410,7 +146,7 @@
       "position_code": "FG_B5",
       "stg_bin_code": "PA001101501013",
       "ctnr_code": "FG_B5",
-      "ctnr_typ": "Pallet_Pana",
+      "ctnr_typ": "1",
       "unknown_action": "lockPosition"
     },
     {
@@ -421,217 +157,8 @@
       "position_code": "FG_B6",
       "stg_bin_code": "PA001201501013",
       "ctnr_code": "FG_B6",
-      "ctnr_typ": "Pallet_Pana",
+      "ctnr_typ": "1",
       "unknown_action": "lockPosition"
-    },
-    {
-      "enabled": false,
-      "camera_id": "cam1",
-      "zone_id": "A1",
-      "method": "bindPodAndBerth",
-      "position_code": "",
-      "pod_code": "",
-      "pod_dir": "0",
-      "unknown_action": "lockPosition",
-      "notes": "Trolley placeholder. Fill real position_code/pod_code from RCS before enabling."
-    },
-    {
-      "enabled": false,
-      "camera_id": "cam1",
-      "zone_id": "A2",
-      "method": "bindPodAndBerth",
-      "position_code": "",
-      "pod_code": "",
-      "pod_dir": "0",
-      "unknown_action": "lockPosition"
-    },
-    {
-      "enabled": false,
-      "camera_id": "cam1",
-      "zone_id": "A3",
-      "method": "bindPodAndBerth",
-      "position_code": "",
-      "pod_code": "",
-      "pod_dir": "0",
-      "unknown_action": "lockPosition"
-    },
-    {
-      "enabled": false,
-      "camera_id": "cam1",
-      "zone_id": "B1",
-      "method": "bindPodAndBerth",
-      "position_code": "",
-      "pod_code": "",
-      "pod_dir": "0",
-      "unknown_action": "lockPosition"
-    },
-    {
-      "enabled": false,
-      "camera_id": "cam1",
-      "zone_id": "B2",
-      "method": "bindPodAndBerth",
-      "position_code": "",
-      "pod_code": "",
-      "pod_dir": "0",
-      "unknown_action": "lockPosition"
-    },
-    {
-      "enabled": false,
-      "camera_id": "cam1",
-      "zone_id": "B3",
-      "method": "bindPodAndBerth",
-      "position_code": "",
-      "pod_code": "",
-      "pod_dir": "0",
-      "unknown_action": "lockPosition"
-    },
-    {
-      "enabled": false,
-      "camera_id": "cam2",
-      "zone_id": "A5",
-      "method": "bindPodAndBerth",
-      "position_code": "",
-      "pod_code": "",
-      "pod_dir": "0",
-      "unknown_action": "lockPosition"
-    },
-    {
-      "enabled": false,
-      "camera_id": "cam3",
-      "zone_id": "A3",
-      "method": "bindPodAndBerth",
-      "position_code": "",
-      "pod_code": "",
-      "pod_dir": "0",
-      "unknown_action": "lockPosition"
-    },
-    {
-      "enabled": false,
-      "camera_id": "cam3",
-      "zone_id": "A4",
-      "method": "bindPodAndBerth",
-      "position_code": "",
-      "pod_code": "",
-      "pod_dir": "0",
-      "unknown_action": "lockPosition"
-    },
-    {
-      "enabled": false,
-      "camera_id": "cam3",
-      "zone_id": "A5",
-      "method": "bindPodAndBerth",
-      "position_code": "",
-      "pod_code": "",
-      "pod_dir": "0",
-      "unknown_action": "lockPosition"
-    },
-    {
-      "enabled": false,
-      "camera_id": "cam8",
-      "zone_id": "A1",
-      "method": "bindPodAndBerth",
-      "position_code": "",
-      "pod_code": "",
-      "pod_dir": "0",
-      "unknown_action": "lockPosition"
-    },
-    {
-      "enabled": false,
-      "camera_id": "cam8",
-      "zone_id": "A2",
-      "method": "bindPodAndBerth",
-      "position_code": "",
-      "pod_code": "",
-      "pod_dir": "0",
-      "unknown_action": "lockPosition"
-    },
-    {
-      "enabled": false,
-      "camera_id": "cam8",
-      "zone_id": "A3",
-      "method": "bindPodAndBerth",
-      "position_code": "",
-      "pod_code": "",
-      "pod_dir": "0",
-      "unknown_action": "lockPosition"
-    },
-    {
-      "enabled": false,
-      "camera_id": "cam8",
-      "zone_id": "B1",
-      "method": "bindPodAndBerth",
-      "position_code": "",
-      "pod_code": "",
-      "pod_dir": "0",
-      "unknown_action": "lockPosition"
-    },
-    {
-      "enabled": false,
-      "camera_id": "cam8",
-      "zone_id": "B2",
-      "method": "bindPodAndBerth",
-      "position_code": "",
-      "pod_code": "",
-      "pod_dir": "0",
-      "unknown_action": "lockPosition"
-    },
-    {
-      "enabled": false,
-      "camera_id": "cam8",
-      "zone_id": "B3",
-      "method": "bindPodAndBerth",
-      "position_code": "",
-      "pod_code": "",
-      "pod_dir": "0",
-      "unknown_action": "lockPosition"
-    },
-    {
-      "enabled": false,
-      "camera_id": "cam8",
-      "zone_id": "C1",
-      "method": "bindPodAndBerth",
-      "position_code": "",
-      "pod_code": "",
-      "pod_dir": "0",
-      "unknown_action": "lockPosition"
-    },
-    {
-      "enabled": false,
-      "camera_id": "cam8",
-      "zone_id": "C2",
-      "method": "bindPodAndBerth",
-      "position_code": "",
-      "pod_code": "",
-      "pod_dir": "0",
-      "unknown_action": "lockPosition"
-    },
-    {
-      "enabled": false,
-      "camera_id": "cam8",
-      "zone_id": "C3",
-      "method": "bindPodAndBerth",
-      "position_code": "",
-      "pod_code": "",
-      "pod_dir": "0",
-      "unknown_action": "lockPosition"
-    },
-    {
-      "enabled": false,
-      "camera_id": "cam6",
-      "zone_id": "LIFT_1",
-      "method": "lockPosition",
-      "position_code": "LIFT_1",
-      "unknown_action": "lockPosition",
-      "notes": "Keep disabled until AGV team confirms elevator workflow handling."
-    },
-    {
-      "enabled": false,
-      "camera_id": "cam7",
-      "zone_id": "LIFT_2",
-      "method": "lockPosition",
-      "position_code": "LIFT_2",
-      "unknown_action": "lockPosition",
-      "notes": "Keep disabled until AGV team confirms elevator workflow handling."
     }
   ]
 }
