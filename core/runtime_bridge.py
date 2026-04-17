@@ -14,6 +14,10 @@ AGV_SNAPSHOT_PATH = RUNTIME_DIR / "agv_latest.json"
 PROCESS_CAMERA_DIR = RUNTIME_DIR / "cameras"
 PROCESS_DEBUG_DIR = RUNTIME_DIR / "debug"
 PROCESS_PREVIEW_DIR = RUNTIME_DIR / "preview"
+ELEVATOR_DIR = RUNTIME_DIR / "elevator"
+ELEVATOR_CAMERA_DIR = ELEVATOR_DIR / "cameras"
+ELEVATOR_SNAPSHOT_PATH = RUNTIME_DIR / "elevator_latest.json"
+ELEVATOR_COMMANDS_PATH = RUNTIME_DIR / "elevator_commands.json"
 
 
 def ensure_runtime_dirs() -> None:
@@ -21,6 +25,8 @@ def ensure_runtime_dirs() -> None:
     PROCESS_CAMERA_DIR.mkdir(parents=True, exist_ok=True)
     PROCESS_DEBUG_DIR.mkdir(parents=True, exist_ok=True)
     PROCESS_PREVIEW_DIR.mkdir(parents=True, exist_ok=True)
+    ELEVATOR_DIR.mkdir(parents=True, exist_ok=True)
+    ELEVATOR_CAMERA_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def load_selected_cameras() -> set[str]:
@@ -54,3 +60,8 @@ def camera_debug_path(camera_id: str) -> Path:
 def camera_preview_path(camera_id: str) -> Path:
     ensure_runtime_dirs()
     return PROCESS_PREVIEW_DIR / f"{camera_id}.jpg"
+
+
+def elevator_camera_path(camera_id: str) -> Path:
+    ensure_runtime_dirs()
+    return ELEVATOR_CAMERA_DIR / f"{camera_id}.json"

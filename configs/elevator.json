@@ -1,0 +1,43 @@
+{
+  "command_path": "outputs/runtime/elevator_commands.json",
+  "lifts": [
+    {
+      "enabled": true,
+      "camera_id": "cam6",
+      "zone_id": "LIFT_1",
+      "lift_id": "LIFT_CAM6",
+      "workflow_type": "pallet_amr",
+      "default_expected_load_type": "pallet",
+      "allowed_detection_classes": {
+        "none": [],
+        "pallet": ["pallet"]
+      },
+      "clear_stable_sec": 1.0,
+      "entry_arm_timeout_sec": 30.0,
+      "task_active_timeout_sec": 180.0,
+      "release_timeout_sec": 45.0,
+      "intrusion_hold_sec": 1.0,
+      "unknown_timeout_sec": 2.0,
+      "fail_safe_on_camera_offline": true
+    },
+    {
+      "enabled": false,
+      "camera_id": "cam7",
+      "zone_id": "LIFT_2",
+      "lift_id": "LIFT_CAM7",
+      "workflow_type": "trolley_fmr",
+      "default_expected_load_type": "trolley",
+      "allowed_detection_classes": {
+        "none": [],
+        "trolley": ["trolley"]
+      },
+      "clear_stable_sec": 1.0,
+      "entry_arm_timeout_sec": 30.0,
+      "task_active_timeout_sec": 180.0,
+      "release_timeout_sec": 45.0,
+      "intrusion_hold_sec": 1.0,
+      "unknown_timeout_sec": 2.0,
+      "fail_safe_on_camera_offline": true
+    }
+  ]
+}

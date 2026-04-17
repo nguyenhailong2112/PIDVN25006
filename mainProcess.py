@@ -19,6 +19,7 @@ from core.config import (
     validate_rule_config,
     load_zone_configs,
 )
+from core.elevator_runtime import ElevatorRuntime
 from core.frame_store import FrameStore
 from core.hik_rcs_bridge import HikRcsBridge
 from core.history_logger import HistoryLogger
@@ -47,6 +48,7 @@ RULE_CONFIG_PATH = PROJECT_ROOT / "configs" / "rules.json"
 INGEST_CONFIG_PATH = PROJECT_ROOT / "configs" / "ingest.json"
 RUNTIME_CONFIG_PATH = PROJECT_ROOT / "configs" / "runtime.json"
 HIK_RCS_CONFIG_PATH = PROJECT_ROOT / "configs" / "hik_rcs.json"
+ELEVATOR_CONFIG_PATH = PROJECT_ROOT / "configs" / "elevator.json"
 HISTORY_DIR = PROJECT_ROOT / "outputs" / "history"
 logger = get_logger(__name__)
 
@@ -115,6 +117,7 @@ class CentralBackendRuntime:
 
         self.workers = [self._build_worker(cfg) for cfg in self.camera_configs]
         self.model_bundles = {}
+        self.elevator_runtime = ElevatorRuntime(ELEVATOR_CONFIG_PATH)
         self.hik_bridge = HikRcsBridge(load_json_dict(HIK_RCS_CONFIG_PATH), PROJECT_ROOT)
         self._hik_sync_lock = Lock()
         self._hik_sync_worker: Thread | None = None
@@ -308,6 +311,7 @@ class CentralBackendRuntime:
             "detect_ms": 0.0,
             "zones": [],
             "agv_answer": [],
+            "detected_classes": [],
             "debug_enabled": False,
             "debug_frame": None,
         }
@@ -330,11 +334,41 @@ class CentralBackendRuntime:
                     self.last_logged_ts[worker.camera_cfg.camera_id] = live_frame.timestamp
 
         self._update_occupied_since(current_states)
+        zone_detected_classes: dict[str, list[str]] = {}
+        if worker.reasoner is not None and worker.camera_cfg.camera_type == "elevator":
+            frame_height, frame_width = live_frame.frame.shape[:2]
+            for zone in worker.zone_configs:
+                spatial_method = zone.spatial_method or self.rule_cfg.spatial_method
+                matched_classes = {
+                    det.class_name.strip().lower()
+                    for det in detection_result.detections
+                    if det.class_name
+                    and det.class_name.strip()
+                    and worker.reasoner._matches_target_object(zone.target_object, det.class_name)
+                    and worker.reasoner._match_detection_to_zone(
+                        det.bbox_xyxy,
+                        zone.polygon,
+                        frame_width,
+                        frame_height,
+                        spatial_method,
+                    )
+                }
+                zone_detected_classes[zone.zone_id] = sorted(matched_classes)
         zones = []
         for state in current_states:
             zone_key = self._zone_key(state.camera_id, state.zone_id)
             occupied_since_ts = self.zone_occupied_since_ts.get(zone_key)
-            zones.append(self._zone_state_payload(state, occupied_since_ts=occupied_since_ts))
+            zone_payload = self._zone_state_payload(state, occupied_since_ts=occupied_since_ts)
+            if state.zone_id in zone_detected_classes:
+                zone_payload["detected_classes"] = zone_detected_classes[state.zone_id]
+            zones.append(zone_payload)
+        detected_classes = sorted(
+            {
+                det.class_name.strip().lower()
+                for det in detection_result.detections
+                if det.class_name and det.class_name.strip()
+            }
+        )
         debug_frame = None
         if worker.camera_cfg.camera_id in selected_cameras:
             debug_frame = draw_debug_frame(live_frame.frame, detection_result, worker.zone_configs, current_states)
@@ -351,6 +385,7 @@ class CentralBackendRuntime:
             "detect_ms": detect_ms,
             "zones": zones,
             "agv_answer": zones,
+            "detected_classes": detected_classes,
             "debug_enabled": worker.camera_cfg.camera_id in selected_cameras,
             "debug_frame": debug_frame,
         }
@@ -400,6 +435,80 @@ class CentralBackendRuntime:
         }
         write_json_atomic(AGV_SNAPSHOT_PATH, agv_payload)
 
+    @staticmethod
+    def _elevator_zone_payload_from_snapshot(snapshot: dict) -> dict:
+        fault_active = bool(snapshot.get("fault_active", False))
+        entry_clear = bool(snapshot.get("entry_clear", False))
+        if fault_active:
+            state = "unknown"
+            health = "unknown"
+            score = 0.0
+            binding = "unknown"
+            value = None
+        elif entry_clear:
+            state = "empty"
+            health = "online"
+            score = 1.0
+            binding = "unbind"
+            value = 0
+        else:
+            state = "occupied"
+            health = "online"
+            score = 1.0
+            binding = "bind"
+            value = 1
+        return {
+            "zone_id": snapshot.get("zone_id", ""),
+            "state": state,
+            "health": health,
+            "score": score,
+            "binding": binding,
+            "value": value,
+            "lift_state": snapshot.get("lift_state", ""),
+            "safety_ok": bool(snapshot.get("safety_ok", False)),
+            "entry_clear": entry_clear,
+            "intrusion_alarm": bool(snapshot.get("intrusion_alarm", False)),
+            "fault_code": snapshot.get("fault_code", ""),
+        }
+
+    def _build_hik_sync_payload(self, cameras_payload: list[dict], elevator_payload: dict) -> list[dict]:
+        elevator_map = {
+            str(item.get("camera_id", "")): item
+            for item in elevator_payload.get("lifts", [])
+            if isinstance(item, dict)
+        }
+        if not elevator_map:
+            return cameras_payload
+
+        hik_payload = []
+        for payload in cameras_payload:
+            camera_id = str(payload.get("camera_id", ""))
+            snapshot = elevator_map.get(camera_id)
+            if snapshot is None:
+                hik_payload.append(payload)
+                continue
+
+            zone_id = str(snapshot.get("zone_id", ""))
+            replaced_zone = self._elevator_zone_payload_from_snapshot(snapshot)
+            zones = []
+            replaced = False
+            for zone in payload.get("zones", []):
+                if str(zone.get("zone_id", "")) == zone_id:
+                    zones.append(replaced_zone)
+                    replaced = True
+                else:
+                    zones.append(dict(zone))
+            if not replaced:
+                zones.append(replaced_zone)
+
+            updated_payload = dict(payload)
+            updated_payload["zones"] = zones
+            updated_payload["elevator_state"] = snapshot.get("lift_state", "")
+            updated_payload["elevator_entry_clear"] = bool(snapshot.get("entry_clear", False))
+            updated_payload["elevator_intrusion_alarm"] = bool(snapshot.get("intrusion_alarm", False))
+            hik_payload.append(updated_payload)
+        return hik_payload
+
     def run(self) -> None:
         while True:
             now_ts = time.time()
@@ -411,9 +520,19 @@ class CentralBackendRuntime:
 
             if (now_ts - self.last_export_ts) >= self.export_interval_sec:
                 cameras_payload = [self._export_worker_snapshot(worker, selected_cameras, now_ts) for worker in self.workers]
-                write_json_atomic(PROCESS_SNAPSHOT_PATH, {"timestamp": now_ts, "camera_count": len(cameras_payload), "cameras": cameras_payload})
+                elevator_payload = self.elevator_runtime.update(cameras_payload, now_ts)
+                write_json_atomic(
+                    PROCESS_SNAPSHOT_PATH,
+                    {
+                        "timestamp": now_ts,
+                        "camera_count": len(cameras_payload),
+                        "cameras": cameras_payload,
+                        "elevators": elevator_payload.get("lifts", []),
+                    },
+                )
                 self._export_agv_snapshot(cameras_payload, now_ts)
-                self._schedule_hik_sync(cameras_payload, now_ts)
+                hik_payload = self._build_hik_sync_payload(cameras_payload, elevator_payload)
+                self._schedule_hik_sync(hik_payload, now_ts)
                 self.last_export_ts = now_ts
 
             time.sleep(self.schedule_sleep_sec)
