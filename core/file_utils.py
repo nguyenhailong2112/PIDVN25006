@@ -18,8 +18,13 @@ def write_text_atomic(path: Path, text: str, *, encoding: str = "utf-8") -> Path
     return path
 
 
-def write_json_atomic(path: Path, payload, *, encoding: str = "utf-8") -> Path:
-    return write_text_atomic(path, json.dumps(payload, ensure_ascii=False, indent=2), encoding=encoding)
+def write_json_atomic(path: Path, payload, *, encoding: str = "utf-8", indent: int | None = 2) -> Path:
+    separators = None if indent is not None else (",", ":")
+    return write_text_atomic(
+        path,
+        json.dumps(payload, ensure_ascii=False, indent=indent, separators=separators),
+        encoding=encoding,
+    )
 
 
 def write_image_atomic(path: Path, frame, *, quality: int = 92) -> Path:

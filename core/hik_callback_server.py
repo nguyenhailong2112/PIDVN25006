@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import threading
+import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
@@ -117,6 +118,8 @@ class HikCallbackServer:
         return CallbackHandler
 
     def _store_callback(self, route_name: str, payload: dict[str, Any]) -> None:
+        payload = dict(payload)
+        payload.setdefault("stored_at_ts", time.time())
         latest_path = self.output_dir / f"{route_name}_latest.json"
         history_path = self.output_dir / f"{route_name}.jsonl"
         write_json_atomic(latest_path, payload)

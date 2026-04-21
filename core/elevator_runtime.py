@@ -40,7 +40,7 @@ class ElevatorRuntime:
     def update(self, cameras_payload: list[dict], now_ts: float) -> dict:
         if not self.machines:
             empty_payload = {"timestamp": now_ts, "lift_count": 0, "lifts": []}
-            write_json_atomic(ELEVATOR_SNAPSHOT_PATH, empty_payload)
+            write_json_atomic(ELEVATOR_SNAPSHOT_PATH, empty_payload, indent=None)
             return empty_payload
 
         camera_map = {str(item.get("camera_id", "")): item for item in cameras_payload}
@@ -73,7 +73,7 @@ class ElevatorRuntime:
                 self._log_state_change(machine, prev_state, phase=f"command:{command.command}")
 
             snapshot = machine.build_snapshot(now_ts)
-            write_json_atomic(elevator_camera_path(camera_id), snapshot)
+            write_json_atomic(elevator_camera_path(camera_id), snapshot, indent=None)
             lift_snapshots.append(snapshot)
 
         payload = {
@@ -81,7 +81,7 @@ class ElevatorRuntime:
             "lift_count": len(lift_snapshots),
             "lifts": lift_snapshots,
         }
-        write_json_atomic(ELEVATOR_SNAPSHOT_PATH, payload)
+        write_json_atomic(ELEVATOR_SNAPSHOT_PATH, payload, indent=None)
         return payload
 
     @staticmethod

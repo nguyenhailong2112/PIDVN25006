@@ -9,8 +9,8 @@
       "workflow_type": "pallet_amr",
       "default_expected_load_type": "pallet",
       "allowed_detection_classes": {
-        "none": [],
-        "pallet": ["pallet"]
+        "none": ["person"],
+        "pallet": ["pallet", "person"]
       },
       "clear_stable_sec": 1.0,
       "entry_arm_timeout_sec": 30.0,
@@ -28,8 +28,8 @@
       "workflow_type": "trolley_fmr",
       "default_expected_load_type": "trolley",
       "allowed_detection_classes": {
-        "none": [],
-        "trolley": ["trolley"]
+        "none": ["person"],
+        "trolley": ["trolley", "person"]
       },
       "clear_stable_sec": 1.0,
       "entry_arm_timeout_sec": 30.0,

@@ -26,6 +26,7 @@ from core.history_logger import HistoryLogger
 from core.logger_config import get_logger
 from core.model_registry import ModelRegistry
 from core.path_utils import PROJECT_ROOT, ensure_exists, resolve_project_path
+from core.runtime_maintenance import RuntimeMaintenance
 from core.runtime_bridge import (
     AGV_SNAPSHOT_PATH,
     PROCESS_SNAPSHOT_PATH,
@@ -113,11 +114,13 @@ class CentralBackendRuntime:
         self.general_infer_fps_default = float(self.runtime_cfg.get("general_infer_fps_default", 5.0))
         self.preview_width = int(self.runtime_cfg.get("preview_width", 960))
         self.preview_height = int(self.runtime_cfg.get("preview_height", 540))
+        self.occupied_session_break_sec = max(0.0, float(self.runtime_cfg.get("occupied_session_break_sec", 5.0)))
         self.last_export_ts = 0.0
 
         self.workers = [self._build_worker(cfg) for cfg in self.camera_configs]
         self.model_bundles = {}
         self.elevator_runtime = ElevatorRuntime(ELEVATOR_CONFIG_PATH)
+        self.runtime_maintenance = RuntimeMaintenance(PROJECT_ROOT, self.runtime_cfg)
         self.hik_bridge = HikRcsBridge(load_json_dict(HIK_RCS_CONFIG_PATH), PROJECT_ROOT)
         self._hik_sync_lock = Lock()
         self._hik_sync_worker: Thread | None = None
@@ -125,6 +128,7 @@ class CentralBackendRuntime:
         self._hik_sync_payload: list[dict] | None = None
         self._hik_sync_timestamp: float | None = None
         self.zone_occupied_since_ts: dict[str, float] = {}
+        self.zone_empty_since_ts: dict[str, float] = {}
         logger.info("CentralBackendRuntime started with %d cameras", len(self.workers))
 
     def _decode_fps_for(self, camera_cfg) -> float:
@@ -169,10 +173,13 @@ class CentralBackendRuntime:
 
     def _target_infer_fps(self, worker: CameraWorker, selected_cameras: set[str]) -> float:
         if worker.camera_cfg.camera_id in selected_cameras:
-            return self.detail_infer_fps
-        if worker.reasoner is not None:
-            return self.slot_infer_fps_default
-        return self.general_infer_fps_default
+            base_fps = self.detail_infer_fps
+        elif worker.reasoner is not None:
+            base_fps = self.slot_infer_fps_default
+        else:
+            base_fps = self.general_infer_fps_default
+        infer_every_n_frames = max(1, int(worker.camera_cfg.infer_every_n_frames))
+        return max(0.1, base_fps / infer_every_n_frames)
 
     def _make_due_score(self, worker: CameraWorker, selected_cameras: set[str], now_ts: float) -> float | None:
         live_frame = worker.get_latest_frame()
@@ -297,8 +304,26 @@ class CentralBackendRuntime:
             key = self._zone_key(state.camera_id, state.zone_id)
             if state.state == "occupied":
                 self.zone_occupied_since_ts.setdefault(key, float(state.timestamp))
+                self.zone_empty_since_ts.pop(key, None)
+            elif state.state == "empty":
+                if key not in self.zone_occupied_since_ts:
+                    self.zone_empty_since_ts.pop(key, None)
+                    continue
+                empty_since_ts = self.zone_empty_since_ts.setdefault(key, float(state.timestamp))
+                if self.occupied_session_break_sec <= 0.0 or (float(state.timestamp) - empty_since_ts) >= self.occupied_session_break_sec:
+                    self.zone_occupied_since_ts.pop(key, None)
+                    self.zone_empty_since_ts.pop(key, None)
             else:
+                self.zone_empty_since_ts.pop(key, None)
+
+    def _clear_stale_occupied_tracking(self, camera_id: str, active_zone_keys: set[str]) -> None:
+        prefix = f"{camera_id}:"
+        for key in list(self.zone_occupied_since_ts.keys()):
+            if not key.startswith(prefix):
+                continue
+            if key not in active_zone_keys:
                 self.zone_occupied_since_ts.pop(key, None)
+                self.zone_empty_since_ts.pop(key, None)
 
     def _empty_payload(self, worker: CameraWorker, live_frame) -> dict:
         return {
@@ -334,6 +359,10 @@ class CentralBackendRuntime:
                     self.last_logged_ts[worker.camera_cfg.camera_id] = live_frame.timestamp
 
         self._update_occupied_since(current_states)
+        self._clear_stale_occupied_tracking(
+            worker.camera_cfg.camera_id,
+            {self._zone_key(state.camera_id, state.zone_id) for state in current_states},
+        )
         zone_detected_classes: dict[str, list[str]] = {}
         if worker.reasoner is not None and worker.camera_cfg.camera_type == "elevator":
             frame_height, frame_width = live_frame.frame.shape[:2]
@@ -416,7 +445,7 @@ class CentralBackendRuntime:
         export_payload["debug_enabled"] = debug_requested
         export_payload["debug_frame_path"] = str(debug_path) if debug_requested else None
         export_payload["preview_frame_path"] = str(camera_preview_path(camera_id))
-        write_json_atomic(camera_snapshot_path(camera_id), export_payload)
+        write_json_atomic(camera_snapshot_path(camera_id), export_payload, indent=None)
         return export_payload
 
     def _export_agv_snapshot(self, cameras_payload: list[dict], now_ts: float) -> None:
@@ -433,7 +462,7 @@ class CentralBackendRuntime:
                 for payload in cameras_payload
             ],
         }
-        write_json_atomic(AGV_SNAPSHOT_PATH, agv_payload)
+        write_json_atomic(AGV_SNAPSHOT_PATH, agv_payload, indent=None)
 
     @staticmethod
     def _elevator_zone_payload_from_snapshot(snapshot: dict) -> dict:
@@ -471,7 +500,7 @@ class CentralBackendRuntime:
             "fault_code": snapshot.get("fault_code", ""),
         }
 
-    def _build_hik_sync_payload(self, cameras_payload: list[dict], elevator_payload: dict) -> list[dict]:
+    def _build_control_payload(self, cameras_payload: list[dict], elevator_payload: dict) -> list[dict]:
         elevator_map = {
             str(item.get("camera_id", "")): item
             for item in elevator_payload.get("lifts", [])
@@ -529,10 +558,12 @@ class CentralBackendRuntime:
                         "cameras": cameras_payload,
                         "elevators": elevator_payload.get("lifts", []),
                     },
+                    indent=None,
                 )
-                self._export_agv_snapshot(cameras_payload, now_ts)
-                hik_payload = self._build_hik_sync_payload(cameras_payload, elevator_payload)
-                self._schedule_hik_sync(hik_payload, now_ts)
+                control_payload = self._build_control_payload(cameras_payload, elevator_payload)
+                self._export_agv_snapshot(control_payload, now_ts)
+                self._schedule_hik_sync(control_payload, now_ts)
+                self.runtime_maintenance.run_if_due(now_ts)
                 self.last_export_ts = now_ts
 
             time.sleep(self.schedule_sleep_sec)

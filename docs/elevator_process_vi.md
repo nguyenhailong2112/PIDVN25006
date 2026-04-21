@@ -5,7 +5,7 @@
 Tai lieu nay mo ta luong process thang may da duoc bo sung vao runtime Vision hien tai cho:
 
 - `cam6`: thang may AMR + pallet
-- `cam7`: thang may FMR/Forklift + trolley
+- `cam7`: thang may FMR + trolley
 
 Muc tieu cua process nay:
 
@@ -305,6 +305,8 @@ Khuyen nghi:
 
 - `cam6`: `enabled=true`
 - `cam7`: giu `enabled=false` cho toi khi onsite san sang
+- `cam6` chu trinh pallet: cho phep `pallet`, `person`
+- `cam7` chu trinh trolley: cho phep `trolley`, `person`
 
 ## 11. Cach gui command
 
@@ -389,3 +391,5 @@ Vi du `cam6.json` se co:
 - Logic nay moi la phase 1 toi gian, dung de chot workflow va commissioning.
 - No khong them semantic detector moi.
 - Neu sau nay can nhan dien AGV/FMR rieng hoan chinh hon, co the mo rong policy ma khong pha pipeline hien tai.
+- `occupied_since` cua zone slot duoc giu on dinh qua `unknown` va cac khoang `empty` ngan, tranh reset sai khi infer bi nghen hoac pallet/trolley bi che khuat ngan han.
+- AGV snapshot va HIK sync deu da dung output workflow cua elevator, khong dung occupancy thuan tuy nua.

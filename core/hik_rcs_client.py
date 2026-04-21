@@ -300,6 +300,7 @@ class HikRcsClient:
 
         exchange = {
             "timestamp": self.now_text(),
+            "timestamp_ts": started,
             "elapsed_ms": round((time.time() - started) * 1000.0, 2),
             "api_name": api_name,
             "url": url,
