@@ -5,9 +5,9 @@
   "exit_window": 7,
   "exit_count": 5,
   "unknown_timeout_sec": 2.0,
-  "conf_threshold": 0.3,
+  "conf_threshold": 0.5,
   "img_size": 416,
-  "batch_size": 2,
+  "batch_size": 4,
   "batch_timeout_ms": 10,
   "max_pending_requests": 24
 }
