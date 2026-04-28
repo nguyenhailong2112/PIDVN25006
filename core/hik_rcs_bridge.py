@@ -46,8 +46,13 @@ class HikRcsBridge:
             callback_cfg = dict(callback_cfg)
             callback_cfg.setdefault("token_code", self.config.get("token_code", ""))
             callback_cfg.setdefault("client_code", self.config.get("client_code", ""))
-            self.callback_server = HikCallbackServer(callback_cfg, self.output_dir / "callbacks")
-            self.callback_server.start()
+            callback_server = HikCallbackServer(callback_cfg, self.output_dir / "callbacks")
+            try:
+                callback_server.start()
+            except Exception:
+                logger.exception("[HIK-RCS] Failed to start callback server; outbound bridge remains active")
+            else:
+                self.callback_server = callback_server
 
         self.state = self._load_state()
 
@@ -97,7 +102,7 @@ class HikRcsBridge:
         camera_payload = camera_map.get(str(mapping.get("camera_id", "")))
         zone_payload = forced_zone or self._lookup_zone(camera_payload, str(mapping.get("zone_id", "")))
         if camera_payload is None or zone_payload is None:
-            return False
+            return self._handle_missing_payload(mapping, entry, now_ts, camera_payload=camera_payload, zone_payload=zone_payload)
 
         context = self._build_context(camera_payload, zone_payload, mapping)
         vision_state = self._resolve_effective_state(camera_payload, zone_payload, mapping)
@@ -110,6 +115,20 @@ class HikRcsBridge:
         else:
             changed |= self._handle_known(mapping, context, entry, vision_state, now_ts)
         return changed
+
+    def _handle_missing_payload(
+        self,
+        mapping: dict,
+        entry: dict[str, Any],
+        now_ts: float,
+        *,
+        camera_payload: dict[str, Any] | None,
+        zone_payload: dict[str, Any] | None,
+    ) -> bool:
+        context = self._build_missing_context(mapping, camera_payload=camera_payload, zone_payload=zone_payload)
+        entry["last_seen_state"] = "unknown"
+        entry["last_seen_at"] = round(now_ts, 3)
+        return self._handle_unknown(mapping, context, entry, now_ts)
 
     def _handle_unknown(self, mapping: dict, context: dict[str, Any], entry: dict[str, Any], now_ts: float) -> bool:
         method = str(mapping.get("method", "")).strip()
@@ -395,6 +414,30 @@ class HikRcsBridge:
             "value": zone_payload.get("value", None),
             "mapping_method": mapping.get("method", ""),
         }
+
+    def _build_missing_context(
+        self,
+        mapping: dict,
+        *,
+        camera_payload: dict[str, Any] | None,
+        zone_payload: dict[str, Any] | None,
+    ) -> dict[str, Any]:
+        resolved_camera = camera_payload or {
+            "camera_id": mapping.get("camera_id", ""),
+            "camera_name": "",
+            "camera_type": "",
+            "camera_health": "unknown",
+            "timestamp": 0.0,
+        }
+        resolved_zone = zone_payload or {
+            "zone_id": mapping.get("zone_id", ""),
+            "state": "unknown",
+            "health": "unknown",
+            "score": 0.0,
+            "binding": "unknown",
+            "value": None,
+        }
+        return self._build_context(resolved_camera, resolved_zone, mapping)
 
     @staticmethod
     def _mapping_key(mapping: dict) -> str:

@@ -532,6 +532,7 @@ class CentralBackendRuntime:
 
             updated_payload = dict(payload)
             updated_payload["zones"] = zones
+            updated_payload["agv_answer"] = zones
             updated_payload["elevator_state"] = snapshot.get("lift_state", "")
             updated_payload["elevator_entry_clear"] = bool(snapshot.get("entry_clear", False))
             updated_payload["elevator_intrusion_alarm"] = bool(snapshot.get("intrusion_alarm", False))
