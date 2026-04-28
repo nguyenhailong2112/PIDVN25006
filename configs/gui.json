@@ -1,7 +1,7 @@
 {
   "window_title": "RTC VISION CCTV Monitor",
   "grid_rows": 3,
-  "grid_cols": 3,
+  "grid_cols": 4,
   "cell_min_width": 416,
   "cell_min_height": 234,
   "update_interval_ms": 100,
