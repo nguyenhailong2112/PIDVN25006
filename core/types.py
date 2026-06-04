@@ -48,6 +48,9 @@ class RuleConfig:
     batch_size: int = 1
     batch_timeout_ms: int = 0
     max_pending_requests: int = 0
+    enter_confirm_sec: float = 0.0
+    exit_confirm_sec: float = 0.0
+    occupied_hold_sec: float = 0.0
 
 
 @dataclass
@@ -73,6 +76,7 @@ class ZoneObservation:
     timestamp: float
     target_present: bool
     matched_confidence: Optional[float]
+    occlusion_present: bool = False
 
 
 @dataclass

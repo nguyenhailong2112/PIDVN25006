@@ -90,6 +90,9 @@ def load_rule_config(path: str | Path) -> RuleConfig:
         batch_size=int(data.get("batch_size", 1)),
         batch_timeout_ms=int(data.get("batch_timeout_ms", 0)),
         max_pending_requests=int(data.get("max_pending_requests", 0)),
+        enter_confirm_sec=float(data.get("enter_confirm_sec", 0.0)),
+        exit_confirm_sec=float(data.get("exit_confirm_sec", 0.0)),
+        occupied_hold_sec=float(data.get("occupied_hold_sec", 0.0)),
     )
 
 def load_ingest_config(path: str | Path) -> IngestConfig:
@@ -155,6 +158,14 @@ def validate_rule_config(rule_cfg: RuleConfig) -> None:
         errors.append("enter_count/exit_count must be > 0")
     if rule_cfg.unknown_timeout_sec <= 0:
         errors.append("unknown_timeout_sec must be > 0")
+    if rule_cfg.enter_confirm_sec < 0:
+        errors.append("enter_confirm_sec must be >= 0")
+    if rule_cfg.exit_confirm_sec < 0:
+        errors.append("exit_confirm_sec must be >= 0")
+    if rule_cfg.occupied_hold_sec < 0:
+        errors.append("occupied_hold_sec must be >= 0")
+    if rule_cfg.occupied_hold_sec > 0 and rule_cfg.exit_confirm_sec > 0 and rule_cfg.occupied_hold_sec < rule_cfg.exit_confirm_sec:
+        errors.append("occupied_hold_sec should be >= exit_confirm_sec")
     if rule_cfg.conf_threshold < 0 or rule_cfg.conf_threshold > 1:
         errors.append("conf_threshold must be in [0,1]")
     if errors:

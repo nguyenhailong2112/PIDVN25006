@@ -13,15 +13,18 @@ class ZoneReasoner:
 
         for zone in self.zone_configs:
             matched_confidence = None
+            occlusion_present = False
 
             for det in detection_result.detections:
-                if not self._matches_target_object(zone.target_object, det.class_name):
+                spatial_method = zone.spatial_method or self.rules.spatial_method
+                if not self._match_detection_to_zone(det.bbox_xyxy, zone.polygon, frame_width, frame_height, spatial_method):
                     continue
 
-                spatial_method = zone.spatial_method or self.rules.spatial_method
-                if self._match_detection_to_zone(det.bbox_xyxy, zone.polygon, frame_width, frame_height, spatial_method):
+                if self._matches_target_object(zone.target_object, det.class_name):
                     if matched_confidence is None or det.confidence > matched_confidence:
                         matched_confidence = det.confidence
+                else:
+                    occlusion_present = True
 
             observations.append(
                 ZoneObservation(
@@ -31,6 +34,7 @@ class ZoneReasoner:
                     timestamp=detection_result.timestamp,
                     target_present=matched_confidence is not None,
                     matched_confidence=matched_confidence,
+                    occlusion_present=occlusion_present,
                 )
             )
 
