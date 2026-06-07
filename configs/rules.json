@@ -6,10 +6,10 @@
   "exit_count": 6,
   "enter_confirm_sec": 1.5,
   "exit_confirm_sec": 2.0,
-  "occupied_hold_sec": 2.0,
+  "occupied_hold_sec": 3.0,
   "unknown_timeout_sec": 2.0,
   "conf_threshold": 0.5,
-  "img_size": 416,
+  "img_size": 512,
   "batch_size": 4,
   "batch_timeout_ms": 10,
   "max_pending_requests": 24
