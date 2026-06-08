@@ -184,6 +184,50 @@
     },
     {
       "enabled": true,
+      "camera_id": "cam5",
+      "zone_id": "E1",
+      "method": "bindCtnrAndBin",
+      "position_code": "PK_E1",
+      "stg_bin_code": "",
+      "ctnr_code": "PK_E1",
+      "ctnr_typ": "2",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": true,
+      "camera_id": "cam5",
+      "zone_id": "E2",
+      "method": "bindCtnrAndBin",
+      "position_code": "PK_E2",
+      "stg_bin_code": "",
+      "ctnr_code": "PK_E2",
+      "ctnr_typ": "2",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": true,
+      "camera_id": "cam5",
+      "zone_id": "E3",
+      "method": "bindCtnrAndBin",
+      "position_code": "PK_E3",
+      "stg_bin_code": "",
+      "ctnr_code": "PK_E3",
+      "ctnr_typ": "2",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": true,
+      "camera_id": "cam5",
+      "zone_id": "E4",
+      "method": "bindCtnrAndBin",
+      "position_code": "PK_E4",
+      "stg_bin_code": "",
+      "ctnr_code": "PK_E4",
+      "ctnr_typ": "2",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": true,
       "camera_id": "cam9",
       "zone_id": "A1",
       "method": "bindCtnrAndBin",
