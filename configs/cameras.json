@@ -74,7 +74,7 @@
     "model_path": "weights/best.pt",
     "zone_config": "configs/zones_cam7.json",
     "infer_every_n_frames": 2,
-    "enabled": false
+    "enabled": true
   },
   {
     "camera_id": "cam8",
