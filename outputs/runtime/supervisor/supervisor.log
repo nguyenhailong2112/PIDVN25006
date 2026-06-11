@@ -125,3 +125,11 @@
 2026-06-09 15:27:10,130 [INFO] Stop requested. Supervisor will terminate child processes.
 2026-06-09 15:27:10,656 [INFO] Stopping backend (pid=425357)
 2026-06-09 15:27:10,820 [INFO] Supervisor stopped cleanly.
+2026-06-11 13:20:22,435 [INFO] Starting backend with command=['C:\\Users\\Latitude 5520\\miniconda3\\envs\\pallet_bobbin\\python.exe', 'C:\\Users\\Latitude 5520\\PycharmProjects\\PIDVN25006\\mainProcess.py']
+2026-06-11 13:20:22,461 [INFO] backend started with pid=140564
+2026-06-11 13:20:22,462 [INFO] Waiting 3.0 sec before starting frontend
+2026-06-11 13:20:25,463 [INFO] Starting frontend with command=['C:\\Users\\Latitude 5520\\miniconda3\\envs\\pallet_bobbin\\python.exe', 'C:\\Users\\Latitude 5520\\PycharmProjects\\PIDVN25006\\mainCCTV.py']
+2026-06-11 13:20:25,491 [INFO] frontend started with pid=17936
+2026-06-11 13:20:56,633 [ERROR] frontend exited with code=0 after 31.1 sec. Restart count=1
+2026-06-11 13:20:56,634 [INFO] Waiting 3.0 sec before starting frontend
+2026-06-11 13:20:58,248 [INFO] Stop requested. Supervisor will terminate child processes.
