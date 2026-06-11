@@ -118,7 +118,7 @@
     },
     {
       "enabled": true,
-      "camera_id": "cam4",
+      "camera_id": "cam5",
       "zone_id": "C1",
       "method": "bindCtnrAndBin",
       "position_code": "PK_CC1",
@@ -129,7 +129,7 @@
     },
     {
       "enabled": true,
-      "camera_id": "cam4",
+      "camera_id": "cam5",
       "zone_id": "C2",
       "method": "bindCtnrAndBin",
       "position_code": "PK_CC2",
@@ -140,7 +140,7 @@
     },
     {
       "enabled": true,
-      "camera_id": "cam4",
+      "camera_id": "cam5",
       "zone_id": "C3",
       "method": "bindCtnrAndBin",
       "position_code": "PK_CC3",
@@ -185,44 +185,11 @@
     {
       "enabled": true,
       "camera_id": "cam5",
-      "zone_id": "E1",
+      "zone_id": "D4",
       "method": "bindCtnrAndBin",
-      "position_code": "PK_EE1",
-      "stg_bin_code": "E0000103501013",
-      "ctnr_code": "PK_EE1",
-      "ctnr_typ": "2",
-      "unknown_action": "lockPosition"
-    },
-    {
-      "enabled": true,
-      "camera_id": "cam5",
-      "zone_id": "E2",
-      "method": "bindCtnrAndBin",
-      "position_code": "PK_EE2",
-      "stg_bin_code": "E0000203501013",
-      "ctnr_code": "PK_EE2",
-      "ctnr_typ": "2",
-      "unknown_action": "lockPosition"
-    },
-    {
-      "enabled": true,
-      "camera_id": "cam5",
-      "zone_id": "E3",
-      "method": "bindCtnrAndBin",
-      "position_code": "PK_EE3",
-      "stg_bin_code": "E0000303501013",
-      "ctnr_code": "PK_EE3",
-      "ctnr_typ": "2",
-      "unknown_action": "lockPosition"
-    },
-    {
-      "enabled": true,
-      "camera_id": "cam5",
-      "zone_id": "E4",
-      "method": "bindCtnrAndBin",
-      "position_code": "PK_EE4",
-      "stg_bin_code": "E0000403501013",
-      "ctnr_code": "PK_E4",
+      "position_code": "PK_DD4",
+      "stg_bin_code": "D0000403501013",
+      "ctnr_code": "PK_DD4",
       "ctnr_typ": "2",
       "unknown_action": "lockPosition"
     },
