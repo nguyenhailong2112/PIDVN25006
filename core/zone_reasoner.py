@@ -64,4 +64,7 @@ class ZoneReasoner:
         normalized = (target_object or "").strip().lower()
         if normalized in {"*", "any", "any_object", "all"}:
             return True
+        if "," in normalized:
+            allowed_classes = {item.strip() for item in normalized.split(",") if item.strip()}
+            return class_name.strip().lower() in allowed_classes
         return class_name.strip().lower() == normalized

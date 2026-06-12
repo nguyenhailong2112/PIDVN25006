@@ -441,7 +441,14 @@ class HikRcsBridge:
 
     @staticmethod
     def _mapping_key(mapping: dict) -> str:
-        return f"{mapping.get('camera_id', '')}:{mapping.get('zone_id', '')}:{mapping.get('method', '')}"
+        mapping_id = str(mapping.get("mapping_id", "")).strip()
+        if mapping_id:
+            return mapping_id
+        method = str(mapping.get("method", "")).strip()
+        if method == "lockPosition":
+            lock_position = str(mapping.get("lock_position_code", "") or mapping.get("position_code", "")).strip()
+            return f"{mapping.get('camera_id', '')}:{mapping.get('zone_id', '')}:{method}:{lock_position}"
+        return f"{mapping.get('camera_id', '')}:{mapping.get('zone_id', '')}:{method}"
 
     def _entry_for(self, mapping: dict) -> dict[str, Any]:
         zones = self.state.setdefault("zones", {})

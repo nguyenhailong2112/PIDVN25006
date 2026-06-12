@@ -1,5 +1,13 @@
 # Elevator Vision - HIK RCS Readiness
 
+## Cap nhat 2026-06-12
+
+Voi rang buoc hien tai, Vision khong nhan duoc callback authorize/task/elevator tu RCS. Process can live cho `cam6` la Waiting Point lock gate, duoc mo ta chi tiet trong:
+
+- `docs/elevator_waiting_point_lock_process_vi.md`
+
+State machine `authorize / entry_complete / release / continue / cancel` trong tai lieu nay la huong mo rong khi team AGV/RCS cung cap du command/callback. Khong bat workflow command nay cho cam6 trong giai doan chi co `lockPosition` Waiting Point.
+
 ## 1. Muc tieu
 
 Tai lieu nay chot lai chu trinh camera thang may trong project PIDVN25006 va cac dieu kien can co de tich hop voi AGV/RCS.
