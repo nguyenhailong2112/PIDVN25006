@@ -1,355 +1,869 @@
-# Vision Auto AMR Pallet Dispatch - Scope va Roadmap
+# Vision Auto AMR Pallet Dispatch - Specification
 
-## 1. Muc tieu
+## 0. Ket luan thiet ke
 
-Tai lieu nay de xuat huong trien khai Vision dieu lenh AMR pallet tu khu PK xuong khu FG.
+Ket luan ky thuat chac chan nhat cho chu trinh ban tu dong va full tu dong:
 
-Pham vi:
+- RCS van la bo dieu phoi robot.
+- Vision khong dieu khien dong co, khong tu di chuyen AMR, khong thay the RCS.
+- Vision dong vai tro orchestration layer:
+  - doc trang thai PK/FG da qua state tracker
+  - chon cap lay/tra theo thu tu nghiep vu
+  - reserve source/destination de tranh tao task trung
+  - goi RCS tao task bang `genAgvSchedulingTask`
+  - theo doi task bang `agvCallback` va/hoac `queryTaskStatus`
+  - verify ket qua bang camera truoc khi tao task tiep theo
+  - fail-safe khi Vision/RCS/callback khong du tin cay
 
-- 3.1 Manual hien tai: giu nguyen
-- 3.2 Semi-auto: cong nhan click mot lan tren PDA, Vision/adapter tao chuoi task cho cac cap PK -> FG hop le
-- 3.3 Full-auto: Vision tu dong tao task khi PK co pallet va FG con cho trong
+Khong nen code auto task theo kieu "thay FG empty + PK occupied la goi task ngay". Cach dung phai la state machine co reservation, task ledger, timeout va verification.
 
-Nguyen tac an toan:
+## 1. Pham vi
 
-- Manual luon uu tien hon auto
-- auto mac dinh disabled
-- khong tao task khi Vision/RCS/callback khong du tin cay
-- `unknown` khong bao gio duoc xem la `empty`
-- moi task phai co reservation de tranh tao trung nguon/dich
+Tai lieu nay chi noi ve AMR pallet PK <-> FG.
 
-## 2. He thong hien tai dang co gi
+Bao gom:
 
-Vision hien tai da lam dung vai tro "con mat" cho AGV:
+- 3.1 Manual hien tai: giu nguyen lam baseline production
+- 3.2 Semi-auto: operator click mot lan, Vision tao mot batch task tu PK xuong FG
+- 3.3 Full-auto: Vision tu dong tao task khi co source/destination hop le
 
-1. Detect `pallet`.
-2. Xac dinh ROI `occupied / empty / unknown`.
-3. Bind/unbind len RCS bang `bindCtnrAndBin`.
-4. RCS/AGV dung thong tin bind/unbind de quyet dinh co duoc lay/tra pallet hay khong.
-5. PDA/operator tao task manual area-to-area.
+Khong bao gom trong phase dau:
 
-Day la mode 3.1 va van phai giu lam baseline production.
+- FMR trolley auto dispatch
+- tu dong dieu khien thang may truc tiep
+- tu dong cancel task dang chay khi khong co yeu cau tu RCS/AGV
+- dieu khien robot bo qua RCS
 
-## 3. Scope vi tri
+## 2. Co so tu tai lieu HIK RCS-2000
 
-Theo scope moi cua AMR pallet:
+Tai lieu tham chieu:
 
-PK sources, 14 vi tri:
+- `UD35865B_RCS-2000 API_Developer Guide_V3.3_20231204(1).pdf`
 
-- `PK_A1`, `PK_A2`, `PK_A3`, `PK_A4`
-- `PK_B1`, `PK_B2`, `PK_B3`, `PK_B4`
-- `PK_C1`, `PK_C2`, `PK_C3`
-- `PK_D1`, `PK_D2`, `PK_D3`
+Nhung API va y nghia can dung:
 
-FG destinations, 12 vi tri:
+### 2.1 `genAgvSchedulingTask`
 
-- `FG_A1`, `FG_A2`, `FG_A3`, `FG_A4`, `FG_A5`, `FG_A6`
-- `FG_B1`, `FG_B2`, `FG_B3`, `FG_B4`, `FG_B5`, `FG_B6`
+Chuc nang:
 
-Can audit config hien tai:
+- third-party platform tao task
+- RCS-2000 ap dung task cho AMR
 
-- `configs/hik_rcs.json` hien co them cac mapping PK ngoai scope nhu `PK_E1..PK_E4`
-- `configs/zones_cam4.json` va `configs/zones_cam5.json` cung co nhieu ROI pallet hon scope 26 diem
-- truoc khi code auto, phai chot lai danh sach zone nao duoc auto dispatcher su dung
+Endpoint:
 
-## 4. Thu tu lay va tra
+```text
+POST /rcms/services/rest/hikRpcService/genAgvSchedulingTask
+```
+
+Nhung truong chac chan quan trong:
+
+- `reqCode`: bat buoc, lap request thi reqCode phai giong nhau
+- `reqTime`: optional
+- `clientCode`, `tokenCode`: optional tuy cau hinh auth
+- `taskTyp`: bat buoc
+- `positionCodePath`: danh sach diem di chuyen, toi da 50 diem
+- `positionCodePath[].type`: loai diem
+- `positionCodePath[].positionCode`: ma diem
+- `priority`: 1..127, so lon hon uu tien cao hon
+- `agvCode`: optional, de trong thi RCS tu chon AMR
+- `taskCode`: optional, de trong thi RCS tu sinh
+- `data`: custom content JSON string
+
+Gia tri task type trong tai lieu:
+
+- `F01`: carry and transfer rack
+- `F02`: empty/full rack exchange
+- `F03`: carry and transfer by CMR
+- `F04`: rack outbound
+- `F05`: rotate rack
+- `F06`: elevator task
+- `F11..F20`: nhom FMR
+
+Gia tri `positionCodePath[].type` quan trong:
+
+- `00`: actual location on map
+- `02`: available location of area selection strategy
+- `04`: available location in an area
+- `05`: bin ID, for FMR/CTU
+- `07`: container ID
+- `08`: roadway strategy
+- `09`: roadway area
+
+Ket luan:
+
+- Auto pallet nen dung `genAgvSchedulingTask`, nhung `taskTyp` va `positionCodePath.type` phai lay tu task PDA/RCS onsite da chay thanh cong.
+- Khong duoc tu doan `taskTyp=F01` la production truoc khi team AGV xac nhan.
+
+### 2.2 `queryTaskStatus`
+
+Chuc nang:
+
+- hoi task status theo `taskCodes` hoac `agvCode`
+
+Endpoint:
+
+```text
+POST /rcms/services/rest/hikRpcService/queryTaskStatus
+```
+
+Trang thai task quan trong:
+
+- `0`: sending exception
+- `1`: created
+- `2`: executing
+- `3`: sending
+- `4`: canceling
+- `5`: canceled
+- `6`: resending
+- `9`: completed
+- `10`: interrupted
+
+Ket luan:
+
+- Day la co che polling backup neu `agvCallback` bi tre/mat.
+- Dispatcher chi verify camera sau khi task vao terminal status `9`, `5`, `10`, hoac callback terminal tuong duong.
+
+### 2.3 `agvCallback`
+
+Chuc nang:
+
+- RCS goi nguoc sang third-party de bao task executing status
+
+Endpoint third-party:
+
+```text
+POST /service/rest/agvCallbackService/agvCallback
+```
+
+Truong quan trong:
+
+- `method`: `start`, `outbin`, `end`, `cancel`, `ctu`
+- `robotCode`
+- `taskCode`
+- `currentPositionCode`
+- `stgBinCode`
+- `ctnrCode`, `ctnrTyp`
+- `wbCode`
+
+Ket luan:
+
+- `agvCallback(method=end)` la tin hieu manh nhat de chuyen reservation sang phase verify bang Vision.
+- `agvCallback(method=cancel)` phai dua dispatcher vao fault/recovery, khong tao task tiep am tham.
+
+### 2.4 `cancelTask`, `setTaskPriority`, `queryAgvStatus`
+
+`cancelTask`:
+
+- dung de cancel task theo `taskCode` hoac `agvCode`
+- nguy hiem trong production vi co the lam AMR dat rack/pallet tai vi tri hien tai
+- phase dau khong cho Vision tu cancel task, tru khi co SOP ro rang voi AGV
+
+`setTaskPriority`:
+
+- chi co tac dung voi task chua assign AMR
+- task da assign thi set priority khong con hieu luc
+- auto priority nen duoc set ngay trong request `genAgvSchedulingTask`
+
+`queryAgvStatus`:
+
+- dung monitoring AMR, khong phai nguon chinh de chon PK/FG
+- tai lieu khuyen nghi tan suat theo so AMR, voi <100 AMR la 5 giay
+
+## 3. Nhung dieu co the cam ket va nhung dieu bat buoc phai chot
+
+Co the cam ket ve kien truc:
+
+- Vision co the chon source/dest dua tren camera state.
+- Vision co the tao task qua RCS bang API chinh thuc.
+- Vision co the theo doi task bang callback/status.
+- Vision co the verify ket qua bang camera truoc khi tao task tiep.
+- Vision co the fail-safe neu bat ky dieu kien nao khong chac chan.
+
+Khong duoc cam ket truoc khi AGV/RCS chot:
+
+- `taskTyp` production la gi
+- `positionCodePath.type` production la gi
+- task PK -> FG qua thang may la mot task duy nhat hay nhieu sub-task
+- RCS co tu xu ly elevator task hay can task F06 rieng
+- PDA/manual priority chinh xac la bao nhieu
+- task bi chan vi Waiting Point lock se pending hay fail
+- RCS co tra `taskCode` trong `data` on dinh hay khong
+
+Do do, viec dau tien cua phase 0 la lay request/response mau tu PDA/RCS khi operator tao task thanh cong.
+
+## 4. Source of truth cua Vision
+
+Dispatcher chi doc cac snapshot da qua pipeline on dinh:
+
+- `outputs/runtime/agv_latest.json`
+- hoac payload trong memory cua `mainProcess`
+
+Khong doc raw detection.
+Khong doc bbox truc tiep.
+Khong suy luan tu frame don le.
+
+Moi zone hop le can co:
+
+- `state`: `occupied` hoac `empty`
+- `health`: `online`
+- `score >= min_score`
+- camera online
+- timestamp fresh
+- khong co reservation active
+- HIK bind/unbind gan nhat khong co loi non-retryable
+
+`unknown` bi loai trong moi truong hop.
+
+## 5. Scope vi tri va canh bao mapping
+
+Config HIK hien tai dang co 15 vi tri PK va 12 vi tri FG:
+
+PK:
+
+- `PK_AA1`, `PK_AA2`, `PK_AA3`, `PK_AA4`
+- `PK_BB1`, `PK_BB2`, `PK_BB3`, `PK_BB4`
+- `PK_CC1`, `PK_CC2`, `PK_CC3`
+- `PK_DD1`, `PK_DD2`, `PK_DD3`, `PK_DD4`
+
+FG:
+
+- `FG_AA1`, `FG_AA2`, `FG_AA3`, `FG_AA4`, `FG_AA5`, `FG_AA6`
+- `FG_BB1`, `FG_BB2`, `FG_BB3`, `FG_BB4`, `FG_BB5`, `FG_BB6`
+
+Phai co file scope chinh xac cu the (mapping Vision - HIK production), vi du:
+
+```json
+{
+  "pk_pick_order": [
+    "PK_AA4", "PK_AA3", "PK_AA2", "PK_AA1",
+    "PK_BB4", "PK_BB3", "PK_BB2", "PK_BB1",
+    "PK_CC3", "PK_CC2", "PK_CC1",
+    "PK_DD4", "PK_DD3", "PK_DD2", "PK_DD1"
+  ],
+  "fg_put_order": [
+    "FG_BB6", "FG_BB5", "FG_BB4", "FG_BB3", "FG_BB2", "FG_BB1",
+    "FG_AA6", "FG_AA5", "FG_AA4", "FG_AA3", "FG_AA2", "FG_AA1"
+  ]
+}
+```
+
+## 6. Thu tu lay va tra
 
 PK pick order theo FILO tung hang:
 
 ```text
-PK_A4, PK_A3, PK_A2, PK_A1,
-PK_B4, PK_B3, PK_B2, PK_B1,
-PK_C3, PK_C2, PK_C1,
-PK_D3, PK_D2, PK_D1
+A4 -> A3 -> A2 -> A1
+B4 -> B3 -> B2 -> B1
+C3 -> C2 -> C1
+D4 -> D3 -> D2 -> D1
 ```
 
 FG put order:
 
 ```text
-FG_B6, FG_B5, FG_B4, FG_B3, FG_B2, FG_B1,
-FG_A6, FG_A5, FG_A4, FG_A3, FG_A2, FG_A1
+B6 -> B5 -> B4 -> B3 -> B2 -> B1
+A6 -> A5 -> A4 -> A3 -> A2 -> A1
 ```
 
-Eligibility:
+Nguyen tac:
 
-- PK source hop le khi state = `occupied`, health = `online`, score >= threshold, khong reserved
-- FG destination hop le khi state = `empty`, health = `online`, score >= threshold, khong reserved
-- state `unknown` bi loai
-- zone stale/camera offline bi loai
-- bind/unbind dispatch dang loi thi loai
+- moi task chi chon 1 PK source va 1 FG dest
+- chi co 1 task active trong dispatcher phase dau
+- chi tao task tiep theo sau khi task truoc da completed va Vision verify xong
 
-## 5. Co so API HIK cho auto task
+## 7. Kien truc module de trien khai
 
-API can dung la `genAgvSchedulingTask`.
+De xuat them cac file sau khi code:
 
-Theo tai lieu HIK:
+- `configs/auto_dispatch.json`
+- `core/auto_dispatch_types.py`
+- `core/auto_dispatch_planner.py`
+- `core/auto_dispatch_runtime.py`
+- `core/auto_dispatch_ledger.py`
+- `core/hik_rcs_task_client.py` hoac mo rong `HikRcsClient`
+- `tools/auto_dispatch_cmd.py`
+- `docs/vision_auto_amr_pallet_dispatch_spec_vi.md`
 
-- third-party platform goi `genAgvSchedulingTask` de tao task cho RCS
-- `taskTyp` la bat buoc
-- F01 la built-in carry and transfer rack
-- F06 la elevator task
-- F11..F20 la nhom FMR task, khong phai pallet AMR mac dinh
-- neu muon chi dinh nhieu vi tri trong task thi dung `positionCodePath`
-- `positionCodePath` gom cac phan tu co `type` va `positionCode`
-- `priority` co range 1..127, so lon uu tien cao hon
-- response `data` co the tra task ID
-- `queryTaskStatus` dung de hoi trang thai task
-- `agvCallback` la callback RCS gui ve third-party de bao `start/outbin/end/cancel`
+Runtime output:
 
-Request mau can AGV/RCS xac nhan:
+- `outputs/runtime/auto_dispatch/latest.json`
+- `outputs/runtime/auto_dispatch/ledger.json`
+- `outputs/runtime/auto_dispatch/events.jsonl`
+- `outputs/runtime/auto_dispatch/task_requests.jsonl`
+
+## 8. Cau hinh de xuat
 
 ```json
 {
-  "taskTyp": "TBD_BY_AGV",
-  "taskCode": "VISION_PK_A4_TO_FG_B6_YYYYMMDDHHMMSS",
-  "positionCodePath": [
-    {"type": "00", "positionCode": "PK_A4"},
-    {"type": "00", "positionCode": "FG_B6"}
-  ],
-  "priority": "TBD_BY_AGV",
-  "agvCode": "",
-  "agvTyp": "",
-  "data": "{\"source\":\"vision_auto\",\"mode\":\"semi_auto\",\"from\":\"PK_A4\",\"to\":\"FG_B6\"}"
+  "enabled": false,
+  "mode": "disabled",
+  "dry_run": true,
+  "max_active_tasks": 1,
+  "min_zone_score": 0.8,
+  "vision_fresh_timeout_sec": 2.0,
+  "post_task_verify_timeout_sec": 30.0,
+  "task_submit_retry_count": 1,
+  "task_submit_retry_interval_sec": 5.0,
+  "task_running_timeout_sec": 900.0,
+  "poll_task_status_interval_sec": 3.0,
+  "manual_pause_enabled": true,
+  "manual_priority": 80,
+  "auto_priority": 20,
+  "task_template": {
+    "api": "genAgvSchedulingTask",
+    "taskTyp": "TBD_BY_AGV",
+    "path_type_source": "TBD_BY_AGV",
+    "path_type_dest": "TBD_BY_AGV",
+    "agvCode": "",
+    "agvTyp": "",
+    "podCode": "",
+    "podTyp": "",
+    "taskMode": "",
+    "materialLot": ""
+  },
+  "positions": {
+    "PK_AA1": {"camera_id": "cam4", "zone_id": "A1"},
+    "PK_AA2": {"camera_id": "cam4", "zone_id": "A2"},
+    "PK_AA3": {"camera_id": "cam4", "zone_id": "A3"},
+    "PK_AA4": {"camera_id": "cam4", "zone_id": "A4"},
+    "FG_BB6": {"camera_id": "cam10", "zone_id": "B6"}
+  },
+  "pk_pick_order": [],
+  "fg_put_order": []
 }
 ```
 
-Khong duoc hard-code request mau nay thanh production truoc khi AGV/RCS xac nhan:
+`mode` hop le:
 
-- `taskTyp` dung voi template area-to-area onsite
-- `positionCodePath.type` dung cho PK/FG point
-- co can `podCode`, `podTyp`, `materialLot`, `wbCode`, `taskMode` hay khong
-- task qua thang may can mot task tong hay nhieu sub-task
+- `disabled`
+- `semi_auto`
+- `full_auto`
 
-## 6. Mode 3.2 - Semi-auto mot lan click PDA
+## 9. Reservation ledger
 
-Y tuong:
+Ledger la bat buoc.
 
-- operator van la nguoi cap quyen
-- PDA chi click mot lan de bat dau batch
-- Vision/adapter tao task lien tiep cho den khi het FG empty hoac het PK occupied
+Moi record:
 
-Dieu kien bat dau batch:
+```json
+{
+  "reservation_id": "R20260615_000001",
+  "task_code": "VISION_PK_AA4_TO_FG_BB6_20260615_101530",
+  "rcs_task_code": "",
+  "mode": "semi_auto",
+  "source_position": "PK_AA4",
+  "dest_position": "FG_BB6",
+  "source_camera_id": "cam4",
+  "source_zone_id": "A4",
+  "dest_camera_id": "cam10",
+  "dest_zone_id": "B6",
+  "state": "reserved",
+  "created_at": 1781518530.0,
+  "submitted_at": 0.0,
+  "started_at": 0.0,
+  "completed_at": 0.0,
+  "verified_at": 0.0,
+  "last_task_status": "",
+  "last_callback_method": "",
+  "last_error": "",
+  "attempt_count": 0
+}
+```
 
-- co trigger tu PDA/RCS/adapter
-- auto dispatcher dang idle
-- Vision snapshot fresh
-- HIK bridge khong co loi ket noi nghiem trong
-- callback server san sang nhan `agvCallback`
-- khong co manual override active
-
-Algorithm:
-
-1. Doc snapshot Vision.
-2. Tim `source = first occupied PK` theo PK pick order.
-3. Tim `dest = first empty FG` theo FG put order.
-4. Neu thieu source hoac dest thi dung batch.
-5. Reserve source va dest.
-6. Goi `genAgvSchedulingTask`.
-7. Neu RCS accept, luu `taskCode`, `from`, `to`, reservation.
-8. Cho `agvCallback(method=end)` hoac `queryTaskStatus=9`.
-9. Xac nhan bang Vision:
-   - source tro thanh `empty`
-   - dest tro thanh `occupied`
-10. Release reservation.
-11. Lap lai buoc 1.
-
-Dung batch khi:
-
-- FG full
-- PK empty
-- task failed/canceled/interrupted
-- Vision unknown/stale
-- manual mode duoc bat
-- operator stop/pause
-- qua timeout
-
-## 7. Mode 3.3 - Full-auto
-
-Y tuong:
-
-- Vision tu dong tao task khi dieu kien san sang
-- operator chi bat/tat che do auto va xu ly ngoai le
-- manual PDA task luon uu tien cao hon
-
-State machine de xuat:
-
-- `DISABLED`
-- `AUTO_IDLE`
-- `EVALUATING`
-- `TASK_SUBMITTING`
-- `TASK_RUNNING`
-- `VERIFYING_COMPLETION`
-- `PAUSED_MANUAL`
-- `BLOCKED_NO_SOURCE`
-- `BLOCKED_NO_DEST`
-- `FAULT`
-
-Loop:
-
-1. Neu mode disabled -> khong lam gi.
-2. Neu manual active -> `PAUSED_MANUAL`.
-3. Neu Vision/RCS/callback unhealthy -> `FAULT`.
-4. Tim cap PK/FG hop le.
-5. Neu khong co PK -> `BLOCKED_NO_SOURCE`.
-6. Neu khong co FG -> `BLOCKED_NO_DEST`.
-7. Tao task.
-8. Theo doi task.
-9. Verify bang Vision.
-10. Tao task tiep theo.
-
-## 8. Reservation ledger
-
-Bat buoc can ledger de tranh sai lech giua task RCS va state Vision.
-
-Moi reservation can luu:
-
-- `reservation_id`
-- `task_code`
-- `source_position`
-- `dest_position`
-- `source_camera_id`
-- `source_zone_id`
-- `dest_camera_id`
-- `dest_zone_id`
-- `created_at`
-- `state`
-- `last_rcs_status`
-- `last_callback_method`
-- `attempt_count`
-- `operator_mode`
-
-State reservation:
+State hop le:
 
 - `reserved`
+- `submitting`
 - `submitted`
 - `running`
 - `completed_wait_vision_verify`
 - `verified`
 - `failed`
 - `canceled`
+- `interrupted`
 - `expired`
+- `operator_recovery_required`
 
-Nguyen tac:
+Quy tac:
 
-- zone da reserved thi khong duoc chon cho task moi
-- neu submit fail thi release reservation
-- neu task complete nhung Vision chua verify thi van giu reservation
-- neu timeout thi chuyen `FAULT`, khong tu release am tham
+- source/dest co reservation active thi khong duoc chon lai
+- submit fail thi release reservation neu chua co task tren RCS
+- submit success nhung callback mat thi polling `queryTaskStatus`
+- task completed nhung Vision chua verify thi khong tao task tiep
+- timeout/fail/cancel/interrupted thi dung dispatcher va yeu cau operator recovery
 
-## 9. Manual priority
+## 10. Planner
 
-Manual co uu tien cao nhat:
+Input:
 
-- khi operator chay manual, auto dispatcher phai pause
-- khong tao task moi trong khi manual active
-- task auto dang chay thi khong cancel tu dong, tru khi AGV/RCS yeu cau
-- priority cua auto task phai thap hon manual task
-- field `priority` cua `genAgvSchedulingTask` can team AGV chot
+- snapshot Vision
+- config positions/order
+- ledger active reservations
+- health RCS/callback
 
-Can team AGV/RCS cung cap co che nhan biet manual active:
+Output:
 
-- callback PDA/manual task
-- query task list
-- flag tu RCS
-- hoac endpoint adapter rieng
+```json
+{
+  "can_dispatch": true,
+  "source": "PK_AA4",
+  "dest": "FG_BB6",
+  "reason": "ok"
+}
+```
 
-## 10. Thong tin bat buoc can hoi team AGV/RCS
+Algorithm:
 
-Chua nen code 3.2/3.3 neu chua chot cac cau hoi sau:
+1. Build map position -> zone payload.
+2. Loai position khong fresh/online/score du.
+3. Loai position dang reserved.
+4. Chon source dau tien trong `pk_pick_order` co `state=occupied`.
+5. Chon dest dau tien trong `fg_put_order` co `state=empty`.
+6. Neu thieu source -> `BLOCKED_NO_SOURCE`.
+7. Neu thieu dest -> `BLOCKED_NO_DEST`.
+8. Neu co source/dest -> tao candidate.
 
-1. API chinh tao task area-to-area la `genAgvSchedulingTask` hay API template rieng?
-2. `taskTyp` cho AMR pallet PK -> FG la gi?
-3. `positionCodePath` dung `type="00"` hay type khac?
-4. Thu tu path can 2 diem hay can them diem thang may/intermediate?
-5. Task qua thang may la 1 task tong hay nhieu sub-task?
-6. RCS co tu xu ly elevator F06 hay Vision phai authorize elevator rieng?
-7. Manual task priority va auto task priority la bao nhieu?
-8. RCS co tra task ID trong response `data` on dinh khong?
-9. Callback `agvCallback` co bat buoc cau hinh URL nao?
-10. `method=end/cancel/outbin/start` duoc map chinh xac voi trang thai task nhu the nao?
-11. Neu task failed, Vision nen retry hay cho operator xu ly?
-12. Gioi han tan suat tao task cua RCS la bao nhieu?
-13. Co can chi dinh `agvCode` hay de RCS tu chon AMR?
-14. RCS co cung cap flag manual active de Vision pause auto khong?
+Khong duoc skip qua source dau tien neu source do `unknown`. Khi mot position trong order bi `unknown`, co 2 policy:
 
-## 11. Roadmap trien khai
+- conservative: dung planner vi khong chac thu tu FILO
+- permissive: bo qua unknown va lay position sau
 
-Phase 0 - Chot giao thuc:
+Khuyen nghi production:
 
-- lay task sample tu PDA dang chay thanh cong
-- lay request/response RCS khi PDA tao task PK -> FG
-- chot `taskTyp`, `positionCodePath`, `priority`, callback
-- chot danh sach 26 vi tri va mapping camera/zone
+- PK dung conservative theo tung hang
+- FG co the permissive neu team AGV chap nhan
 
-Phase 1 - Dry-run planner:
+## 11. Submit task
 
-- tao module planner chi doc snapshot
-- tinh source/dest theo order
-- xuat candidate task ra JSON
-- khong goi RCS
+Request skeleton:
 
-Phase 2 - Semi-auto internal:
+```json
+{
+  "taskTyp": "TBD_BY_AGV",
+  "positionCodePath": [
+    {"type": "TBD_BY_AGV", "positionCode": "PK_AA4"},
+    {"type": "TBD_BY_AGV", "positionCode": "FG_BB6"}
+  ],
+  "priority": "20",
+  "agvCode": "",
+  "agvTyp": "",
+  "taskCode": "VISION_PK_AA4_TO_FG_BB6_20260615_101530",
+  "data": "{\"source\":\"vision\",\"mode\":\"semi_auto\",\"reservation_id\":\"R20260615_000001\",\"from\":\"PK_AA4\",\"to\":\"FG_BB6\"}"
+}
+```
 
-- them trigger local file/API
-- tao tung task voi `dry_run=true`
+Quy tac reqCode:
+
+- voi retry cung mot request logic, giu cung `reqCode`
+- neu tao task moi khac, sinh `reqCode` moi
+- luu request/response vao JSONL de audit
+
+Quy tac taskCode:
+
+- nen de Vision sinh deterministic unique taskCode
+- neu RCS bat buoc tu sinh, luu response `data` lam `rcs_task_code`
+- sau submit, moi tracking phai dua tren taskCode RCS thuc te
+
+## 12. Theo doi task
+
+Nguon chinh:
+
+- `agvCallback`
+
+Nguon backup:
+
+- `queryTaskStatus`
+
+Mapping task state:
+
+- callback `start` -> `running`
+- callback `outbin` -> `running`
+- callback `end` -> `completed_wait_vision_verify`
+- callback `cancel` -> `canceled`
+- query `taskStatus=1/2/3/6` -> non-terminal
+- query `taskStatus=9` -> `completed_wait_vision_verify`
+- query `taskStatus=5` -> `canceled`
+- query `taskStatus=10` -> `interrupted`
+- query `taskStatus=0` -> `failed`
+
+Neu callback va query mau thuan:
+
+- terminal failure thang: `canceled/interrupted/failed`
+- neu callback `end` nhung query chua `9`, cho them grace time roi query lai
+- neu qua timeout, dung dispatcher
+
+## 13. Vision verification sau task
+
+Sau khi task terminal completed:
+
+1. Cho mot khoang settle time de AMR roi khoi ROI.
+2. Doc Vision snapshot.
+3. Xac nhan source:
+   - `source_position` -> `empty`
+4. Xac nhan dest:
+   - `dest_position` -> `occupied`
+5. Neu ca hai dung -> reservation `verified`, tao task tiep.
+6. Neu sai -> `operator_recovery_required`.
+
+Khong duoc tao task tiep neu:
+
+- source van occupied
+- dest van empty
+- source/dest unknown
+- camera offline
+- bind/unbind RCS chua dong bo
+
+## 14. Mode 3.2 - Semi-auto
+
+Ban chat:
+
+- operator cap quyen mot lan
+- Vision chay batch lien tiep den khi het source/dest hop le hoac gap loi
+
+Trigger de xuat:
+
+```json
+{
+  "command": "start_batch",
+  "mode": "semi_auto",
+  "max_tasks": 12,
+  "requested_by": "PDA_OR_OPERATOR",
+  "timestamp": 1781518530.0
+}
+```
+
+State machine:
+
+- `DISABLED`
+- `IDLE`
+- `BATCH_ARMED`
+- `EVALUATING`
+- `RESERVING`
+- `SUBMITTING`
+- `WAITING_RCS`
+- `VERIFYING_VISION`
+- `BATCH_DONE`
+- `PAUSED`
+- `FAULT`
+
+Loop semi-auto:
+
+1. Nhan `start_batch`.
+2. Neu dispatcher khong idle -> reject.
+3. Neu RCS/Vision/callback khong healthy -> reject.
+4. Tinh candidate source/dest.
+5. Neu khong co source/dest -> `BATCH_DONE`.
+6. Tao reservation.
+7. Submit task.
+8. Wait RCS complete.
+9. Verify bang Vision.
+10. Tang `completed_count`.
+11. Neu `completed_count >= max_tasks` -> done.
+12. Quay lai buoc 4.
+
+Dung batch khi:
+
+- FG full
+- PK het pallet
+- operator stop/pause
+- task canceled/interrupted/failed
+- Vision unknown/stale
+- RCS HTTP error lien tiep
+- callback/query timeout
+- manual override active
+
+## 15. Mode 3.3 - Full-auto
+
+Ban chat:
+
+- Vision tu dong lap task khi dieu kien du
+- operator chi bat/tat auto va xu ly fault
+
+State machine:
+
+- `DISABLED`
+- `AUTO_IDLE`
+- `EVALUATING`
+- `RESERVING`
+- `SUBMITTING`
+- `TASK_RUNNING`
+- `VERIFYING`
+- `BLOCKED_NO_SOURCE`
+- `BLOCKED_NO_DEST`
+- `PAUSED_MANUAL`
+- `FAULT`
+
+Loop full-auto:
+
+1. Neu `enabled=false` -> `DISABLED`.
+2. Neu manual active -> `PAUSED_MANUAL`.
+3. Neu co active reservation -> theo doi reservation.
+4. Neu khong co active reservation -> evaluate.
+5. Co candidate -> reserve + submit.
+6. Khong co source -> `BLOCKED_NO_SOURCE`.
+7. Khong co dest -> `BLOCKED_NO_DEST`.
+8. Sau completed -> verify.
+9. Verified -> quay lai evaluate.
+
+De tranh tao task lien tuc qua nhanh:
+
+- them `dispatch_cooldown_sec`
+- them `max_tasks_per_hour` neu can
+- chi cho 1 active task trong phase dau
+
+## 16. Manual priority va pause auto
+
+Manual phai uu tien cao hon auto.
+
+Can co mot co che nhan biet manual active. Cac option:
+
+1. RCS/PDA gui flag manual active cho Vision.
+2. Vision query task list/status va thay task khong do Vision tao.
+3. AGV adapter ghi file/manual lock.
+4. Operator bam pause auto tren GUI/tool.
+
+Chinh sach:
+
+- khi manual active, full-auto khong tao task moi
+- semi-auto batch dang chay thi pause sau task hien tai
+- khong cancel task auto dang chay neu khong co SOP
+- auto priority thap hon manual priority
+
+## 17. Fail-safe va recovery
+
+Fail-safe trigger:
+
+- camera PK/FG offline
+- zone source/dest unknown
+- RCS HTTP error lien tiep
+- callback server offline
+- task status canceled/interrupted/failed
+- task running timeout
+- Vision verification mismatch
+- ledger corrupted
+- duplicate active reservation
+
+Fail-safe action:
+
+- dung tao task moi
+- giu ledger active
+- ghi event JSONL
+- xuat snapshot `FAULT`
+- yeu cau operator recovery
+
+Operator recovery can co:
+
+- view active reservation
+- mark verified manually
+- cancel reservation locally
+- disable auto
+- retry submit neu task chua tao tren RCS
+- resume after inspect
+
+## 18. Chuong trinh can code theo phase
+
+### Phase 0 - Protocol proof
+
+Input can lay tu team AGV/RCS:
+
+- request PDA/RCS mau khi tao task PK -> FG thanh cong
+- response RCS mau
+- callback `agvCallback` mau cho `start/outbin/end/cancel`
+- `taskTyp`
+- `positionCodePath.type`
+- priority manual/auto
+- quy tac task qua thang may
+
+Output:
+
+- file `docs/hik_rcs_auto_dispatch_protocol_notes_vi.md`
+- confirmed `auto_dispatch.json`
+
+### Phase 1 - Planner dry-run
+
+Code:
+
+- `auto_dispatch_planner`
+- config scope/order
+- output candidate JSON
+
+Khong goi RCS.
+
+Acceptance:
+
+- full PK + empty FG -> candidate dung thu tu
+- FG full -> no dest
+- PK empty -> no source
+- unknown trong PK/FG -> dung theo policy
+
+### Phase 2 - Task request dry-run
+
+Code:
+
+- build `genAgvSchedulingTask` payload
 - ledger reservation
-- verify state sau task bang fake callback/test CLI
+- dry-run submit
+- event log
 
-Phase 3 - Semi-auto RCS real:
+Khong goi RCS real.
 
-- `dry_run=false` cho 1 cap PK/FG
-- tao task that
-- theo doi `agvCallback` va `queryTaskStatus`
-- verify source/dest bang Vision
+### Phase 3 - RCS integration 1 task
 
-Phase 4 - Semi-auto production:
+Code:
 
-- bat one-click batch
-- gioi han max task per batch
-- them pause/stop/operator recovery
+- goi `genAgvSchedulingTask`
+- track `queryTaskStatus`
+- nhan `agvCallback`
+- verify bang Vision
 
-Phase 5 - Full-auto pilot:
+Test 1 cap:
 
-- bat auto trong khung gio test
-- priority thap hon manual
-- telemetry day du
-- operator co nut disable nhanh
+- `PK_AA4 -> FG_BB6`
 
-Phase 6 - Full-auto production:
+### Phase 4 - Semi-auto batch
 
-- auto chay lien tuc
-- alert khi blocked/fault
-- bao cao throughput va loi
+Code:
 
-## 12. Acceptance criteria
+- command start/stop/pause
+- max task per batch
+- loop batch
 
-Mode 3.2 pass khi:
+Acceptance:
 
-- 1 click tao du chuoi task hop le
-- dung khi FG full hoac PK empty
-- khong tao trung source/dest
-- manual override pause duoc batch
-- task loi dung batch va bao ly do
-- Vision verify duoc source empty va dest occupied sau moi task
+- 1 click -> chay nhieu task den khi FG full/PK empty
+- gap loi -> dung batch
 
-Mode 3.3 pass khi:
+### Phase 5 - Full-auto pilot
 
-- auto tu tao task khi co source/dest hop le
-- auto dung khi het dieu kien
-- manual task luon uu tien
-- khong task nao duoc tao khi zone unknown/stale
-- moi task co audit trail day du
-- co nut disable/pause va restart an toan
+Code:
 
-## 13. Ket luan ky thuat
+- mode full_auto
+- manual pause
+- telemetry
+- operator recovery UI/tool
 
-Huong trien khai dung khong phai de Vision "lai robot" truc tiep. Vision se dong vai tro orchestration layer:
+Acceptance:
 
-- doc state PK/FG da on dinh
-- chon cap lay/tra theo rule da chot
-- goi RCS tao task bang API chinh thuc
-- theo doi callback/status
-- verify ket qua bang camera
-- fail-safe khi mat tin cay
+- auto tao task khi co dieu kien
+- manual override pause duoc auto
+- fail-safe dung khi co unknown/error
 
-Day la kien truc dung cho moi truong nha may: RCS van la bo dieu phoi robot, Vision la bo ra quyet dinh task dua tren nhan thuc thuc te va safety gate.
+### Phase 6 - Production hardening
+
+Them:
+
+- dashboard status
+- alarm/fault report
+- backup ledger
+- replay/audit tool
+- SOP recovery
+
+## 19. Checklist hop voi team AGV/RCS
+
+Bat buoc chot:
+
+1. API tao task co dung `genAgvSchedulingTask` khong?
+2. `taskTyp` cho PK -> FG la gi?
+3. `positionCodePath.type` source/dest la gi?
+4. Path co chi gom PK/FG hay can them Waiting Point/thang may?
+5. Task qua thang may la mot task hay nhieu sub-task?
+6. RCS co tu xu ly elevator mode trong task khong?
+7. Priority manual la bao nhieu?
+8. Priority auto nen dat bao nhieu?
+9. RCS response `data` co luon la taskCode khong?
+10. Callback URL Vision can cau hinh tren RCS la gi?
+11. Callback `method` onsite co dung `start/outbin/end/cancel` khong?
+12. Khi task failed/canceled/interrupted, operator recovery flow la gi?
+13. RCS co endpoint/flag bao manual task active khong?
+14. Neu Waiting Point bi lock, task pending hay fail?
+15. Gioi han tan suat tao task cua RCS la bao nhieu?
+16. Co can chi dinh `agvCode` hay de RCS auto select?
+17. Co can `podCode`, `podTyp`, `materialLot`, `taskMode`, `agvTyp` khong?
+
+## 20. Checklist nghiem thu
+
+### Planner
+
+- dung pick order PK
+- dung put order FG
+- khong chon zone unknown
+- khong chon zone reserved
+- khong chon camera offline
+
+### Submit
+
+- payload dung template AGV da chot
+- reqCode/taskCode duoc log
+- retry khong tao duplicate task
+- RCS error duoc ghi ro
+
+### Tracking
+
+- callback start/outbin/end/cancel duoc luu
+- queryTaskStatus backup duoc
+- timeout dung dispatcher
+
+### Verification
+
+- task completed nhung source/dest sai -> fault
+- task completed va source empty/dest occupied -> verified
+- verification unknown -> operator recovery
+
+### Semi-auto
+
+- 1 click chay nhieu task
+- dung khi FG full
+- dung khi PK empty
+- dung khi gap fault
+- pause/stop hoat dong
+
+### Full-auto
+
+- tu tao task khi co dieu kien
+- khong tao task khi manual active
+- khong tao task khi RCS/camera/callback unhealthy
+- recovery sau fault co SOP
+
+## 21. Request mau de test sau khi AGV chot
+
+Vi du chi de test, khong hard-code production:
+
+```json
+{
+  "taskTyp": "F01",
+  "positionCodePath": [
+    {"positionCode": "PK_AA4", "type": "00"},
+    {"positionCode": "FG_BB6", "type": "00"}
+  ],
+  "priority": "20",
+  "agvCode": "",
+  "taskCode": "VISION_PK_AA4_TO_FG_BB6_20260615_101530",
+  "data": "{\"source\":\"vision_auto\",\"mode\":\"semi_auto\",\"reservation_id\":\"R20260615_000001\",\"from\":\"PK_AA4\",\"to\":\"FG_BB6\"}"
+}
+```
+
+Test CLI:
+
+```bash
+python tools/hik_rcs_cli.py call-rpc genAgvSchedulingTask payload.json
+python tools/hik_rcs_cli.py query-task --task-code VISION_PK_AA4_TO_FG_BB6_20260615_101530
+```
+
+## 22. Ket luan
+
+Phuong an hoan chinh la:
+
+1. Giu manual hien tai lam baseline.
+2. Xay planner dry-run truoc, khong goi RCS.
+3. Them ledger/reservation truoc khi submit task real.
+4. Submit task bang `genAgvSchedulingTask` sau khi co template AGV xac nhan.
+5. Theo doi bang callback + query status.
+6. Verify bang Vision truoc task tiep theo.
+7. Semi-auto production truoc.
+8. Full-auto chi bat sau khi semi-auto da on dinh va co manual override ro rang.
+
+Day la cach trien khai chac chan nhat vi moi quyet dinh auto deu co ba lop bao ve:
+
+- Vision state on dinh
+- RCS task status/callback
+- Vision verification sau task
