@@ -16,35 +16,38 @@ Vision khong goi thang may, khong doc log thang may, khong goi `continueTask`, v
 
 ## 2. Mapping da chuan bi
 
-Trong `configs/hik_rcs.json` da co 2 mapping cho cam6:
+Trong `configs/hik_rcs.json` da co mapping `lockPosition` cho cac Waiting Point cua cam6. Moi mapping phai co `mapping_id` rieng, vi bridge dung field nay lam state/dispatch key.
 
 ```json
 {
-  "enabled": false,
-  "mapping_id": "cam6_lift1_waiting_floor1",
+  "enabled": true,
+  "mapping_id": "cam6_lift1_waiting_wtpf1",
   "camera_id": "cam6",
   "zone_id": "LIFT_1",
   "method": "lockPosition",
-  "position_code": "WTP1FA",
+  "position_code": "WTPF1",
+  "invert_lock_position_ind_bind": false,
   "unknown_action": "lockPosition"
 }
 ```
 
 ```json
 {
-  "enabled": false,
-  "mapping_id": "cam6_lift1_waiting_floor2",
+  "enabled": true,
+  "mapping_id": "cam6_lift1_waiting_wtp1a",
   "camera_id": "cam6",
   "zone_id": "LIFT_1",
   "method": "lockPosition",
-  "position_code": "WTP2FA",
+  "position_code": "WTP1A",
+  "invert_lock_position_ind_bind": false,
   "unknown_action": "lockPosition"
 }
 ```
 
 Khi chot dung ma RCS:
 
-- doi `position_code` neu ma that khac `WTP1FA` / `WTP2FA`
+- doi `position_code` theo ma that cua team AGV/RCS
+- dam bao moi Waiting Point co `mapping_id` duy nhat
 - doi `enabled=true` cho tung mapping can live
 - nen test voi `dry_run=true` truoc khi `dry_run=false`
 
@@ -65,6 +68,37 @@ Y nghia:
 
 - cabin co vat, camera mat tin cay, hoac state khong chac chan -> AMR khong duoc di toi Waiting Point
 - cabin empty on dinh -> AMR duoc di toi Waiting Point de goi thang may
+
+## 3.1 Switch test dao chieu indBind
+
+De test thuc dia xem RCS dang hieu `indBind` theo dung tai lieu hay bi nguoc, khong sua core Python truc tiep. Chi doi field nay trong tung mapping thang may can test:
+
+```json
+"invert_lock_position_ind_bind": false
+```
+
+Mac dinh `false` la logic chuan:
+
+- `occupied/unknown` -> gui `indBind="0"`
+- `empty` -> gui `indBind="1"`
+
+Khi can test gia thuyet nguoc, doi thanh:
+
+```json
+"invert_lock_position_ind_bind": true
+```
+
+Luc nay chi mapping do bi dao payload:
+
+- `occupied/unknown` -> gui `indBind="1"`
+- `empty` -> gui `indBind="0"`
+
+Luu y:
+
+- Switch nay chi nen bat tam thoi de test.
+- Khi ket thuc test phai dua lai `false`.
+- Neu bat/tat switch khi runtime dang chay, nen restart `mainProcess.py` de dam bao config duoc load lai sach.
+- Xem payload that trong `outputs/runtime/hik_rcs/http_exchange.jsonl` de xac nhan `positionCode` va `indBind`.
 
 ## 4. Chu trinh van hanh thuc te
 

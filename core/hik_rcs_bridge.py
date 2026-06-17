@@ -388,7 +388,10 @@ class HikRcsBridge:
         desired_state: str,
     ) -> bool:
         dispatch = entry.setdefault("lock_dispatch", {})
+        invert_ind_bind = bool(mapping.get("invert_lock_position_ind_bind", False))
         desired_key = "lock:enable" if desired_state == "enabled" else "lock:disable"
+        if invert_ind_bind:
+            desired_key = f"{desired_key}:inverted"
         position_code = self._resolve_field(mapping, "lock_position_code", context) or self._resolve_field(mapping, "position_code", context)
         if not position_code:
             logger.warning("[HIK-RCS] %s missing position_code for lockPosition action", self._mapping_key(mapping))
@@ -402,6 +405,8 @@ class HikRcsBridge:
             mapping_key=self._mapping_key(mapping),
         )
         ind_bind = "1" if desired_state == "enabled" else "0"
+        if invert_ind_bind:
+            ind_bind = "0" if ind_bind == "1" else "1"
         response = self._send_lock_position(req_code=req_code, position_code=position_code, ind_bind=ind_bind)
         response = self._normalize_response(
             response=response,
