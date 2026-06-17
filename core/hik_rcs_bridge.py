@@ -23,6 +23,8 @@ class HikRcsBridge:
     """Maps Vision zone states to HIK RCS bind/unbind and safety calls."""
 
     SUPPORTED_METHODS = {"bindPodAndBerth", "bindPodAndMat", "bindCtnrAndBin", "lockPosition"}
+    SUPPORTED_DISPATCH_POLICIES = {"vision_managed_static", "rcs_record_managed", "observe_only"}
+    MAIN_BIND_SUPPRESSED_POLICIES = {"rcs_record_managed", "observe_only"}
 
     def __init__(self, config: dict, project_root: str | Path) -> None:
         self.config = config or {}
@@ -163,6 +165,15 @@ class HikRcsBridge:
         if method not in self.SUPPORTED_METHODS:
             logger.warning("[HIK-RCS] %s unsupported method=%s", self._mapping_key(mapping), method)
             return changed
+        dispatch_policy = self._dispatch_policy(mapping)
+        if self._main_bind_suppressed(method=method, dispatch_policy=dispatch_policy):
+            return self._record_observed_policy_state(
+                entry=entry,
+                method=method,
+                dispatch_policy=dispatch_policy,
+                vision_state=vision_state,
+                now_ts=now_ts,
+            ) or changed
 
         ind_bind = "1" if vision_state == "occupied" else "0"
         desired_key = f"{method}:{ind_bind}"
@@ -322,6 +333,40 @@ class HikRcsBridge:
         if last_bound_ctnr:
             return last_bound_ctnr
         return self._resolve_field(mapping, "ctnr_code", context)
+
+    @classmethod
+    def _dispatch_policy(cls, mapping: dict[str, Any]) -> str:
+        policy = str(mapping.get("dispatch_policy", "vision_managed_static")).strip()
+        return policy or "vision_managed_static"
+
+    @classmethod
+    def _main_bind_suppressed(cls, *, method: str, dispatch_policy: str) -> bool:
+        if method == "lockPosition":
+            return False
+        return dispatch_policy in cls.MAIN_BIND_SUPPRESSED_POLICIES
+
+    @staticmethod
+    def _record_observed_policy_state(
+        *,
+        entry: dict[str, Any],
+        method: str,
+        dispatch_policy: str,
+        vision_state: str,
+        now_ts: float,
+    ) -> bool:
+        previous_state = entry.get("observed_state")
+        previous_policy = entry.get("dispatch_policy")
+        previous_method = entry.get("observed_method")
+        entry["observed_state"] = vision_state
+        entry["observed_method"] = method
+        entry["dispatch_policy"] = dispatch_policy
+        entry["main_binding_suppressed"] = True
+        entry["observed_at"] = round(now_ts, 3)
+        return (
+            previous_state != vision_state
+            or previous_policy != dispatch_policy
+            or previous_method != method
+        )
 
     def _send_lock_position(self, *, req_code: str, position_code: str, ind_bind: str) -> dict[str, Any]:
         return self._dispatch(
@@ -604,6 +649,9 @@ class HikRcsBridge:
             method = str(mapping.get("method", "")).strip()
             if method not in self.SUPPORTED_METHODS:
                 logger.warning("[HIK-RCS] %s has unsupported method=%s", mapping_key, method)
+            dispatch_policy = self._dispatch_policy(mapping)
+            if dispatch_policy not in self.SUPPORTED_DISPATCH_POLICIES:
+                logger.warning("[HIK-RCS] %s has unsupported dispatch_policy=%s", mapping_key, dispatch_policy)
             unknown_action = str(mapping.get("unknown_action", "none")).strip()
             if unknown_action not in {"none", "lockPosition"}:
                 logger.warning("[HIK-RCS] %s has unsupported unknown_action=%s", mapping_key, unknown_action)
@@ -616,7 +664,9 @@ class HikRcsBridge:
                 if not mapping.get("pod_code") or not mapping.get("material_lot"):
                     logger.warning("[HIK-RCS] %s missing pod_code/material_lot for bindPodAndMat", mapping_key)
             elif method == "bindCtnrAndBin":
-                if not mapping.get("ctnr_code") or not mapping.get("ctnr_typ"):
+                if dispatch_policy not in self.MAIN_BIND_SUPPRESSED_POLICIES and (
+                    not mapping.get("ctnr_code") or not mapping.get("ctnr_typ")
+                ):
                     logger.warning("[HIK-RCS] %s missing ctnr_code/ctnr_typ for bindCtnrAndBin", mapping_key)
                 if not mapping.get("stg_bin_code") and not mapping.get("position_code"):
                     logger.warning("[HIK-RCS] %s missing both stg_bin_code and position_code", mapping_key)

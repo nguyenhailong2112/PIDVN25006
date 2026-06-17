@@ -23,25 +23,38 @@ Spatial rule mac dinh cua he thong da duoc doi sang:
 
 ### 2.1 Packing
 
-- `cam4` dung zone runtime: `A1` -> `C4`
-- `cam5` dung zone runtime: `D1` -> `F4`
-- `position_code` va `ctnr_code` theo quy uoc:
-  - `PK_A1`, `PK_A2`, ..., `PK_F4`
+- `cam4` dung zone runtime: `A1` -> `B4`
+- `cam5` dung zone runtime: `C1` -> `D4`
+- `position_code` va `ctnr_code` theo quy uoc hien truong:
+  - `PK_AA1`, `PK_AA2`, ..., `PK_DD4`
+- `dispatch_policy` mac dinh: `vision_managed_static`
+- Vision duoc phep gui `bindCtnrAndBin` cho PK vi cong nhan dat pallet thu cong tai khu PK.
 
 ### 2.2 FG
 
-- `cam9` dung zone runtime: `A1` -> `A7`
+- `cam9` dung zone runtime: `A1` -> `A6`
 - `cam10` dung zone runtime: `B1` -> `B6`
-- `position_code` va `ctnr_code` theo quy uoc:
-  - `FG_A1`, `FG_A2`, ..., `FG_B6`
+- `position_code` theo quy uoc hien truong:
+  - `FG_AA1`, `FG_AA2`, ..., `FG_BB6`
+- `dispatch_policy`: `rcs_record_managed`
+- Vision khong gui static bind/unbind cho FG trong chu trinh AMR-delivery. RCS Record la owner cua `ctnrCode` that duoc AMR mang tu PK xuong FG.
 
 ### 2.3 Business method
 
-Toan bo pallet zones hien tai deu dung:
+Pallet zones dung:
 
 - `method = bindCtnrAndBin`
-- `ctnr_typ = 1`
+- `ctnr_typ = 2`
 - `unknown_action = lockPosition`
+
+Khac biet bat buoc:
+
+- PK: `dispatch_policy = vision_managed_static` hoac de trong de dung default
+- FG: `dispatch_policy = rcs_record_managed`
+
+Doc them:
+
+- [docs/rcs_record_managed_bind_conflict_resolution_vi.md](C:\Users\longn\PyCharmMiscProject\PIDVN25006\docs\rcs_record_managed_bind_conflict_resolution_vi.md)
 
 ### 2.4 Truong bat buoc onsite phai dien
 
@@ -57,7 +70,7 @@ Onsite phai dien dung:
 
 File:
 
-- [configs/hik_rcs.json](C:\Users\longn\PycharmProjects\PIDVN25006\configs\hik_rcs.json)
+- [configs/hik_rcs.json](C:\Users\longn\PyCharmMiscProject\PIDVN25006\configs\hik_rcs.json)
 
 Onsite can sua:
 
@@ -72,14 +85,14 @@ Onsite can sua:
 
 Files ROI pallet:
 
-- [configs/zones_cam4.json](C:\Users\longn\PycharmProjects\PIDVN25006\configs\zones_cam4.json)
-- [configs/zones_cam5.json](C:\Users\longn\PycharmProjects\PIDVN25006\configs\zones_cam5.json)
-- [configs/zones_cam9.json](C:\Users\longn\PycharmProjects\PIDVN25006\configs\zones_cam9.json)
-- [configs/zones_cam10.json](C:\Users\longn\PycharmProjects\PIDVN25006\configs\zones_cam10.json)
+- [configs/zones_cam4.json](C:\Users\longn\PyCharmMiscProject\PIDVN25006\configs\zones_cam4.json)
+- [configs/zones_cam5.json](C:\Users\longn\PyCharmMiscProject\PIDVN25006\configs\zones_cam5.json)
+- [configs/zones_cam9.json](C:\Users\longn\PyCharmMiscProject\PIDVN25006\configs\zones_cam9.json)
+- [configs/zones_cam10.json](C:\Users\longn\PyCharmMiscProject\PIDVN25006\configs\zones_cam10.json)
 
 Luu y audit:
 
-- `cam9` hien tai co `A6` va `A7` dang trung polygon, can check va sua ROI onsite
+- FG dang o policy `rcs_record_managed`; khong test static bind FG khi RCS Record dang la owner cua task AMR.
 
 ## 4. Trinh tu onsite dung
 
@@ -103,7 +116,7 @@ python tools/hik_rcs_cli.py probe-bin --ctnr-typ 1 --stg-bin-code <STG_BIN_CODE_
 
 8. Doc log:
 
-- [outputs/runtime/hik_rcs/http_exchange.jsonl](C:\Users\longn\PycharmProjects\PIDVN25006\outputs\runtime\hik_rcs\http_exchange.jsonl)
+- [outputs/runtime/hik_rcs/http_exchange.jsonl](C:\Users\longn\PyCharmMiscProject\PIDVN25006\outputs\runtime\hik_rcs\http_exchange.jsonl)
 
 9. Kiem tra tren RCS:
 
