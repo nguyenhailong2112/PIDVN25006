@@ -36,8 +36,10 @@ Spatial rule mac dinh cua he thong da duoc doi sang:
 - `cam10` dung zone runtime: `B1` -> `B6`
 - `position_code` theo quy uoc hien truong:
   - `FG_AA1`, `FG_AA2`, ..., `FG_BB6`
-- `dispatch_policy`: `rcs_record_managed`
-- Vision khong gui static bind/unbind cho FG trong chu trinh AMR-delivery. RCS Record la owner cua `ctnrCode` that duoc AMR mang tu PK xuong FG.
+- `dispatch_policy`: `hybrid_fg_managed`
+- Vision tu phan loai tung session FG:
+  - AMR/RCS task -> dung actual `ctnrCode` tu RCS Record/callback
+  - manual/cong nhan -> Vision bind static `FG_AA*` / `FG_BB*`
 
 ### 2.3 Business method
 
@@ -50,11 +52,11 @@ Pallet zones dung:
 Khac biet bat buoc:
 
 - PK: `dispatch_policy = vision_managed_static` hoac de trong de dung default
-- FG: `dispatch_policy = rcs_record_managed`
+- FG: `dispatch_policy = hybrid_fg_managed`
 
 Doc them:
 
-- [docs/rcs_record_managed_bind_conflict_resolution_vi.md](C:\Users\longn\PyCharmMiscProject\PIDVN25006\docs\rcs_record_managed_bind_conflict_resolution_vi.md)
+- [docs/hybrid_fg_bind_unbind_process_vi.md](C:\Users\longn\PyCharmMiscProject\PIDVN25006\docs\hybrid_fg_bind_unbind_process_vi.md)
 
 ### 2.4 Truong bat buoc onsite phai dien
 
@@ -92,7 +94,8 @@ Files ROI pallet:
 
 Luu y audit:
 
-- FG dang o policy `rcs_record_managed`; khong test static bind FG khi RCS Record dang la owner cua task AMR.
+- FG dang o policy `hybrid_fg_managed`; can test ca AMR-delivery va manual-delivery tren cung khu FG.
+- De hybrid dat muc chac chan cao nhat, yeu cau RCS bat `bindNotify` cho `bindCtnrAndBin` ve callback server cua Vision.
 
 ## 4. Trinh tu onsite dung
 

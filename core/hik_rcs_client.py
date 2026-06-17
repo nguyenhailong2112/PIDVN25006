@@ -257,9 +257,17 @@ class HikRcsClient:
         message = str(response.get("message", "")).strip()
         if not message:
             return ""
-        match = re.search(r"has bind container code[:\s]+([^\s,;]+)", message, flags=re.IGNORECASE)
-        if match:
-            return match.group(1).strip()
+        patterns = (
+            r"has bind container code[:\s]+([^\s,;{}]+)",
+            r"has been bind ctnrCode[:\s]+([^\s,;{}]+)",
+            r"has been bind ctnr code[:\s]+([^\s,;{}]+)",
+            r"bind ctnrCode[:\s]+([^\s,;{}]+)",
+            r"bind container[:\s]+([^\s,;{}]+)",
+        )
+        for pattern in patterns:
+            match = re.search(pattern, message, flags=re.IGNORECASE)
+            if match:
+                return match.group(1).strip()
         return ""
 
     def _post_json(self, url: str, api_name: str, payload: dict[str, Any]) -> dict[str, Any]:

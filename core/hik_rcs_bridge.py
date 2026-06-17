@@ -23,7 +23,7 @@ class HikRcsBridge:
     """Maps Vision zone states to HIK RCS bind/unbind and safety calls."""
 
     SUPPORTED_METHODS = {"bindPodAndBerth", "bindPodAndMat", "bindCtnrAndBin", "lockPosition"}
-    SUPPORTED_DISPATCH_POLICIES = {"vision_managed_static", "rcs_record_managed", "observe_only"}
+    SUPPORTED_DISPATCH_POLICIES = {"vision_managed_static", "rcs_record_managed", "observe_only", "hybrid_fg_managed"}
     MAIN_BIND_SUPPRESSED_POLICIES = {"rcs_record_managed", "observe_only"}
 
     def __init__(self, config: dict, project_root: str | Path) -> None:
@@ -166,6 +166,14 @@ class HikRcsBridge:
             logger.warning("[HIK-RCS] %s unsupported method=%s", self._mapping_key(mapping), method)
             return changed
         dispatch_policy = self._dispatch_policy(mapping)
+        if dispatch_policy == "hybrid_fg_managed":
+            return self._handle_hybrid_fg_mapping(
+                mapping=mapping,
+                context=context,
+                entry=entry,
+                vision_state=vision_state,
+                now_ts=now_ts,
+            ) or changed
         if self._main_bind_suppressed(method=method, dispatch_policy=dispatch_policy):
             return self._record_observed_policy_state(
                 entry=entry,
@@ -221,6 +229,157 @@ class HikRcsBridge:
                 entry["last_bound_ctnr_code"] = ""
         changed = True
         return changed
+
+    def _handle_hybrid_fg_mapping(
+        self,
+        *,
+        mapping: dict,
+        context: dict[str, Any],
+        entry: dict[str, Any],
+        vision_state: str,
+        now_ts: float,
+    ) -> bool:
+        method = str(mapping.get("method", "")).strip()
+        if method != "bindCtnrAndBin":
+            logger.warning("[HIK-RCS] %s hybrid_fg_managed requires bindCtnrAndBin", self._mapping_key(mapping))
+            return self._record_observed_policy_state(
+                entry=entry,
+                method=method,
+                dispatch_policy="hybrid_fg_managed",
+                vision_state=vision_state,
+                now_ts=now_ts,
+            )
+
+        changed = self._record_observed_policy_state(
+            entry=entry,
+            method=method,
+            dispatch_policy="hybrid_fg_managed",
+            vision_state=vision_state,
+            now_ts=now_ts,
+        )
+        entry["main_binding_suppressed"] = False
+        session = entry.setdefault("hybrid_session", {})
+        session["vision_state"] = vision_state
+        session["updated_at"] = round(now_ts, 3)
+
+        notify_hint = self._lookup_recent_container_hint(mapping, context, now_ts)
+        if notify_hint:
+            changed |= self._merge_hybrid_notify_hint(session, notify_hint)
+
+        if vision_state == "occupied":
+            changed |= self._handle_hybrid_occupied(mapping, context, entry, session, now_ts)
+        elif vision_state == "empty":
+            changed |= self._handle_hybrid_empty(mapping, context, entry, session, now_ts)
+        return changed
+
+    def _handle_hybrid_occupied(
+        self,
+        mapping: dict,
+        context: dict[str, Any],
+        entry: dict[str, Any],
+        session: dict[str, Any],
+        now_ts: float,
+    ) -> bool:
+        static_ctnr = self._resolve_field(mapping, "ctnr_code", context) or ""
+        actual_ctnr = str(session.get("actual_ctnr_code", "")).strip()
+        owner = str(session.get("owner", "")).strip()
+        if owner == "rcs_record" and actual_ctnr:
+            session["action"] = "suppress_static_bind_existing_rcs_record"
+            return False
+
+        return self._dispatch_hybrid_ctnr(
+            mapping=mapping,
+            context=context,
+            entry=entry,
+            session=session,
+            now_ts=now_ts,
+            ind_bind="1",
+            ctnr_code=static_ctnr,
+            desired_key=f"hybrid:bind:static:{static_ctnr}",
+            expected_owner="manual_vision",
+        )
+
+    def _handle_hybrid_empty(
+        self,
+        mapping: dict,
+        context: dict[str, Any],
+        entry: dict[str, Any],
+        session: dict[str, Any],
+        now_ts: float,
+    ) -> bool:
+        static_ctnr = self._resolve_field(mapping, "ctnr_code", context) or ""
+        owner = str(session.get("owner", "")).strip()
+        actual_ctnr = str(session.get("actual_ctnr_code", "")).strip()
+        if owner in {"manual_vision", ""}:
+            ctnr_code = actual_ctnr or str(entry.get("last_bound_ctnr_code", "")).strip() or static_ctnr
+        else:
+            ctnr_code = actual_ctnr
+
+        if not ctnr_code:
+            previous_action = session.get("action")
+            session["owner"] = owner or "unknown"
+            session["action"] = "empty_without_known_ctnr_code"
+            session["needs_reconcile"] = True
+            return previous_action != session["action"]
+
+        return self._dispatch_hybrid_ctnr(
+            mapping=mapping,
+            context=context,
+            entry=entry,
+            session=session,
+            now_ts=now_ts,
+            ind_bind="0",
+            ctnr_code=ctnr_code,
+            desired_key=f"hybrid:unbind:{owner or 'unknown'}:{ctnr_code}",
+            expected_owner=owner or "unknown",
+        )
+
+    def _dispatch_hybrid_ctnr(
+        self,
+        *,
+        mapping: dict,
+        context: dict[str, Any],
+        entry: dict[str, Any],
+        session: dict[str, Any],
+        now_ts: float,
+        ind_bind: str,
+        ctnr_code: str,
+        desired_key: str,
+        expected_owner: str,
+    ) -> bool:
+        dispatch = entry.setdefault("bind_dispatch", {})
+        if not ctnr_code:
+            session["action"] = "missing_ctnr_code"
+            session["needs_reconcile"] = True
+            return True
+        if not self._should_dispatch(dispatch, desired_key, now_ts):
+            return False
+
+        req_code = self._prepare_dispatch(dispatch, desired_key, now_ts, mapping_key=self._mapping_key(mapping))
+        response = self._send_main_binding(
+            "bindCtnrAndBin",
+            mapping,
+            context,
+            req_code,
+            ind_bind,
+            ctnr_code_override=ctnr_code,
+        )
+        response = self._normalize_hybrid_response(
+            response=response,
+            requested_ctnr=ctnr_code,
+            ind_bind=ind_bind,
+        )
+        self._commit_dispatch(dispatch, response, now_ts)
+        self._update_hybrid_session_after_response(
+            entry=entry,
+            session=session,
+            response=response,
+            requested_ctnr=ctnr_code,
+            ind_bind=ind_bind,
+            expected_owner=expected_owner,
+            now_ts=now_ts,
+        )
+        return True
 
     def _send_main_binding(
         self,
@@ -367,6 +526,239 @@ class HikRcsBridge:
             or previous_policy != dispatch_policy
             or previous_method != method
         )
+
+    def _lookup_recent_container_hint(
+        self,
+        mapping: dict[str, Any],
+        context: dict[str, Any],
+        now_ts: float,
+    ) -> dict[str, Any] | None:
+        stg_bin_code = self._resolve_field(mapping, "stg_bin_code", context) or ""
+        position_code = self._resolve_field(mapping, "position_code", context) or ""
+        if not stg_bin_code and not position_code:
+            return None
+        max_age_sec = float(mapping.get("hybrid_callback_max_age_sec", self.config.get("hybrid_callback_max_age_sec", 3600.0)))
+        callback_dir = self.output_dir / "callbacks"
+        candidates: list[dict[str, Any]] = []
+        candidates.extend(self._load_recent_callback_events(callback_dir / "bindNotify.jsonl", max_items=200))
+        candidates.extend(self._load_recent_callback_events(callback_dir / "agvCallback.jsonl", max_items=200))
+        candidates.sort(key=lambda item: float(item.get("stored_at_ts", 0.0) or 0.0), reverse=True)
+
+        for event in candidates:
+            stored_at = float(event.get("stored_at_ts", 0.0) or 0.0)
+            if stored_at > 0.0 and (now_ts - stored_at) > max_age_sec:
+                continue
+            hint = self._container_hint_from_callback_event(event, stg_bin_code=stg_bin_code, position_code=position_code)
+            if hint:
+                hint["stored_at_ts"] = stored_at
+                return hint
+        return None
+
+    @staticmethod
+    def _load_recent_callback_events(path: Path, *, max_items: int) -> list[dict[str, Any]]:
+        if not path.exists():
+            return []
+        try:
+            lines = path.read_text(encoding="utf-8-sig", errors="replace").splitlines()
+        except OSError:
+            return []
+        events: list[dict[str, Any]] = []
+        for line in lines[-max_items:]:
+            if not line.strip():
+                continue
+            try:
+                payload = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if isinstance(payload, dict):
+                events.append(payload)
+        return events
+
+    @staticmethod
+    def _container_hint_from_callback_event(
+        event: dict[str, Any],
+        *,
+        stg_bin_code: str,
+        position_code: str,
+    ) -> dict[str, Any] | None:
+        route = str(event.get("route", "")).strip()
+        payload = event.get("payload", {})
+        if not isinstance(payload, dict):
+            return None
+
+        if route == "bindNotify":
+            method = str(payload.get("method", "")).strip()
+            if method != "bindCtnrAndBin":
+                return None
+            ind_bind = str(payload.get("indBind", "")).strip()
+            params = payload.get("bindParam", [])
+            if isinstance(params, dict):
+                params = [params]
+            if not isinstance(params, list):
+                return None
+            for item in params:
+                if not isinstance(item, dict):
+                    continue
+                item_stg = str(item.get("stgBinCode", "") or item.get("stgBinCode".lower(), "")).strip()
+                item_pos = str(item.get("positionCode", "") or item.get("berthCode", "")).strip()
+                if (stg_bin_code and item_stg == stg_bin_code) or (position_code and item_pos == position_code):
+                    ctnr_code = str(item.get("ctnrCode", "")).strip()
+                    ctnr_typ = str(item.get("ctnrType", "") or item.get("ctnrTyp", "")).strip()
+                    if ctnr_code:
+                        return {
+                            "source": "bindNotify",
+                            "ind_bind": ind_bind,
+                            "ctnr_code": ctnr_code,
+                            "ctnr_typ": ctnr_typ,
+                            "stg_bin_code": item_stg,
+                            "position_code": item_pos,
+                            "task_code": str(payload.get("taskCode", "")).strip(),
+                        }
+            return None
+
+        if route == "agvCallback":
+            callback_stg = str(payload.get("stgBinCode", "")).strip()
+            callback_pos = str(payload.get("currentPositionCode", "") or payload.get("positionCode", "")).strip()
+            if not ((stg_bin_code and callback_stg == stg_bin_code) or (position_code and callback_pos == position_code)):
+                return None
+            ctnr_code = str(payload.get("ctnrCode", "")).strip()
+            if not ctnr_code:
+                return None
+            return {
+                "source": "agvCallback",
+                "ind_bind": "1" if str(payload.get("method", "")).strip() != "cancel" else "0",
+                "ctnr_code": ctnr_code,
+                "ctnr_typ": str(payload.get("ctnrTyp", "") or payload.get("ctnrType", "")).strip(),
+                "stg_bin_code": callback_stg,
+                "position_code": callback_pos,
+                "task_code": str(payload.get("taskCode", "")).strip(),
+                "callback_method": str(payload.get("method", "")).strip(),
+            }
+        return None
+
+    @staticmethod
+    def _merge_hybrid_notify_hint(session: dict[str, Any], hint: dict[str, Any]) -> bool:
+        previous = {
+            "owner": session.get("owner"),
+            "actual_ctnr_code": session.get("actual_ctnr_code"),
+            "actual_ctnr_source": session.get("actual_ctnr_source"),
+            "notify_ind_bind": session.get("notify_ind_bind"),
+        }
+        if str(hint.get("ind_bind", "")).strip() == "0":
+            session["last_unbind_notify"] = hint
+            if str(session.get("actual_ctnr_code", "")).strip() == str(hint.get("ctnr_code", "")).strip():
+                session["owner"] = ""
+                session["actual_ctnr_code"] = ""
+            return previous["owner"] != session.get("owner") or previous["actual_ctnr_code"] != session.get("actual_ctnr_code")
+
+        session["owner"] = "rcs_record"
+        session["actual_ctnr_code"] = str(hint.get("ctnr_code", "")).strip()
+        session["actual_ctnr_typ"] = str(hint.get("ctnr_typ", "")).strip()
+        session["actual_ctnr_source"] = str(hint.get("source", "")).strip()
+        session["notify_ind_bind"] = str(hint.get("ind_bind", "")).strip()
+        session["last_bind_notify"] = hint
+        session["needs_reconcile"] = False
+        return (
+            previous["owner"] != session.get("owner")
+            or previous["actual_ctnr_code"] != session.get("actual_ctnr_code")
+            or previous["actual_ctnr_source"] != session.get("actual_ctnr_source")
+            or previous["notify_ind_bind"] != session.get("notify_ind_bind")
+        )
+
+    def _normalize_hybrid_response(
+        self,
+        *,
+        response: dict[str, Any],
+        requested_ctnr: str,
+        ind_bind: str,
+    ) -> dict[str, Any]:
+        if self.client.is_success(response):
+            return response
+        normalized = dict(response)
+        existing_ctnr = self.client.extract_bound_ctnr_code(response)
+        if existing_ctnr:
+            normalized["_bound_ctnr_code_hint"] = existing_ctnr
+            if ind_bind == "1" and existing_ctnr.strip().lower() != requested_ctnr.strip().lower():
+                normalized["code"] = "0"
+                normalized["message"] = f"hybrid accepted RCS-managed container: {existing_ctnr}"
+                normalized["_hybrid_owner"] = "rcs_record"
+                return normalized
+            if existing_ctnr.strip().lower() == requested_ctnr.strip().lower():
+                normalized["code"] = "0"
+                normalized["message"] = f"already bound to desired container: {existing_ctnr}"
+                return normalized
+
+        message = str(response.get("message", "")).strip().lower()
+        if "has been locked" in message or "has incomplete task" in message:
+            normalized["_hybrid_owner"] = "rcs_record_pending"
+            normalized["_non_retryable"] = True
+            return normalized
+        if ind_bind == "0" and ("not bound" in message or "doesnt bind" in message or "doesn't bind" in message):
+            normalized["code"] = "0"
+            normalized["message"] = "hybrid accepted already-unbound bin"
+            normalized["_hybrid_already_clear"] = True
+            return normalized
+        if self._is_non_retryable_response(method="bindCtnrAndBin", response=response):
+            normalized["_non_retryable"] = True
+        return normalized
+
+    @staticmethod
+    def _update_hybrid_session_after_response(
+        *,
+        entry: dict[str, Any],
+        session: dict[str, Any],
+        response: dict[str, Any],
+        requested_ctnr: str,
+        ind_bind: str,
+        expected_owner: str,
+        now_ts: float,
+    ) -> None:
+        bound_hint = str(response.get("_bound_ctnr_code_hint", "")).strip()
+        hybrid_owner = str(response.get("_hybrid_owner", "")).strip()
+        success = str(response.get("code", "")) == "0"
+        session["last_dispatch_at"] = round(now_ts, 3)
+        session["last_dispatch_ind_bind"] = ind_bind
+        session["last_dispatch_ctnr_code"] = requested_ctnr
+        session["last_response_code"] = str(response.get("code", ""))
+        session["last_response_message"] = str(response.get("message", ""))
+
+        if ind_bind == "1":
+            if hybrid_owner == "rcs_record" and bound_hint:
+                session["owner"] = "rcs_record"
+                session["actual_ctnr_code"] = bound_hint
+                session["actual_ctnr_source"] = "rcs_response"
+                session["action"] = "accepted_existing_rcs_record_bind"
+                session["needs_reconcile"] = False
+                entry["last_bound_ctnr_code"] = bound_hint
+            elif hybrid_owner == "rcs_record_pending":
+                session["owner"] = "rcs_record_pending"
+                session["action"] = "rcs_locked_or_active_task"
+                session["needs_reconcile"] = False
+            elif success:
+                session["owner"] = "manual_vision"
+                session["actual_ctnr_code"] = requested_ctnr
+                session["actual_ctnr_source"] = "vision_static"
+                session["action"] = "manual_static_bind_success"
+                session["needs_reconcile"] = False
+                entry["bound_state"] = "occupied"
+                entry["last_bound_ctnr_code"] = requested_ctnr
+            else:
+                session["action"] = "bind_failed_needs_reconcile"
+                session["needs_reconcile"] = True
+            return
+
+        if success:
+            session["owner"] = ""
+            session["actual_ctnr_code"] = ""
+            session["actual_ctnr_source"] = ""
+            session["action"] = "unbind_success"
+            session["needs_reconcile"] = False
+            entry["bound_state"] = "empty"
+            entry["last_bound_ctnr_code"] = ""
+            return
+
+        session["action"] = f"unbind_failed_{expected_owner or 'unknown'}"
+        session["needs_reconcile"] = True
 
     def _send_lock_position(self, *, req_code: str, position_code: str, ind_bind: str) -> dict[str, Any]:
         return self._dispatch(
