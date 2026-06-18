@@ -52,6 +52,21 @@ def cmd_lock_position(args) -> None:
     print(json.dumps(response, ensure_ascii=False, indent=2))
 
 
+def cmd_block_area(args) -> None:
+    client = make_client(load_config())
+    ind_bind = "1" if args.action == "block" else "0"
+    response = client.block_area(
+        req_code=client.make_req_code(f"blockArea:{args.matter_area}:{ind_bind}:{args.control_mod}:{args.target_area}"),
+        matter_area=args.matter_area,
+        ind_bind=ind_bind,
+        pause=args.pause,
+        control_mod=args.control_mod,
+        target_area=args.target_area or None,
+        notice_third=args.notice_third,
+    )
+    print(json.dumps(response, ensure_ascii=False, indent=2))
+
+
 def cmd_call_rpc(args) -> None:
     client = make_client(load_config())
     payload = json.loads(Path(args.payload_file).read_text(encoding="utf-8-sig"))
@@ -139,6 +154,15 @@ def build_parser() -> argparse.ArgumentParser:
     lock_position.add_argument("--position-code", required=True)
     lock_position.add_argument("--action", required=True, choices=["enable", "disable"])
     lock_position.set_defaults(func=cmd_lock_position)
+
+    block_area = sub.add_parser("block-area", help="Call blockArea directly")
+    block_area.add_argument("--matter-area", required=True)
+    block_area.add_argument("--action", required=True, choices=["block", "unblock"])
+    block_area.add_argument("--pause", default="0")
+    block_area.add_argument("--control-mod", default="-1")
+    block_area.add_argument("--target-area", default="")
+    block_area.add_argument("--notice-third", default="0")
+    block_area.set_defaults(func=cmd_block_area)
 
     call_rpc = sub.add_parser("call-rpc", help="Call a generic RCS RPC API with a JSON payload file")
     call_rpc.add_argument("api_name", help="RCS RPC API name, e.g. genAgvSchedulingTask")

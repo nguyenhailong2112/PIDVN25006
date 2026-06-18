@@ -1,5 +1,7 @@
 # Cam6 AMR Pallet Elevator - Waiting Point Lock Process
 
+> Legacy note: mode `lockPosition` da duoc thay the bang `blockArea` trong config elevator hien tai. Tai lieu nay giu lai de doi chieu semantics cu khi can audit.
+
 ## 1. Ket luan thiet ke
 
 Voi rang buoc hien tai, Vision khong nhan duoc callback authorize/task/elevator tu RCS. Vision chi co the truyen trang thai sang RCS bang `lockPosition` tren cac diem `Waiting Point`.

@@ -173,6 +173,28 @@ class HikRcsClient:
             req_code=req_code,
         )
 
+    def block_area(
+        self,
+        *,
+        req_code: str,
+        matter_area: str,
+        ind_bind: str,
+        pause: str = "0",
+        control_mod: str = "-1",
+        target_area: str | None = None,
+        notice_third: str = "0",
+    ) -> dict[str, Any]:
+        payload: dict[str, Any] = {
+            "matterArea": matter_area,
+            "indBind": ind_bind,
+            "pause": pause,
+            "controlMod": control_mod,
+            "noticeThird": notice_third,
+        }
+        if target_area is not None:
+            payload["targetArea"] = target_area
+        return self.call_rpc("blockArea", payload, req_code=req_code)
+
     def probe_ctnr_binding(
         self,
         *,

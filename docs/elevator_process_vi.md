@@ -111,10 +111,10 @@ Khi HIK sync chay:
 - cac state con lai -> `occupied`
 - neu fault -> `unknown`
 
-Tu duy nay dung cho use-case `lockPosition`:
+Tu duy nay dung cho use-case `lockPosition` hoac `blockArea`:
 
-- chi khi cabin san sang cho entry moi `enable`
-- dang task active, dang armed, dang release, dang fault -> van phai `disable`
+- voi `lockPosition`: chi khi cabin san sang cho entry moi `enable`, dang task active / armed / release / fault thi `disable`
+- voi `blockArea`: cabin hoac vung waiting area occupied/unknown thi `block`, cabin empty on dinh thi `unblock`
 
 ## 6. State machine
 

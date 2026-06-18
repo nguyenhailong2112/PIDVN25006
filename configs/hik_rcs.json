@@ -339,52 +339,29 @@
     },
     {
       "enabled": true,
-      "mapping_id": "cam6_lift1_waiting_wtpf1",
+      "mapping_id": "cam6_lift1_eleT1",
       "camera_id": "cam6",
       "zone_id": "LIFT_1",
-      "method": "lockPosition",
-      "position_code": "WTPF1",
-      "invert_lock_position_ind_bind": true,
-      "unknown_action": "lockPosition"
+      "method": "blockArea",
+      "matter_area": "2",
+      "control_mod": "2",
+      "targetArea":"BLK1",
+      "pause": "0",
+      "notice_third": "0",
+      "unknown_action": "none"
     },
     {
       "enabled": true,
-      "mapping_id": "cam6_lift1_waiting_wtp1a",
+      "mapping_id": "cam6_lift1_eleT2",
       "camera_id": "cam6",
       "zone_id": "LIFT_1",
-      "method": "lockPosition",
-      "position_code": "WTP1A",
-      "invert_lock_position_ind_bind": true,
-      "unknown_action": "lockPosition"
-    },
-    {
-      "enabled": true,
-      "mapping_id": "cam6_lift1_waiting_wtpf2",
-      "camera_id": "cam6",
-      "zone_id": "LIFT_1",
-      "method": "lockPosition",
-      "position_code": "WTPF2",
-      "invert_lock_position_ind_bind": true,
-      "unknown_action": "lockPosition"
-    },
-    {
-      "enabled": true,
-      "mapping_id": "cam6_lift1_waiting_wtp2a",
-      "camera_id": "cam6",
-      "zone_id": "LIFT_1",
-      "method": "lockPosition",
-      "position_code": "WTP2A",
-      "invert_lock_position_ind_bind": true,
-      "unknown_action": "lockPosition"
-    },
-    {
-      "enabled": false,
-      "mapping_id": "cam7_lift2_waiting_floor1",
-      "camera_id": "cam7",
-      "zone_id": "LIFT_2",
-      "method": "lockPosition",
-      "position_code": "",
-      "unknown_action": "lockPosition"
+      "method": "blockArea",
+      "matter_area": "6",
+      "control_mod": "2",
+      "targetArea":"BLK2",
+      "pause": "0",
+      "notice_third": "0",
+      "unknown_action": "none"
     },
     {
       "enabled": false,

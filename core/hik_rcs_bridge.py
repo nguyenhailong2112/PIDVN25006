@@ -22,7 +22,7 @@ class _SafeFormatDict(dict):
 class HikRcsBridge:
     """Maps Vision zone states to HIK RCS bind/unbind and safety calls."""
 
-    SUPPORTED_METHODS = {"bindPodAndBerth", "bindPodAndMat", "bindCtnrAndBin", "lockPosition"}
+    SUPPORTED_METHODS = {"bindPodAndBerth", "bindPodAndMat", "bindCtnrAndBin", "lockPosition", "blockArea"}
     SUPPORTED_DISPATCH_POLICIES = {"vision_managed_static", "rcs_record_managed", "observe_only", "hybrid_fg_managed"}
     MAIN_BIND_SUPPRESSED_POLICIES = {"rcs_record_managed", "observe_only"}
 
@@ -136,6 +136,8 @@ class HikRcsBridge:
         method = str(mapping.get("method", "")).strip()
         if method == "lockPosition":
             return self._dispatch_lock_state(mapping, context, entry, now_ts, desired_state="disabled")
+        if method == "blockArea":
+            return self._dispatch_block_area_state(mapping, context, entry, now_ts, desired_state="blocked")
         action = str(mapping.get("unknown_action", "none")).strip()
         if action != "lockPosition":
             return False
@@ -154,6 +156,9 @@ class HikRcsBridge:
         if method == "lockPosition":
             desired_state = "disabled" if vision_state == "occupied" else "enabled"
             return self._dispatch_lock_state(mapping, context, entry, now_ts, desired_state=desired_state)
+        if method == "blockArea":
+            desired_state = "blocked" if vision_state == "occupied" else "unblocked"
+            return self._dispatch_block_area_state(mapping, context, entry, now_ts, desired_state=desired_state)
 
         action = str(mapping.get("unknown_action", "none")).strip()
         if action == "lockPosition" and entry.get("lock_state") == "disabled":
@@ -812,6 +817,91 @@ class HikRcsBridge:
             entry["lock_state"] = desired_state
         return True
 
+    def _send_block_area(
+        self,
+        *,
+        req_code: str,
+        matter_area: str,
+        ind_bind: str,
+        pause: str,
+        control_mod: str,
+        target_area: str | None,
+        notice_third: str,
+    ) -> dict[str, Any]:
+        return self._dispatch(
+            "blockArea",
+            lambda: self.client.block_area(
+                req_code=req_code,
+                matter_area=matter_area,
+                ind_bind=ind_bind,
+                pause=pause,
+                control_mod=control_mod,
+                target_area=target_area,
+                notice_third=notice_third,
+            ),
+            req_code,
+            {
+                "matterArea": matter_area,
+                "indBind": ind_bind,
+                "pause": pause,
+                "controlMod": control_mod,
+                "targetArea": target_area,
+                "noticeThird": notice_third,
+            },
+        )
+
+    def _dispatch_block_area_state(
+        self,
+        mapping: dict,
+        context: dict[str, Any],
+        entry: dict[str, Any],
+        now_ts: float,
+        desired_state: str,
+    ) -> bool:
+        dispatch = entry.setdefault("block_dispatch", {})
+        desired_key = "block:occupied" if desired_state == "blocked" else "block:empty"
+        matter_area = (
+            self._resolve_field(mapping, "matter_area", context)
+            or self._resolve_field(mapping, "block_area_code", context)
+            or self._resolve_field(mapping, "position_code", context)
+        )
+        if not matter_area:
+            logger.warning("[HIK-RCS] %s missing matter_area/block_area_code/position_code for blockArea action", self._mapping_key(mapping))
+            return False
+        if not self._should_dispatch(dispatch, desired_key, now_ts):
+            return False
+        req_code = self._prepare_dispatch(
+            dispatch,
+            desired_key,
+            now_ts,
+            mapping_key=self._mapping_key(mapping),
+        )
+        ind_bind = "1" if desired_state == "blocked" else "0"
+        pause = str(self._resolve_field(mapping, "pause", context) or "0")
+        control_mod = str(self._resolve_field(mapping, "control_mod", context) or "-1")
+        target_area = self._resolve_field(mapping, "target_area", context)
+        notice_third = str(self._resolve_field(mapping, "notice_third", context) or "0")
+        response = self._send_block_area(
+            req_code=req_code,
+            matter_area=matter_area,
+            ind_bind=ind_bind,
+            pause=pause,
+            control_mod=control_mod,
+            target_area=target_area,
+            notice_third=notice_third,
+        )
+        response = self._normalize_response(
+            response=response,
+            method="blockArea",
+            mapping=mapping,
+            context=context,
+            ind_bind=ind_bind,
+        )
+        self._commit_dispatch(dispatch, response, now_ts)
+        if self.client.is_success(response):
+            entry["block_state"] = desired_state
+        return True
+
     def _dispatch(self, api_name: str, sender, req_code: str, payload: dict[str, Any]) -> dict[str, Any]:
         if self.dry_run:
             logger.info("[HIK-RCS] dry_run api=%s req=%s payload=%s", api_name, req_code, payload)
@@ -998,7 +1088,7 @@ class HikRcsBridge:
             return True
         if method == "lockPosition" and any(token in message for token in lock_non_retryable_patterns):
             return True
-        if method == "bindCtnrAndBin" and any(token in message for token in bind_non_retryable_patterns):
+        if method in {"bindCtnrAndBin", "blockArea"} and any(token in message for token in bind_non_retryable_patterns):
             return True
         return False
 
@@ -1067,3 +1157,8 @@ class HikRcsBridge:
                     logger.warning("[HIK-RCS] %s missing ctnr_code/ctnr_typ for bindCtnrAndBin", mapping_key)
                 if not mapping.get("stg_bin_code") and not mapping.get("position_code"):
                     logger.warning("[HIK-RCS] %s missing both stg_bin_code and position_code", mapping_key)
+            elif method == "blockArea":
+                if not mapping.get("matter_area") and not mapping.get("block_area_code") and not mapping.get("position_code"):
+                    logger.warning("[HIK-RCS] %s missing matter_area/block_area_code/position_code for blockArea", mapping_key)
+                if str(mapping.get("control_mod", "-1")).strip() == "2" and not mapping.get("target_area"):
+                    logger.warning("[HIK-RCS] %s control_mod=2 requires target_area for blockArea", mapping_key)
