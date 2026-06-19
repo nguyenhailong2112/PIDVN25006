@@ -1,39 +1,68 @@
-# Hybrid FG Bind/Unbind Process
+# Hybrid FG Canonical Bind/Unbind Process
 
 ## 1. Ket luan
 
-FG khong duoc khoa cung theo mot mode duy nhat.
-
-Trong van hanh thuc te, AMR va cong nhan co the cung dua pallet tu PK xuong FG. Vi vay Vision dung policy:
+FG dang dung policy:
 
 ```json
-"dispatch_policy": "hybrid_fg_managed"
+"dispatch_policy": "hybrid_fg_canonical"
 ```
 
-Policy nay quyet dinh owner theo tung lan pallet vao/ra tung slot FG:
+Muc tieu cua policy nay:
 
-- AMR/RCS task dua pallet vao FG -> owner la `rcs_record`
-- cong nhan dua pallet vao FG -> owner la `manual_vision`
-- neu RCS dang lock bin/active task -> owner tam thoi la `rcs_record_pending`
-- neu khong biet actual `ctnrCode` khi can unbind -> dua vao `needs_reconcile`
+- Cong nhan dua pallet vao FG -> Vision bind static theo slot FG, vi du `FG_AA2 = FG_AA2`.
+- AMR/RCS Record dua pallet tu PK xuong FG -> RCS co the bind tam thoi actual `ctnrCode` tu PK, vi du `FG_BB5 = PK_CC3`.
+- Sau khi Vision biet actual `ctnrCode` dang nam o FG, Vision chuan hoa lai Storage Bin Management ve ma tinh cua FG:
+
+```text
+FG_BB5 = FG_BB5
+```
+
+Quy tac nay tranh loi trung identity: `PK_CC3` khong bi giu duoi FG, nen khi cong nhan dat pallet moi vao `PK_CC3`, Vision/RCS van bind PK bin binh thuong.
 
 ## 2. Co so API trong HIK document
 
 Tai lieu `UD35865B_RCS-2000 API_Developer Guide_V3.3_20231204(1)` cung cap du co so:
 
 - `bindCtnrAndBin`: bind/unbind container va bin, bat buoc co `ctnrCode`, `ctnrTyp`, va mot trong `stgBinCode` / `positionCode`.
-- `agvCallback`: RCS goi ve third-party platform, co cac field `method`, `currentPositionCode`, `stgBinCode`, `taskCode`, `ctnrCode`, `ctnrTyp`.
 - `bindNotify`: RCS notify thao tac bind/unbind, co `method=bindCtnrAndBin`, `indBind`, va `bindParam` gom `ctnrCode`, `ctnrType`, `stgBinCode`.
-- `queryTaskStatus`: co the dung lam polling backup theo `taskCodes` hoac `agvCode`, nhung khong thay the `bindNotify` trong bai toan biet actual `ctnrCode` cua FG.
+- `agvCallback`: co the cung cap them `taskCode`, `stgBinCode`, `ctnrCode`, `ctnrTyp`.
 
-Vi vay huong chuan la yeu cau team AGV/RCS bat callback:
+Tai lieu khong co API "rename/update ctnrCode" truc tiep. Vi vay cach chuan la mot transaction logic gom 2 lenh:
 
-- `/service/rest/agvCallbackService/agvCallback`
-- `/service/rest/agvCallbackService/bindNotify`
+1. `bindCtnrAndBin(indBind="0")` de unbind actual ctnr dang nam trong FG.
+2. `bindCtnrAndBin(indBind="1")` de bind static ctnr cua chinh slot FG.
 
-Code hien tai da co callback server nhan va luu cac route nay.
+## 3. Callback RCS can cau hinh
 
-## 3. State machine tung slot FG
+RCS Application Registration cho Vision:
+
+```text
+Name: VISION
+Generated Code: VISIONRTC
+Type: MES System/device access control service (WCS)
+IP: 192.168.10.44
+Port: 2112
+Base Path: /service/rest
+Invoke Type: REST method
+Protocol: http
+Enable Encryption: OFF
+Task Notify -> bindCtnrAndBin -> Notification Path: /bindNotify
+```
+
+URL cuoi cung RCS goi ve Vision:
+
+```text
+http://192.168.10.44:2112/service/rest/bindNotify
+```
+
+Code callback server van chap nhan them duong legacy:
+
+```text
+/service/rest/agvCallbackService/bindNotify
+```
+
+## 4. State machine tung slot FG
 
 Moi mapping FG co state rieng trong:
 
@@ -43,117 +72,146 @@ outputs/runtime/hik_rcs/bridge_state.json
 
 Field chinh:
 
-- `observed_state`: Vision thay `occupied` / `empty`
-- `dispatch_policy`: `hybrid_fg_managed`
-- `hybrid_session.owner`: `manual_vision`, `rcs_record`, `rcs_record_pending`, hoac rong
-- `hybrid_session.actual_ctnr_code`: actual ctnr dang nam trong bin neu biet
-- `hybrid_session.needs_reconcile`: can doi chieu RCS neu Vision khong du thong tin unbind an toan
+- `observed_state`: Vision thay `occupied` / `empty`.
+- `dispatch_policy`: `hybrid_fg_canonical`.
+- `hybrid_session.owner`: `canonical_fg`, `rcs_record`, `rcs_record_pending`, hoac rong.
+- `hybrid_session.actual_ctnr_code`: actual ctnr dang nam trong bin neu biet.
+- `hybrid_session.canonical_source_ctnr_code`: ma PK/RCS dang can go khoi FG.
+- `hybrid_session.canonical_target_ctnr_code`: ma FG static can bind lai.
+- `hybrid_session.needs_reconcile`: can doi chieu neu transaction chua hoan thanh.
 
-## 4. Logic khi FG EMPTY -> OCCUPIED
+## 5. Logic FG EMPTY -> OCCUPIED
 
-### 4.1 Co callback RCS/Record
+### 5.1 Cong nhan dua pallet vao FG
 
-Neu Vision doc duoc `bindNotify`/`agvCallback` gan day cho dung `stgBinCode` hoac `positionCode`:
-
-- lay `ctnrCode` that tu callback, vi du `PK_AA4`
-- set owner `rcs_record`
-- khong gui static bind `FG_AA1`
-
-Ket qua:
-
-```text
-FG_AA1 = PK_AA4
-```
-
-### 4.2 Khong co callback, Vision thu static bind
-
-Vision gui `bindCtnrAndBin(indBind="1")` voi static code cua FG, vi du:
+Khong co callback Record cho FG slot. Vision gui static bind:
 
 ```json
 {
-  "stgBinCode": "FG000203501013",
-  "positionCode": "FG_AA2",
-  "ctnrCode": "FG_AA2",
+  "stgBinCode": "FG001103501013",
+  "positionCode": "FG_BB5",
+  "ctnrCode": "FG_BB5",
   "ctnrTyp": "2",
   "indBind": "1"
 }
 ```
 
-Neu RCS tra success:
+Ket qua:
 
-- owner `manual_vision`
-- session actual `FG_AA2`
+```text
+FG_BB5 = FG_BB5
+```
 
-Neu RCS tra bin da bind container khac, vi du `PK_AA4`:
+### 5.2 AMR/RCS Record dua pallet tu PK xuong FG
 
-- Vision chap nhan day la RCS-managed
-- owner `rcs_record`
-- actual `PK_AA4`
-- khong retry static bind `FG_AA1`
+Vi du AMR lay `PK_CC3` va tra vao `FG_BB5`.
 
-Neu RCS tra `has been locked` / `has incomplete task`:
+RCS Record co the bind truoc:
 
-- owner `rcs_record_pending`
-- khong spam retry
-- doi callback/doi state sau do reconcile
+```text
+FG_BB5 = PK_CC3
+```
 
-## 5. Logic khi FG OCCUPIED -> EMPTY
+Vision nhan biet actual `ctnrCode=PK_CC3` qua `bindNotify`, `agvCallback`, hoac response cua RCS. Sau do Vision thuc hien canonical transaction:
 
-Vision chi unbind khi biet `ctnrCode` can unbind:
+```json
+{
+  "stgBinCode": "FG001103501013",
+  "positionCode": "FG_BB5",
+  "ctnrCode": "PK_CC3",
+  "ctnrTyp": "2",
+  "indBind": "0"
+}
+```
 
-- owner `manual_vision` -> unbind static FG code, vi du `FG_AA2`
-- owner `rcs_record` va biet actual `PK_AA4` -> unbind `PK_AA4`
-- khong biet actual ctnr -> khong unbind mu, set `needs_reconcile=true`
+roi:
 
-Quy tac nay tranh bug cu: Vision khong bao gio unbind sai `FG_AA1` neu bin dang that su bind `PK_AA4`.
+```json
+{
+  "stgBinCode": "FG001103501013",
+  "positionCode": "FG_BB5",
+  "ctnrCode": "FG_BB5",
+  "ctnrTyp": "2",
+  "indBind": "1"
+}
+```
 
-## 6. Vi du van hanh mong muon
+Ket qua cuoi:
+
+```text
+FG_BB5 = FG_BB5
+PK_CC3 duoc giai phong de bind lai tai khu PK khi co pallet moi
+```
+
+Neu RCS tra `has been locked` / `has incomplete task`, Vision khong ket luan fail cuoi. Bridge se retry sau `retry_interval_sec` vi day thuong la giai doan AMR/task chua ket thuc.
+
+## 6. Logic FG OCCUPIED -> EMPTY
+
+Vision unbind ma dang biet gan nhat:
+
+- neu FG da canonical -> unbind `FG_xx`.
+- neu chua canonical va dang biet actual `PK_xx` -> unbind `PK_xx`.
+- neu khong biet ma nao -> ghi state can reconcile, khong unbind mu.
+
+Quy tac nay tranh viec gui unbind sai container.
+
+## 7. Vi du van hanh mong muon
 
 1. AMR mang `PK_AA4` xuong `FG_AA1`
-   - RCS Record/bindNotify bao `ctnrCode=PK_AA4`
-   - Vision set `FG_AA1 = PK_AA4`
+   - RCS co the bind tam `FG_AA1 = PK_AA4`
+   - Vision canonicalize thanh `FG_AA1 = FG_AA1`
 
 2. Cong nhan mang pallet xuong `FG_AA2`
-   - khong co callback RCS cho FG_AA2
    - Vision bind static `FG_AA2`
 
 3. Cong nhan mang pallet xuong `FG_AA3`
    - Vision bind static `FG_AA3`
 
 4. AMR mang `PK_AA1` xuong `FG_AA4`
-   - RCS Record/bindNotify bao `ctnrCode=PK_AA1`
-   - Vision set `FG_AA4 = PK_AA1`
+   - RCS co the bind tam `FG_AA4 = PK_AA1`
+   - Vision canonicalize thanh `FG_AA4 = FG_AA4`
 
 5. Cong nhan mang pallet xuong `FG_AA5`
    - Vision bind static `FG_AA5`
 
-Ket qua Storage Bin Management:
+Ket qua Storage Bin Management sau khi Vision canonicalize:
 
 ```text
-FG_AA1 = PK_AA4
+FG_AA1 = FG_AA1
 FG_AA2 = FG_AA2
 FG_AA3 = FG_AA3
-FG_AA4 = PK_AA1
+FG_AA4 = FG_AA4
 FG_AA5 = FG_AA5
 ```
 
-## 7. Checklist nghiem thu
+## 8. Checklist nghiem thu
 
-1. Bat callback server cua Vision.
-2. Yeu cau RCS cau hinh callback `agvCallback` va `bindNotify` ve Vision PC.
-3. Dat pallet thu cong vao mot FG empty, xac nhan Vision bind static `FG_xx`.
-4. Tao task AMR tra pallet vao mot FG empty, xac nhan RCS/bindNotify co actual `PK_xx`.
-5. Xac nhan Vision khong gui static bind `FG_xx` de ghi de task AMR.
-6. Lay pallet manual ra khoi FG, xac nhan Vision unbind static `FG_xx`.
-7. Lay pallet AMR-delivered ra khoi FG, xac nhan Vision unbind actual `PK_xx` neu callback/response da cho biet.
-8. Neu `needs_reconcile=true`, dung RCS Storage Bin Management hoac callback log de doi chieu actual ctnr.
+1. RCS bat Application Registration cho Vision voi Base Path `/service/rest`.
+2. RCS bat Task Notify `bindCtnrAndBin` -> `/bindNotify`.
+3. Vision PC mo firewall inbound TCP `2112`.
+4. Xac nhan callback sinh file:
+   - `outputs/runtime/hik_rcs/callbacks/bindNotify_latest.json`
+   - `outputs/runtime/hik_rcs/callbacks/bindNotify.jsonl`
+5. Dat pallet thu cong vao mot FG empty, xac nhan RCS Storage Bin Management hien `FG_xx = FG_xx`.
+6. Tao task AMR tra pallet PK vao FG, xac nhan co thoi diem RCS Record bind `FG_xx = PK_xx`.
+7. Doi Vision canonicalize, xac nhan RCS Storage Bin Management quay ve `FG_xx = FG_xx`.
+8. Dat pallet moi vao lai vi tri PK vua duoc AMR lay, xac nhan PK bind lai thanh cong, khong bi loi `ctnrCode PK_xx has been bind`.
+9. Lay pallet ra khoi FG, xac nhan Vision unbind dung ctnr hien hanh.
+10. Neu `needs_reconcile=true`, doi chieu `bridge_state.json`, `http_exchange.jsonl`, `bindNotify.jsonl` va RCS Storage Bin Management.
 
-## 8. Ket luan cam ket
+## 9. Fail-safe
 
-Hang muc hybrid nay thuc hien duoc tren co so API HIK vi tai lieu co:
+- Vision khong invent ma container moi. FG chi canonical ve ma tinh da cau hinh trong `hik_rcs.json`.
+- Vision khong unbind mu khi khong biet ctnrCode.
+- Transaction unbind-source/bind-static khong atomic o muc RCS API, nen bridge luu state va retry.
+- Neu RCS dang lock bin do active task, bridge retry thay vi coi la loi cau hinh.
 
-- API ghi bind/unbind: `bindCtnrAndBin`
-- callback task co `stgBinCode`, `ctnrCode`: `agvCallback`
-- callback bind/unbind truc tiep co `bindParam.ctnrCode`, `bindParam.stgBinCode`: `bindNotify`
+## 10. Ket luan cam ket
 
-Dieu kien de dat muc chac chan cao nhat la team AGV/RCS bat `bindNotify` cho `bindCtnrAndBin`. Neu chua bat, bridge van co fallback bang response cua `bindCtnrAndBin`, nhung callback la duong chuan de nghiem thu nha may.
+Hang muc nay thuc hien duoc tren co so API HIK vi tai lieu co du:
+
+- API ghi bind/unbind: `bindCtnrAndBin`.
+- Callback bind/unbind co actual ctnr: `bindNotify`.
+- Callback task co the bo sung actual ctnr: `agvCallback`.
+
+Dieu kien nghiem thu tot nhat la RCS bat `bindNotify` cho `bindCtnrAndBin` ve callback server cua Vision.

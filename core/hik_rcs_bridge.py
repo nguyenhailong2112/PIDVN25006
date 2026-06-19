@@ -23,7 +23,13 @@ class HikRcsBridge:
     """Maps Vision zone states to HIK RCS bind/unbind and safety calls."""
 
     SUPPORTED_METHODS = {"bindPodAndBerth", "bindPodAndMat", "bindCtnrAndBin", "lockPosition", "blockArea"}
-    SUPPORTED_DISPATCH_POLICIES = {"vision_managed_static", "rcs_record_managed", "observe_only", "hybrid_fg_managed"}
+    SUPPORTED_DISPATCH_POLICIES = {
+        "vision_managed_static",
+        "rcs_record_managed",
+        "observe_only",
+        "hybrid_fg_managed",
+        "hybrid_fg_canonical",
+    }
     MAIN_BIND_SUPPRESSED_POLICIES = {"rcs_record_managed", "observe_only"}
 
     def __init__(self, config: dict, project_root: str | Path) -> None:
@@ -171,7 +177,7 @@ class HikRcsBridge:
             logger.warning("[HIK-RCS] %s unsupported method=%s", self._mapping_key(mapping), method)
             return changed
         dispatch_policy = self._dispatch_policy(mapping)
-        if dispatch_policy == "hybrid_fg_managed":
+        if dispatch_policy in {"hybrid_fg_managed", "hybrid_fg_canonical"}:
             return self._handle_hybrid_fg_mapping(
                 mapping=mapping,
                 context=context,
@@ -246,36 +252,214 @@ class HikRcsBridge:
     ) -> bool:
         method = str(mapping.get("method", "")).strip()
         if method != "bindCtnrAndBin":
-            logger.warning("[HIK-RCS] %s hybrid_fg_managed requires bindCtnrAndBin", self._mapping_key(mapping))
+            logger.warning("[HIK-RCS] %s %s requires bindCtnrAndBin", self._mapping_key(mapping), self._dispatch_policy(mapping))
             return self._record_observed_policy_state(
                 entry=entry,
                 method=method,
-                dispatch_policy="hybrid_fg_managed",
+                dispatch_policy=self._dispatch_policy(mapping),
                 vision_state=vision_state,
                 now_ts=now_ts,
             )
 
+        dispatch_policy = self._dispatch_policy(mapping)
         changed = self._record_observed_policy_state(
             entry=entry,
             method=method,
-            dispatch_policy="hybrid_fg_managed",
+            dispatch_policy=dispatch_policy,
             vision_state=vision_state,
             now_ts=now_ts,
         )
         entry["main_binding_suppressed"] = False
         session = entry.setdefault("hybrid_session", {})
+        previous_policy = session.get("policy")
+        if previous_policy and previous_policy != dispatch_policy:
+            session.pop("canonical_step", None)
+            session.pop("canonical_source_ctnr_code", None)
+            session.pop("canonical_target_ctnr_code", None)
+        session["policy"] = dispatch_policy
         session["vision_state"] = vision_state
         session["updated_at"] = round(now_ts, 3)
 
         notify_hint = self._lookup_recent_container_hint(mapping, context, now_ts)
         if notify_hint:
-            changed |= self._merge_hybrid_notify_hint(session, notify_hint)
+            static_ctnr = self._resolve_field(mapping, "ctnr_code", context) or ""
+            changed |= self._merge_hybrid_notify_hint(session, notify_hint, canonical_ctnr=static_ctnr)
 
-        if vision_state == "occupied":
+        if dispatch_policy == "hybrid_fg_canonical" and vision_state == "occupied":
+            changed |= self._handle_hybrid_canonical_occupied(mapping, context, entry, session, now_ts)
+        elif dispatch_policy == "hybrid_fg_canonical" and vision_state == "empty":
+            changed |= self._handle_hybrid_canonical_empty(mapping, context, entry, session, now_ts)
+        elif vision_state == "occupied":
             changed |= self._handle_hybrid_occupied(mapping, context, entry, session, now_ts)
         elif vision_state == "empty":
             changed |= self._handle_hybrid_empty(mapping, context, entry, session, now_ts)
         return changed
+
+    def _handle_hybrid_canonical_occupied(
+        self,
+        mapping: dict,
+        context: dict[str, Any],
+        entry: dict[str, Any],
+        session: dict[str, Any],
+        now_ts: float,
+    ) -> bool:
+        static_ctnr = self._resolve_field(mapping, "ctnr_code", context) or ""
+        if not static_ctnr:
+            session["action"] = "canonical_missing_static_ctnr_code"
+            session["needs_reconcile"] = True
+            return True
+
+        actual_ctnr = str(session.get("actual_ctnr_code", "")).strip()
+        if actual_ctnr and self._same_code(actual_ctnr, static_ctnr):
+            return self._mark_hybrid_canonical_bound(entry, session, static_ctnr, now_ts)
+
+        if actual_ctnr:
+            return self._canonicalize_fg_binding(
+                mapping=mapping,
+                context=context,
+                entry=entry,
+                session=session,
+                now_ts=now_ts,
+                source_ctnr=actual_ctnr,
+                static_ctnr=static_ctnr,
+            )
+
+        return self._dispatch_hybrid_ctnr(
+            mapping=mapping,
+            context=context,
+            entry=entry,
+            session=session,
+            now_ts=now_ts,
+            ind_bind="1",
+            ctnr_code=static_ctnr,
+            desired_key=f"hybrid_canonical:bind_static_or_discover:{static_ctnr}",
+            expected_owner="canonical_fg",
+            accept_existing_different=True,
+        )
+
+    def _handle_hybrid_canonical_empty(
+        self,
+        mapping: dict,
+        context: dict[str, Any],
+        entry: dict[str, Any],
+        session: dict[str, Any],
+        now_ts: float,
+    ) -> bool:
+        static_ctnr = self._resolve_field(mapping, "ctnr_code", context) or ""
+        actual_ctnr = str(session.get("actual_ctnr_code", "")).strip()
+        last_bound_ctnr = str(entry.get("last_bound_ctnr_code", "")).strip()
+        ctnr_code = actual_ctnr or last_bound_ctnr or static_ctnr
+
+        session.pop("canonical_step", None)
+        session.pop("canonical_source_ctnr_code", None)
+        session.pop("canonical_target_ctnr_code", None)
+        if not ctnr_code:
+            session["owner"] = ""
+            session["action"] = "canonical_empty_without_known_ctnr_code"
+            session["needs_reconcile"] = False
+            entry["bound_state"] = "empty"
+            return True
+
+        return self._dispatch_hybrid_ctnr(
+            mapping=mapping,
+            context=context,
+            entry=entry,
+            session=session,
+            now_ts=now_ts,
+            ind_bind="0",
+            ctnr_code=ctnr_code,
+            desired_key=f"hybrid_canonical:empty_unbind:{ctnr_code}",
+            expected_owner=str(session.get("owner", "")).strip() or "canonical_fg",
+            accept_existing_different=False,
+        )
+
+    def _canonicalize_fg_binding(
+        self,
+        *,
+        mapping: dict,
+        context: dict[str, Any],
+        entry: dict[str, Any],
+        session: dict[str, Any],
+        now_ts: float,
+        source_ctnr: str,
+        static_ctnr: str,
+    ) -> bool:
+        if self._same_code(source_ctnr, static_ctnr):
+            return self._mark_hybrid_canonical_bound(entry, session, static_ctnr, now_ts)
+
+        changed = False
+        session["canonical_source_ctnr_code"] = source_ctnr
+        session["canonical_target_ctnr_code"] = static_ctnr
+
+        changed |= self._dispatch_hybrid_ctnr(
+            mapping=mapping,
+            context=context,
+            entry=entry,
+            session=session,
+            now_ts=now_ts,
+            ind_bind="0",
+            ctnr_code=source_ctnr,
+            desired_key=f"hybrid_canonical:unbind_source:{source_ctnr}:to:{static_ctnr}",
+            expected_owner="rcs_record",
+            accept_existing_different=False,
+        )
+        if str(session.get("last_response_code", "")) != "0":
+            session["canonical_step"] = "unbind_source"
+            session["action"] = "canonical_unbind_source_retry"
+            session["needs_reconcile"] = True
+            return changed
+
+        session["canonical_step"] = "bind_static"
+        changed |= self._dispatch_hybrid_ctnr(
+            mapping=mapping,
+            context=context,
+            entry=entry,
+            session=session,
+            now_ts=now_ts,
+            ind_bind="1",
+            ctnr_code=static_ctnr,
+            desired_key=f"hybrid_canonical:bind_static:{static_ctnr}:from:{source_ctnr}",
+            expected_owner="canonical_fg",
+            accept_existing_different=False,
+        )
+        if str(session.get("last_response_code", "")) == "0":
+            self._mark_hybrid_canonical_bound(entry, session, static_ctnr, now_ts)
+        else:
+            session["canonical_step"] = "bind_static"
+            session["action"] = "canonical_bind_static_retry"
+            session["needs_reconcile"] = True
+        return changed
+
+    @staticmethod
+    def _mark_hybrid_canonical_bound(
+        entry: dict[str, Any],
+        session: dict[str, Any],
+        static_ctnr: str,
+        now_ts: float,
+    ) -> bool:
+        previous = {
+            "owner": session.get("owner"),
+            "actual_ctnr_code": session.get("actual_ctnr_code"),
+            "action": session.get("action"),
+            "bound_state": entry.get("bound_state"),
+        }
+        session["owner"] = "canonical_fg"
+        session["actual_ctnr_code"] = static_ctnr
+        session["actual_ctnr_source"] = "fg_static_canonical"
+        session["action"] = "canonical_static_bound"
+        session["needs_reconcile"] = False
+        session["canonicalized_at"] = round(now_ts, 3)
+        session.pop("canonical_step", None)
+        session.pop("canonical_source_ctnr_code", None)
+        session.pop("canonical_target_ctnr_code", None)
+        entry["bound_state"] = "occupied"
+        entry["last_bound_ctnr_code"] = static_ctnr
+        return (
+            previous["owner"] != session.get("owner")
+            or previous["actual_ctnr_code"] != session.get("actual_ctnr_code")
+            or previous["action"] != session.get("action")
+            or previous["bound_state"] != entry.get("bound_state")
+        )
 
     def _handle_hybrid_occupied(
         self,
@@ -351,6 +535,7 @@ class HikRcsBridge:
         ctnr_code: str,
         desired_key: str,
         expected_owner: str,
+        accept_existing_different: bool = True,
     ) -> bool:
         dispatch = entry.setdefault("bind_dispatch", {})
         if not ctnr_code:
@@ -373,6 +558,7 @@ class HikRcsBridge:
             response=response,
             requested_ctnr=ctnr_code,
             ind_bind=ind_bind,
+            accept_existing_different=accept_existing_different,
         )
         self._commit_dispatch(dispatch, response, now_ts)
         self._update_hybrid_session_after_response(
@@ -642,7 +828,12 @@ class HikRcsBridge:
         return None
 
     @staticmethod
-    def _merge_hybrid_notify_hint(session: dict[str, Any], hint: dict[str, Any]) -> bool:
+    def _merge_hybrid_notify_hint(
+        session: dict[str, Any],
+        hint: dict[str, Any],
+        *,
+        canonical_ctnr: str = "",
+    ) -> bool:
         previous = {
             "owner": session.get("owner"),
             "actual_ctnr_code": session.get("actual_ctnr_code"),
@@ -656,10 +847,16 @@ class HikRcsBridge:
                 session["actual_ctnr_code"] = ""
             return previous["owner"] != session.get("owner") or previous["actual_ctnr_code"] != session.get("actual_ctnr_code")
 
-        session["owner"] = "rcs_record"
-        session["actual_ctnr_code"] = str(hint.get("ctnr_code", "")).strip()
+        hint_ctnr = str(hint.get("ctnr_code", "")).strip()
+        if canonical_ctnr and hint_ctnr and hint_ctnr.strip().lower() == canonical_ctnr.strip().lower():
+            session["owner"] = "canonical_fg"
+            session["actual_ctnr_source"] = "bindNotify_canonical"
+            session["action"] = "canonical_bind_notify"
+        else:
+            session["owner"] = "rcs_record"
+            session["actual_ctnr_source"] = str(hint.get("source", "")).strip()
+        session["actual_ctnr_code"] = hint_ctnr
         session["actual_ctnr_typ"] = str(hint.get("ctnr_typ", "")).strip()
-        session["actual_ctnr_source"] = str(hint.get("source", "")).strip()
         session["notify_ind_bind"] = str(hint.get("ind_bind", "")).strip()
         session["last_bind_notify"] = hint
         session["needs_reconcile"] = False
@@ -676,6 +873,7 @@ class HikRcsBridge:
         response: dict[str, Any],
         requested_ctnr: str,
         ind_bind: str,
+        accept_existing_different: bool = True,
     ) -> dict[str, Any]:
         if self.client.is_success(response):
             return response
@@ -684,9 +882,10 @@ class HikRcsBridge:
         if existing_ctnr:
             normalized["_bound_ctnr_code_hint"] = existing_ctnr
             if ind_bind == "1" and existing_ctnr.strip().lower() != requested_ctnr.strip().lower():
-                normalized["code"] = "0"
-                normalized["message"] = f"hybrid accepted RCS-managed container: {existing_ctnr}"
-                normalized["_hybrid_owner"] = "rcs_record"
+                if accept_existing_different:
+                    normalized["code"] = "0"
+                    normalized["message"] = f"hybrid accepted RCS-managed container: {existing_ctnr}"
+                    normalized["_hybrid_owner"] = "rcs_record"
                 return normalized
             if existing_ctnr.strip().lower() == requested_ctnr.strip().lower():
                 normalized["code"] = "0"
@@ -696,7 +895,6 @@ class HikRcsBridge:
         message = str(response.get("message", "")).strip().lower()
         if "has been locked" in message or "has incomplete task" in message:
             normalized["_hybrid_owner"] = "rcs_record_pending"
-            normalized["_non_retryable"] = True
             return normalized
         if ind_bind == "0" and ("not bound" in message or "doesnt bind" in message or "doesn't bind" in message):
             normalized["code"] = "0"
@@ -740,13 +938,20 @@ class HikRcsBridge:
                 session["action"] = "rcs_locked_or_active_task"
                 session["needs_reconcile"] = False
             elif success:
-                session["owner"] = "manual_vision"
+                session["owner"] = expected_owner if expected_owner in {"manual_vision", "canonical_fg"} else "manual_vision"
                 session["actual_ctnr_code"] = requested_ctnr
-                session["actual_ctnr_source"] = "vision_static"
-                session["action"] = "manual_static_bind_success"
+                session["actual_ctnr_source"] = "fg_static_canonical" if session["owner"] == "canonical_fg" else "vision_static"
+                session["action"] = "canonical_static_bind_success" if session["owner"] == "canonical_fg" else "manual_static_bind_success"
                 session["needs_reconcile"] = False
                 entry["bound_state"] = "occupied"
                 entry["last_bound_ctnr_code"] = requested_ctnr
+            elif bound_hint:
+                session["owner"] = "rcs_record"
+                session["actual_ctnr_code"] = bound_hint
+                session["actual_ctnr_source"] = "rcs_response_existing"
+                session["action"] = "existing_different_ctnr_detected"
+                session["needs_reconcile"] = False
+                entry["last_bound_ctnr_code"] = bound_hint
             else:
                 session["action"] = "bind_failed_needs_reconcile"
                 session["needs_reconcile"] = True
@@ -764,6 +969,10 @@ class HikRcsBridge:
 
         session["action"] = f"unbind_failed_{expected_owner or 'unknown'}"
         session["needs_reconcile"] = True
+
+    @staticmethod
+    def _same_code(left: str, right: str) -> bool:
+        return left.strip().lower() == right.strip().lower()
 
     def _send_lock_position(self, *, req_code: str, position_code: str, ind_bind: str) -> dict[str, Any]:
         return self._dispatch(

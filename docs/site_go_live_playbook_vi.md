@@ -36,9 +36,9 @@ Spatial rule mac dinh cua he thong da duoc doi sang:
 - `cam10` dung zone runtime: `B1` -> `B6`
 - `position_code` theo quy uoc hien truong:
   - `FG_AA1`, `FG_AA2`, ..., `FG_BB6`
-- `dispatch_policy`: `hybrid_fg_managed`
+- `dispatch_policy`: `hybrid_fg_canonical`
 - Vision tu phan loai tung session FG:
-  - AMR/RCS task -> dung actual `ctnrCode` tu RCS Record/callback
+  - AMR/RCS task -> doc actual `ctnrCode` tu RCS Record/callback, sau do canonicalize ve ma static cua FG
   - manual/cong nhan -> Vision bind static `FG_AA*` / `FG_BB*`
 
 ### 2.3 Business method
@@ -52,7 +52,7 @@ Pallet zones dung:
 Khac biet bat buoc:
 
 - PK: `dispatch_policy = vision_managed_static` hoac de trong de dung default
-- FG: `dispatch_policy = hybrid_fg_managed`
+- FG: `dispatch_policy = hybrid_fg_canonical`
 
 Doc them:
 
@@ -94,8 +94,9 @@ Files ROI pallet:
 
 Luu y audit:
 
-- FG dang o policy `hybrid_fg_managed`; can test ca AMR-delivery va manual-delivery tren cung khu FG.
-- De hybrid dat muc chac chan cao nhat, yeu cau RCS bat `bindNotify` cho `bindCtnrAndBin` ve callback server cua Vision.
+- FG dang o policy `hybrid_fg_canonical`; can test ca AMR-delivery va manual-delivery tren cung khu FG.
+- De canonical dat muc chac chan cao nhat, yeu cau RCS bat `bindNotify` cho `bindCtnrAndBin` ve callback server cua Vision.
+- Ket qua RCS Storage Bin Management mong muon sau moi pallet vao FG: `FG_xx = FG_xx`, ke ca pallet do AMR lay tu `PK_xx` xuong.
 
 ## 4. Trinh tu onsite dung
 

@@ -1,0 +1,3 @@
+2026-06-17 11:03:30 [WARNING] core.hik_rcs_bridge: [HIK-RCS] client_code is empty in configs/hik_rcs.json
+2026-06-17 11:03:30 [INFO] core.hik_rcs_bridge: [HIK-RCS] dry_run api=bindCtnrAndBin req=37d39334c702430fc1e5cb7a5b95a144 payload={'ctnrCode': 'FG_AA2', 'ctnrTyp': '2', 'stgBinCode': 'FG000203501013', 'positionCode': 'FG_AA2', 'binName': None, 'characterValue': None, 'indBind': '1'}
+2026-06-17 11:03:30 [INFO] core.hik_rcs_bridge: [HIK-RCS] dry_run api=bindCtnrAndBin req=559064d1439a646ed141f48e45d0c0a8 payload={'ctnrCode': 'FG_AA2', 'ctnrTyp': '2', 'stgBinCode': 'FG000203501013', 'positionCode': 'FG_AA2', 'binName': None, 'characterValue': None, 'indBind': '0'}
