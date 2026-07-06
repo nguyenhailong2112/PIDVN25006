@@ -9,6 +9,7 @@ from datetime import datetime
 import cv2
 
 from core.camera_reader import CameraReader
+from core.auto_dispatch_runtime import AutoDispatchRuntime
 from core.config import (
     load_camera_configs,
     load_ingest_config,
@@ -49,6 +50,7 @@ RULE_CONFIG_PATH = PROJECT_ROOT / "configs" / "rules.json"
 INGEST_CONFIG_PATH = PROJECT_ROOT / "configs" / "ingest.json"
 RUNTIME_CONFIG_PATH = PROJECT_ROOT / "configs" / "runtime.json"
 HIK_RCS_CONFIG_PATH = PROJECT_ROOT / "configs" / "hik_rcs.json"
+AUTO_DISPATCH_CONFIG_PATH = PROJECT_ROOT / "configs" / "auto_dispatch.json"
 ELEVATOR_CONFIG_PATH = PROJECT_ROOT / "configs" / "elevator.json"
 HISTORY_DIR = PROJECT_ROOT / "outputs" / "history"
 logger = get_logger(__name__)
@@ -122,6 +124,7 @@ class CentralBackendRuntime:
         self.elevator_runtime = ElevatorRuntime(ELEVATOR_CONFIG_PATH)
         self.runtime_maintenance = RuntimeMaintenance(PROJECT_ROOT, self.runtime_cfg)
         self.hik_bridge = HikRcsBridge(load_json_dict(HIK_RCS_CONFIG_PATH), PROJECT_ROOT)
+        self.auto_dispatch_runtime = AutoDispatchRuntime(AUTO_DISPATCH_CONFIG_PATH, HIK_RCS_CONFIG_PATH, PROJECT_ROOT)
         self._hik_sync_lock = Lock()
         self._hik_sync_worker: Thread | None = None
         self._hik_sync_running = False
@@ -564,6 +567,10 @@ class CentralBackendRuntime:
                 control_payload = self._build_control_payload(cameras_payload, elevator_payload)
                 self._export_agv_snapshot(control_payload, now_ts)
                 self._schedule_hik_sync(control_payload, now_ts)
+                try:
+                    self.auto_dispatch_runtime.update(control_payload, now_ts)
+                except Exception:
+                    logger.exception("Auto dispatch runtime update failed")
                 self.runtime_maintenance.run_if_due(now_ts)
                 self.last_export_ts = now_ts
 

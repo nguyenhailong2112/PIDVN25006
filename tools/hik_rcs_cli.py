@@ -36,7 +36,7 @@ def cmd_query_agv(args) -> None:
 
 def cmd_query_task(args) -> None:
     client = make_client(load_config())
-    payload = {"taskCode": args.task_code}
+    payload = {"taskCodes": [args.task_code]}
     response = client.call_rpc("queryTaskStatus", payload)
     print(json.dumps(response, ensure_ascii=False, indent=2))
 
