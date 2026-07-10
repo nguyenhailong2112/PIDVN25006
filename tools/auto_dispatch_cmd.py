@@ -13,6 +13,7 @@ if str(BOOTSTRAP_ROOT) not in sys.path:
 from core.auto_dispatch_ledger import write_json_atomic_local
 from core.auto_dispatch_diagnostics import AutoDispatchDiagnostics
 from core.auto_dispatch_runtime import AutoDispatchRuntime
+from core.auto_dispatch_site_config import build_call_code_template
 from core.path_utils import PROJECT_ROOT, resolve_project_path
 
 
@@ -55,6 +56,8 @@ def cmd_validate_config(args) -> None:
     runtime = make_runtime()
     report = make_diagnostics(runtime).validate_config()
     print_json(report)
+    if args.production and not report.get("production_ready", {}).get("ok", False):
+        raise SystemExit(2)
     if args.strict and not report.get("ok", False):
         raise SystemExit(2)
 
@@ -75,6 +78,8 @@ def cmd_doctor(args) -> None:
         path = diagnostics.write_doctor_report(report)
         report["written_to"] = str(path)
     print_json(report)
+    if args.production and not report.get("site_ready", {}).get("can_real_submit", False):
+        raise SystemExit(2)
     if args.strict and not report.get("validation", {}).get("ok", False):
         raise SystemExit(2)
 
@@ -107,6 +112,29 @@ def cmd_preview_sequence(args) -> None:
             mode=args.mode,
         )
     )
+
+
+def cmd_export_call_codes(args) -> None:
+    runtime = make_runtime()
+    payload = build_call_code_template(runtime.auto_config, runtime.hik_config)
+    output = Path(args.output)
+    if not output.is_absolute():
+        output = PROJECT_ROOT / output
+    if output.exists() and not args.force:
+        raise SystemExit(f"{output} already exists; use --force to overwrite")
+    write_json_atomic_local(output, payload)
+    print_json({"written_to": str(output), "positions": len(payload.get("call_code_by_position", {}))})
+
+
+def cmd_missing_call_codes(args) -> None:
+    runtime = make_runtime()
+    template = runtime.auto_config.get("task_template", {})
+    call_map = template.get("call_code_by_position", {}) if isinstance(template, dict) else {}
+    missing = []
+    for position in list(runtime.auto_config.get("pk_pick_order", [])) + list(runtime.auto_config.get("fg_put_order", [])):
+        if not str(call_map.get(position, "")).strip():
+            missing.append(position)
+    print_json({"missing_count": len(missing), "missing": missing})
 
 
 def cmd_build_task(args) -> None:
@@ -249,12 +277,14 @@ def build_parser() -> argparse.ArgumentParser:
 
     validate_config = sub.add_parser("validate-config", help="Validate Phase 2 config before enabling onsite")
     validate_config.add_argument("--strict", action="store_true", help="Exit non-zero when validation has errors")
+    validate_config.add_argument("--production", action="store_true", help="Exit non-zero unless real-submit production gates pass")
     validate_config.set_defaults(func=cmd_validate_config)
 
     doctor = sub.add_parser("doctor", help="Export a complete Phase 2 onsite debug report")
     doctor.add_argument("--write", action="store_true", help="Write report under outputs/runtime/auto_dispatch/debug_reports")
     doctor.add_argument("--output", default="", help="Write report to a specific JSON path")
     doctor.add_argument("--strict", action="store_true", help="Exit non-zero when validation has errors")
+    doctor.add_argument("--production", action="store_true", help="Exit non-zero unless real-submit production gates pass")
     doctor.set_defaults(func=cmd_doctor)
 
     simulate = sub.add_parser("simulate", help="Run deterministic Phase 2 planner simulations")
@@ -280,6 +310,14 @@ def build_parser() -> argparse.ArgumentParser:
     preview_sequence.add_argument("--mode", default="semi_auto", choices=["semi_auto", "full_auto"])
     preview_sequence.add_argument("--max-tasks", type=int, default=12)
     preview_sequence.set_defaults(func=cmd_preview_sequence)
+
+    export_call_codes = sub.add_parser("export-call-codes", help="Write a site call-code mapping template")
+    export_call_codes.add_argument("--output", default="configs/auto_dispatch_call_codes.json")
+    export_call_codes.add_argument("--force", action="store_true")
+    export_call_codes.set_defaults(func=cmd_export_call_codes)
+
+    missing_call_codes = sub.add_parser("missing-call-codes", help="Show positions still missing userCallCodePath call codes")
+    missing_call_codes.set_defaults(func=cmd_missing_call_codes)
 
     build_task = sub.add_parser("build-task", help="Build a genAgvSchedulingTask payload without submitting")
     build_task.add_argument("--source", required=True)

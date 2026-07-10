@@ -1251,3 +1251,130 @@ Interface Input Parameters: {"agvCode":"16675","clientCode":"","ctnrCode":"","ct
 Result: failed
 Returned Result: {"code":"1","reqCode":"19F4581F2F8DBMH","data":"","interrupt":false,"msgErrCode":"0x3a80B015","message":" strategy does not exist:K${02}"}
 
+### Ket luan tu log RCS cho semi-auto Vision
+
+Log PDA/RCS cho thay task thanh cong tren site dang di theo dang:
+
+```json
+{
+  "interfaceName": "genAgvSchedulingTask",
+  "robotCode": "16675",
+  "agvCode": "16675",
+  "taskTyp": "QFPID",
+  "ctnrTyp": "2",
+  "userCallCode": "",
+  "userCallCodePath": ["<SOURCE_RCS_CALL_CODE>", "<DEST_RCS_CALL_CODE>"]
+}
+```
+
+Vi vay Phase 2 semi-auto da duoc config theo mode `userCallCodePath` trong
+`configs/auto_dispatch.json`. Runtime van tao task rolling one-by-one, nhung
+payload gui RCS se dung `userCallCodePath` thay vi `positionCodePath` neu
+`task_template.path_field=userCallCodePath`.
+
+Thong tin bat buoc team AGV can cap de test real:
+
+1. Xac nhan `taskTyp=QFPID` la dung cho chu trinh AMR pallet PK -> FG.
+2. Xac nhan `ctnrTyp=2` la dung pallet.
+3. Xac nhan co can chi dinh `robotCode/agvCode=16675` hay de trong de RCS auto select.
+4. Cap bang mapping day du `call_code_by_position` cho 27 vi tri:
+   `PK_AA1..PK_DD4` va `FG_AA1..FG_BB6`.
+5. Xac nhan `data` co chap nhan object Vision metadata hay bat buoc `{}`.
+6. Xac nhan RCS co chap nhan `taskCode` do Vision gui hay se tu sinh taskCode trong `response.data`.
+7. Xac nhan callback/status tracking dung `response.data` hay `taskCode` request.
+
+Neu thieu `call_code_by_position`, `validate-config` se canh bao o dry-run va
+se chan submit that khi `dry_run=false`.
+
+### Checklist site de bat semi-auto that
+
+1. Tao file mapping site:
+
+```bash
+python tools/auto_dispatch_cmd.py export-call-codes --force
+```
+
+2. Team AGV dien gia tri vao `configs/auto_dispatch_call_codes.json`, field:
+
+```json
+{
+  "call_code_by_position": {
+    "PK_AA4": "<RCS_SOURCE_CALL_CODE>",
+    "FG_BB6": "<RCS_DEST_CALL_CODE>"
+  }
+}
+```
+
+Chi can dien trong `call_code_by_position`; `rows` chi de doi chieu camera/zone/stgBin.
+
+3. Kiem tra con thieu vi tri nao:
+
+```bash
+python tools/auto_dispatch_cmd.py missing-call-codes
+```
+
+Ket qua production mong doi:
+
+```json
+{"missing_count": 0, "missing": []}
+```
+
+4. Build payload test 1 cap, khong gui RCS:
+
+```bash
+python tools/auto_dispatch_cmd.py build-task --source PK_AA4 --dest FG_BB6 --mode semi_auto
+```
+
+Payload mong doi phai co:
+
+```json
+{
+  "taskTyp": "QFPID",
+  "userCallCodePath": ["<PK_AA4_CALL_CODE>", "<FG_BB6_CALL_CODE>"],
+  "ctnrTyp": "2",
+  "robotCode": "16675",
+  "agvCode": "16675"
+}
+```
+
+Neu team AGV yeu cau payload giong PDA hon:
+
+- set `task_template.data_format="empty_object"` neu `data` bat buoc `{}`.
+- set `task_template.send_task_code=false` neu RCS khong chap nhan `taskCode` Vision.
+- xoa/rong `agvCode` va `robotCode` neu RCS can tu chon AMR.
+
+5. Kiem tra toan bo cau hinh:
+
+```bash
+python tools/auto_dispatch_cmd.py validate-config --production
+python tools/auto_dispatch_cmd.py doctor --write --production
+```
+
+6. Bat test 1 task real:
+
+Trong `configs/auto_dispatch.json`:
+
+```json
+{
+  "enabled": true,
+  "mode": "semi_auto",
+  "dry_run": false,
+  "max_tasks_per_batch": 1
+}
+```
+
+Sau do arm batch:
+
+```bash
+python tools/auto_dispatch_cmd.py start-batch --max-tasks 1 --requested-by site_test --tick
+python tools/auto_dispatch_cmd.py status
+```
+
+7. Neu 1 task real pass lien tiep, tang len batch 12:
+
+```bash
+python tools/auto_dispatch_cmd.py start-batch --max-tasks 12 --requested-by operator --tick
+```
+
+Runtime van chi submit 1 task active tai moi thoi diem. Sau moi task, Vision verify lai snapshot thuc te roi moi tao task tiep theo.
+

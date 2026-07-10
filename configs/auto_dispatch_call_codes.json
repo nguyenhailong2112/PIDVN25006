@@ -1,0 +1,251 @@
+{
+  "version": 1,
+  "description": "Site mapping for Vision Phase 2 genAgvSchedulingTask userCallCodePath.",
+  "call_code_by_position": {
+    "PK_AA4": "",
+    "PK_AA3": "",
+    "PK_AA2": "",
+    "PK_AA1": "",
+    "PK_BB6": "",
+    "PK_BB5": "",
+    "PK_BB2": "",
+    "PK_BB1": "",
+    "PK_CC5": "",
+    "PK_CC4": "",
+    "PK_CC3": "",
+    "PK_DD4": "",
+    "PK_DD3": "",
+    "PK_DD2": "",
+    "PK_DD1": "",
+    "FG_BB6": "",
+    "FG_BB5": "",
+    "FG_BB4": "",
+    "FG_BB3": "",
+    "FG_BB2": "",
+    "FG_BB1": "",
+    "FG_AA6": "",
+    "FG_AA5": "",
+    "FG_AA4": "",
+    "FG_AA3": "",
+    "FG_AA2": "",
+    "FG_AA1": ""
+  },
+  "rows": [
+    {
+      "position_code": "PK_AA4",
+      "area": "PK",
+      "camera_id": "cam4",
+      "zone_id": "A4",
+      "stg_bin_code": "A0000403501013",
+      "ctnr_code": "PK_AA4"
+    },
+    {
+      "position_code": "PK_AA3",
+      "area": "PK",
+      "camera_id": "cam4",
+      "zone_id": "A3",
+      "stg_bin_code": "A0000303501013",
+      "ctnr_code": "PK_AA3"
+    },
+    {
+      "position_code": "PK_AA2",
+      "area": "PK",
+      "camera_id": "cam4",
+      "zone_id": "A2",
+      "stg_bin_code": "A0000203501013",
+      "ctnr_code": "PK_AA2"
+    },
+    {
+      "position_code": "PK_AA1",
+      "area": "PK",
+      "camera_id": "cam4",
+      "zone_id": "A1",
+      "stg_bin_code": "A0000103501013",
+      "ctnr_code": "PK_AA1"
+    },
+    {
+      "position_code": "PK_BB6",
+      "area": "PK",
+      "camera_id": "cam4",
+      "zone_id": "B4",
+      "stg_bin_code": "B0000603501013",
+      "ctnr_code": "PK_BB6"
+    },
+    {
+      "position_code": "PK_BB5",
+      "area": "PK",
+      "camera_id": "cam4",
+      "zone_id": "B3",
+      "stg_bin_code": "B0000503501013",
+      "ctnr_code": "PK_BB5"
+    },
+    {
+      "position_code": "PK_BB2",
+      "area": "PK",
+      "camera_id": "cam4",
+      "zone_id": "B2",
+      "stg_bin_code": "B0000203501013",
+      "ctnr_code": "PK_BB2"
+    },
+    {
+      "position_code": "PK_BB1",
+      "area": "PK",
+      "camera_id": "cam4",
+      "zone_id": "B1",
+      "stg_bin_code": "B0000103501013",
+      "ctnr_code": "PK_BB1"
+    },
+    {
+      "position_code": "PK_CC5",
+      "area": "PK",
+      "camera_id": "cam5",
+      "zone_id": "C3",
+      "stg_bin_code": "C0000503501013",
+      "ctnr_code": "PK_CC5"
+    },
+    {
+      "position_code": "PK_CC4",
+      "area": "PK",
+      "camera_id": "cam5",
+      "zone_id": "C2",
+      "stg_bin_code": "C0000403501013",
+      "ctnr_code": "PK_CC4"
+    },
+    {
+      "position_code": "PK_CC3",
+      "area": "PK",
+      "camera_id": "cam5",
+      "zone_id": "C1",
+      "stg_bin_code": "C0000303501013",
+      "ctnr_code": "PK_CC3"
+    },
+    {
+      "position_code": "PK_DD4",
+      "area": "PK",
+      "camera_id": "cam5",
+      "zone_id": "D4",
+      "stg_bin_code": "D0000403501013",
+      "ctnr_code": "PK_DD4"
+    },
+    {
+      "position_code": "PK_DD3",
+      "area": "PK",
+      "camera_id": "cam5",
+      "zone_id": "D3",
+      "stg_bin_code": "D0000303501013",
+      "ctnr_code": "PK_DD3"
+    },
+    {
+      "position_code": "PK_DD2",
+      "area": "PK",
+      "camera_id": "cam5",
+      "zone_id": "D2",
+      "stg_bin_code": "D0000203501013",
+      "ctnr_code": "PK_DD2"
+    },
+    {
+      "position_code": "PK_DD1",
+      "area": "PK",
+      "camera_id": "cam5",
+      "zone_id": "D1",
+      "stg_bin_code": "D0000103501013",
+      "ctnr_code": "PK_DD1"
+    },
+    {
+      "position_code": "FG_BB6",
+      "area": "FG",
+      "camera_id": "cam10",
+      "zone_id": "B6",
+      "stg_bin_code": "FG001203501013",
+      "ctnr_code": "FG_BB6"
+    },
+    {
+      "position_code": "FG_BB5",
+      "area": "FG",
+      "camera_id": "cam10",
+      "zone_id": "B5",
+      "stg_bin_code": "FG001103501013",
+      "ctnr_code": "FG_BB5"
+    },
+    {
+      "position_code": "FG_BB4",
+      "area": "FG",
+      "camera_id": "cam10",
+      "zone_id": "B4",
+      "stg_bin_code": "FG001003501013",
+      "ctnr_code": "FG_BB4"
+    },
+    {
+      "position_code": "FG_BB3",
+      "area": "FG",
+      "camera_id": "cam10",
+      "zone_id": "B3",
+      "stg_bin_code": "FG000903501013",
+      "ctnr_code": "FG_BB3"
+    },
+    {
+      "position_code": "FG_BB2",
+      "area": "FG",
+      "camera_id": "cam10",
+      "zone_id": "B2",
+      "stg_bin_code": "FG000803501013",
+      "ctnr_code": "FG_BB2"
+    },
+    {
+      "position_code": "FG_BB1",
+      "area": "FG",
+      "camera_id": "cam10",
+      "zone_id": "B1",
+      "stg_bin_code": "FG000703501013",
+      "ctnr_code": "FG_BB1"
+    },
+    {
+      "position_code": "FG_AA6",
+      "area": "FG",
+      "camera_id": "cam9",
+      "zone_id": "A6",
+      "stg_bin_code": "FG000603501013",
+      "ctnr_code": "FG_AA6"
+    },
+    {
+      "position_code": "FG_AA5",
+      "area": "FG",
+      "camera_id": "cam9",
+      "zone_id": "A5",
+      "stg_bin_code": "FG000503501013",
+      "ctnr_code": "FG_AA5"
+    },
+    {
+      "position_code": "FG_AA4",
+      "area": "FG",
+      "camera_id": "cam9",
+      "zone_id": "A4",
+      "stg_bin_code": "FG000403501013",
+      "ctnr_code": "FG_AA4"
+    },
+    {
+      "position_code": "FG_AA3",
+      "area": "FG",
+      "camera_id": "cam9",
+      "zone_id": "A3",
+      "stg_bin_code": "FG000303501013",
+      "ctnr_code": "FG_AA3"
+    },
+    {
+      "position_code": "FG_AA2",
+      "area": "FG",
+      "camera_id": "cam9",
+      "zone_id": "A2",
+      "stg_bin_code": "FG000203501013",
+      "ctnr_code": "FG_AA2"
+    },
+    {
+      "position_code": "FG_AA1",
+      "area": "FG",
+      "camera_id": "cam9",
+      "zone_id": "A1",
+      "stg_bin_code": "FG000103501013",
+      "ctnr_code": "FG_AA1"
+    }
+  ]
+}

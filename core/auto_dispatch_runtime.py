@@ -14,6 +14,7 @@ from core.auto_dispatch_types import (
     make_id,
     make_task_code,
 )
+from core.auto_dispatch_site_config import merge_site_call_codes
 from core.hik_rcs_task_client import HikRcsTaskClient
 from core.logger_config import get_logger
 from core.path_utils import PROJECT_ROOT
@@ -37,7 +38,7 @@ class AutoDispatchRuntime:
         self.output_dir = self.project_root / "outputs" / "runtime" / "auto_dispatch"
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.commands_path = self.output_dir / "commands.json"
-        self.auto_config = self._load_json(self.auto_config_path, default={})
+        self.auto_config = self._load_auto_config()
         self.hik_config = self._load_json(self.hik_config_path, default={})
         self.ledger = AutoDispatchLedger(self.output_dir)
         self.planner = AutoDispatchPlanner(self.auto_config, self.hik_config)
@@ -45,7 +46,7 @@ class AutoDispatchRuntime:
         self.last_poll_ts_by_task: dict[str, float] = {}
 
     def reload_config(self) -> None:
-        self.auto_config = self._load_json(self.auto_config_path, default={})
+        self.auto_config = self._load_auto_config()
         self.hik_config = self._load_json(self.hik_config_path, default={})
         self.planner = AutoDispatchPlanner(self.auto_config, self.hik_config)
         self.task_client = HikRcsTaskClient(self.hik_config, self.project_root / "outputs" / "runtime")
@@ -544,6 +545,10 @@ class AutoDispatchRuntime:
             return json.loads(path.read_text(encoding="utf-8-sig"))
         except (OSError, json.JSONDecodeError):
             return default
+
+    def _load_auto_config(self) -> dict[str, Any]:
+        raw = self._load_json(self.auto_config_path, default={})
+        return merge_site_call_codes(raw if isinstance(raw, dict) else {}, self.project_root)
 
     @staticmethod
     def _load_jsonl_tail(path: Path, *, max_items: int) -> list[dict[str, Any]]:

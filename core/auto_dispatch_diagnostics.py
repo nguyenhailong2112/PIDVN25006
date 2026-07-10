@@ -23,6 +23,7 @@ class AutoDispatchDiagnostics:
         errors: list[str] = []
         warnings: list[str] = []
         info: list[str] = []
+        missing_call_codes: list[str] = []
 
         enabled = bool(self.auto_config.get("enabled", False))
         dry_run = bool(self.auto_config.get("dry_run", True))
@@ -74,6 +75,15 @@ class AutoDispatchDiagnostics:
                 if policy != "hybrid_fg_canonical":
                     errors.append(f"{position} must use dispatch_policy=hybrid_fg_canonical for canonical FG control.")
 
+        template = self.auto_config.get("task_template", {})
+        if not isinstance(template, dict):
+            template = {}
+        if str(template.get("path_field", "positionCodePath")).strip() == "userCallCodePath":
+            missing_call_codes = self._missing_call_code_positions(pk_order + fg_order)
+            target = warnings if dry_run else errors
+            for position in missing_call_codes:
+                target.append(f"{position} is missing call code in configs/auto_dispatch_call_codes.json for userCallCodePath.")
+
         callback_cfg = self.hik_config.get("callback_server", {})
         if not isinstance(callback_cfg, dict):
             callback_cfg = {}
@@ -109,6 +119,18 @@ class AutoDispatchDiagnostics:
             for item in payload_errors:
                 target.append(f"task_template: {item}")
 
+        production_blockers: list[str] = []
+        if errors:
+            production_blockers.append("validation_errors_present")
+        if not enabled:
+            production_blockers.append("enabled_false")
+        if mode not in {"semi_auto", "full_auto"}:
+            production_blockers.append(f"mode_{mode}")
+        if dry_run:
+            production_blockers.append("dry_run_true")
+        if missing_call_codes:
+            production_blockers.append("missing_call_codes")
+
         return {
             "ok": not errors,
             "enabled": enabled,
@@ -122,6 +144,11 @@ class AutoDispatchDiagnostics:
                 "pk_positions": len(pk_order),
                 "fg_positions": len(fg_order),
                 "enabled_bind_mappings": len(mapping_by_position),
+                "missing_call_codes": len(missing_call_codes),
+            },
+            "production_ready": {
+                "ok": not production_blockers,
+                "blockers": production_blockers,
             },
         }
 
@@ -168,8 +195,8 @@ class AutoDispatchDiagnostics:
             "callback_snapshot": self._callback_snapshot(),
             "site_ready": {
                 "can_enable_phase2": validation["ok"],
-                "can_real_submit": validation["ok"] and not bool(self.auto_config.get("dry_run", True)),
-                "reason": "ok" if validation["ok"] else "fix validation.errors before production",
+                "can_real_submit": bool(validation.get("production_ready", {}).get("ok", False)),
+                "reason": "ok" if validation.get("production_ready", {}).get("ok", False) else "fix production_ready.blockers before production",
             },
         }
 
@@ -194,7 +221,7 @@ class AutoDispatchDiagnostics:
             occupied.update(pk_order)
             empty.update(fg_order)
         elif scenario == "site_partial_example":
-            occupied.update({"PK_AA2", "PK_AA1", "PK_BB2", "PK_BB1", "PK_CC1", "PK_DD2", "PK_DD1"})
+            occupied.update({"PK_AA2", "PK_AA1", "PK_BB2", "PK_BB1", "PK_CC3", "PK_DD2", "PK_DD1"})
             empty.update(set(pk_order) - occupied)
             empty.update({"FG_BB2", "FG_BB1", "FG_AA6", "FG_AA5", "FG_AA4", "FG_AA3", "FG_AA2", "FG_AA1"})
             occupied.update(set(fg_order) - empty)
@@ -354,6 +381,27 @@ class AutoDispatchDiagnostics:
             if position:
                 result[position] = mapping
         return result
+
+    def _missing_call_code_positions(self, positions_to_check: list[str]) -> list[str]:
+        template = self.auto_config.get("task_template", {})
+        call_map = template.get("call_code_by_position", {}) if isinstance(template, dict) else {}
+        if not isinstance(call_map, dict):
+            call_map = {}
+        positions = self.auto_config.get("positions", {})
+        if not isinstance(positions, dict):
+            positions = {}
+        missing: list[str] = []
+        for position in positions_to_check:
+            value = str(call_map.get(position, "")).strip()
+            ref = positions.get(position, {})
+            if not value and isinstance(ref, dict):
+                for field in ("rcs_call_code", "user_call_code", "path_code"):
+                    value = str(ref.get(field, "")).strip()
+                    if value:
+                        break
+            if not value:
+                missing.append(position)
+        return missing
 
     def _manual_active(self) -> bool:
         path_text = str(self.auto_config.get("manual_lock_path", "")).strip()

@@ -38,22 +38,10 @@ class HikRcsTaskClient:
         mode: str,
     ) -> dict[str, Any]:
         template = dict(auto_config.get("task_template", {}))
-        path = list(template.get("positionCodePath", []) or [])
-        if not path:
-            path = [
-                {
-                    "positionCode": source_position,
-                    "type": str(template.get("path_type_source", "TBD_BY_AGV")),
-                },
-                {
-                    "positionCode": dest_position,
-                    "type": str(template.get("path_type_dest", "TBD_BY_AGV")),
-                },
-            ]
+        path_field = str(template.get("path_field", "positionCodePath")).strip() or "positionCodePath"
 
         payload: dict[str, Any] = {
             "taskTyp": str(template.get("taskTyp", "")).strip(),
-            "positionCodePath": path,
             "priority": str(auto_config.get("auto_priority", "")),
             "agvCode": str(template.get("agvCode", "")).strip(),
             "agvTyp": str(template.get("agvTyp", "")).strip(),
@@ -61,7 +49,6 @@ class HikRcsTaskClient:
             "podTyp": str(template.get("podTyp", "")).strip(),
             "taskMode": str(template.get("taskMode", "")).strip(),
             "materialLot": str(template.get("materialLot", "")).strip(),
-            "taskCode": task_code,
             "data": json.dumps(
                 {
                     "source": "vision_auto",
@@ -75,7 +62,45 @@ class HikRcsTaskClient:
                 separators=(",", ":"),
             ),
         }
-        optional_fields = ("ctnrTyp", "ctnrCode", "ctnrNum", "wbCode", "podDir", "materialType", "groupId", "positionSelStrategy")
+        if bool(template.get("send_task_code", True)):
+            payload["taskCode"] = task_code
+        payload[path_field] = self._build_path(
+            template=template,
+            auto_config=auto_config,
+            path_field=path_field,
+            source_position=source_position,
+            dest_position=dest_position,
+        )
+        data_format = str(template.get("data_format", "json_string")).strip()
+        if data_format == "object":
+            payload["data"] = {
+                "source": "vision_auto",
+                "mode": mode,
+                "batch_id": batch_id,
+                "reservation_id": reservation_id,
+                "from": source_position,
+                "to": dest_position,
+            }
+        elif data_format == "empty_object":
+            payload["data"] = {}
+        optional_fields = (
+            "interfaceName",
+            "robotCode",
+            "ctnrTyp",
+            "ctnrCode",
+            "ctnrNum",
+            "wbCode",
+            "podDir",
+            "materialType",
+            "groupId",
+            "positionSelStrategy",
+            "userCallCode",
+            "needReqCode",
+            "sFloor",
+            "eFloor",
+            "mapCode",
+            "mapShortName",
+        )
         for field in optional_fields:
             value = template.get(field)
             if value not in (None, ""):
@@ -86,21 +111,100 @@ class HikRcsTaskClient:
         errors: list[str] = []
         if not str(payload.get("taskTyp", "")).strip() or str(payload.get("taskTyp", "")).startswith("TBD"):
             errors.append("taskTyp is not confirmed")
-        path = payload.get("positionCodePath", [])
-        if not isinstance(path, list) or len(path) < 2:
-            errors.append("positionCodePath requires at least source and destination")
+        if "userCallCodePath" in payload:
+            path = payload.get("userCallCodePath", [])
+            if not isinstance(path, list) or len(path) < 2:
+                errors.append("userCallCodePath requires at least source and destination")
+            else:
+                for index, item in enumerate(path):
+                    value = str(item).strip()
+                    if not value:
+                        errors.append(f"userCallCodePath[{index}] is empty")
+                    if value.startswith("TBD") or value.startswith("MISSING_CALL_CODE"):
+                        errors.append(f"userCallCodePath[{index}] is not confirmed: {value}")
         else:
-            for index, item in enumerate(path):
-                if not isinstance(item, dict):
-                    errors.append(f"positionCodePath[{index}] is not an object")
-                    continue
-                if not str(item.get("positionCode", "")).strip():
-                    errors.append(f"positionCodePath[{index}].positionCode is empty")
-                if not str(item.get("type", "")).strip() or str(item.get("type", "")).startswith("TBD"):
-                    errors.append(f"positionCodePath[{index}].type is not confirmed")
-        if not str(payload.get("taskCode", "")).strip():
-            errors.append("taskCode is empty")
+            path = payload.get("positionCodePath", [])
+            if not isinstance(path, list) or len(path) < 2:
+                errors.append("positionCodePath requires at least source and destination")
+            else:
+                for index, item in enumerate(path):
+                    if not isinstance(item, dict):
+                        errors.append(f"positionCodePath[{index}] is not an object")
+                        continue
+                    if not str(item.get("positionCode", "")).strip():
+                        errors.append(f"positionCodePath[{index}].positionCode is empty")
+                    if not str(item.get("type", "")).strip() or str(item.get("type", "")).startswith("TBD"):
+                        errors.append(f"positionCodePath[{index}].type is not confirmed")
         return errors
+
+    def _build_path(
+        self,
+        *,
+        template: dict[str, Any],
+        auto_config: dict[str, Any],
+        path_field: str,
+        source_position: str,
+        dest_position: str,
+    ) -> list[Any]:
+        if path_field == "userCallCodePath":
+            sequence = list(template.get("path_sequence", []) or ["{source}", "{dest}"])
+            path: list[str] = []
+            for item in sequence:
+                text = str(item).strip()
+                if text == "{source}":
+                    path.append(self._resolve_call_code(auto_config, source_position))
+                elif text == "{dest}":
+                    path.append(self._resolve_call_code(auto_config, dest_position))
+                else:
+                    path.append(text)
+            return path
+
+        path = list(template.get("positionCodePath", []) or [])
+        if path:
+            rendered: list[dict[str, Any]] = []
+            for item in path:
+                if not isinstance(item, dict):
+                    rendered.append(item)
+                    continue
+                rendered_item = dict(item)
+                position_code = str(rendered_item.get("positionCode", ""))
+                if position_code == "{source}":
+                    rendered_item["positionCode"] = source_position
+                elif position_code == "{dest}":
+                    rendered_item["positionCode"] = dest_position
+                rendered.append(rendered_item)
+            return rendered
+
+        return [
+            {
+                "positionCode": source_position,
+                "type": str(template.get("path_type_source", "TBD_BY_AGV")),
+            },
+            {
+                "positionCode": dest_position,
+                "type": str(template.get("path_type_dest", "TBD_BY_AGV")),
+            },
+        ]
+
+    @staticmethod
+    def _resolve_call_code(auto_config: dict[str, Any], position: str) -> str:
+        template = auto_config.get("task_template", {})
+        if isinstance(template, dict):
+            mapping = template.get("call_code_by_position", {})
+            if isinstance(mapping, dict):
+                value = str(mapping.get(position, "")).strip()
+                if value:
+                    return value
+        positions = auto_config.get("positions", {})
+        ref = positions.get(position, {}) if isinstance(positions, dict) else {}
+        if isinstance(ref, dict):
+            for field in ("rcs_call_code", "user_call_code", "path_code"):
+                value = str(ref.get(field, "")).strip()
+                if value:
+                    return value
+        if isinstance(template, dict) and bool(template.get("allow_position_code_as_call_code", False)):
+            return position
+        return f"MISSING_CALL_CODE:{position}"
 
     def payload_hash(self, payload: dict[str, Any]) -> str:
         return stable_hash(payload)
