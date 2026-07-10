@@ -5,12 +5,12 @@
   "exit_window": 7,
   "exit_count": 6,
   "enter_confirm_sec": 1,
-  "exit_confirm_sec": 2,
-  "occupied_hold_sec": 3,
+  "exit_confirm_sec": 1.5,
+  "occupied_hold_sec": 2,
   "unknown_timeout_sec": 2.0,
   "conf_threshold": 0.5,
-  "img_size": 512,
-  "batch_size": 4,
+  "img_size": 640,
+  "batch_size": 2,
   "batch_timeout_ms": 10,
   "max_pending_requests": 24
 }

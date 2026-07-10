@@ -1194,3 +1194,60 @@ Day la cach trien khai chac chan nhat vi moi quyet dinh auto deu co ba lop bao v
 - RCS task status/callback
 - Vision verification sau task
 - RCS bind/canonical FG dong bo
+
+## 25. Thong tin log tren RCS
+
+Log 'genAgvSchedulingTask' tren RCS:
+
+Terminal Type: Invoke REST
+Interface Method Name: genAgvSchedulingTask
+IP: 192.168.10.133 (IP cua PDA)
+Interface Input Parameters: {"interfaceName":"genAgvSchedulingTask","materialLot":"","reqCode":"75e8d728e88b407f81d5b51c7dbedded","reqTime":"2026-07-10 09:48:40","robotCode":"16675","taskTyp":"F13ELVRT","userCallCode":"","userCallCodePath":["11${06}","FG${04}","PK3F"],"ctnrTyp":"2"}
+Result: successful
+Returned Result: {"code":"0","reqCode":"75e8d728e88b407f81d5b51c7dbedded","data":"F13ELVRT19F49B74A5EDKI8","interrupt":false,"message":"successful"}
+
+hoac:
+
+Terminal Type: Invoke REST
+Interface Method Name: genAgvSchedulingTask
+IP: 192.168.10.133 (IP cua PDA)
+Interface Input Parameters: {"interfaceName":"genAgvSchedulingTask","materialLot":"","reqCode":"e8f89f9921f14795be6c80f43dbc19e1","reqTime":"2026-07-10 09:31:55","robotCode":"16675","taskTyp":"Q","userCallCode":"","userCallCodePath":["WTP1A","PK2F"]}
+Result: successful
+Returned Result: {"code":"0","reqCode":"e8f89f9921f14795be6c80f43dbc19e1","data":"Q19F49A7F24ADK8U","interrupt":false,"message":"successful"}
+
+hoac:
+
+Terminal Type: Invoke REST
+Interface Method Name: genAgvSchedulingTask
+IP: 
+Interface Input Parameters: {"agvCode":"16675","clientCode":"","ctnrCode":"","ctnrNum":"","ctnrTyp":"2","data":{},"eFloor":"","interfaceName":"","mapCode":"","mapShortName":"","materialLot":"","materialType":"","needReqCode":"","podCode":"","podDir":"","podTyp":"","priority":"","reqCode":"19F45D9610FDDNC","reqTime":"2026-07-09 15:48:21","robotCode":"16675","sFloor":"","taskCode":"","taskTyp":"QFPID","userCallCode":"","userCallCodePath":["028400BB035500","2${02}"]}
+Result: successful
+Returned Result: {"code":"0","reqCode":"19F45D9610FDDNC","data":"QFPID19F45D96115DDND","interrupt":false,"message":"successful"}
+
+hoac: 
+
+Terminal Type: Invoke REST
+Interface Method Name: genAgvSchedulingTask
+IP: 
+Interface Input Parameters: {"agvCode":"16675","clientCode":"","ctnrCode":"","ctnrNum":"","ctnrTyp":"2","data":{},"eFloor":"","interfaceName":"","mapCode":"","mapShortName":"","materialLot":"","materialType":"","needReqCode":"","podCode":"","podDir":"","podTyp":"","priority":"","reqCode":"19F45A6A8F9DC1I","reqTime":"2026-07-09 14:52:57","robotCode":"16675","sFloor":"","taskCode":"","taskTyp":"QFPID","userCallCode":"","userCallCodePath":["031375BB030705","031395BB021930"]}
+Result: successful
+Returned Result: {"code":"0","reqCode":"19F45A6A8F9DC1I","data":"QFPID19F45A6A8FDDC1J","interrupt":false,"message":"successful"}
+
+hoac:
+
+Terminal Type: Invoke REST
+Interface Method Name: genAgvSchedulingTask
+IP: 
+Interface Input Parameters: {"agvCode":"16675","clientCode":"","ctnrCode":"","ctnrNum":"","ctnrTyp":"2","data":{},"eFloor":"","interfaceName":"","mapCode":"","mapShortName":"","materialLot":"","materialType":"","needReqCode":"","podCode":"","podDir":"","podTyp":"","priority":"","reqCode":"19F458289BDDBPK","reqTime":"2026-07-09 14:13:30","robotCode":"16675","sFloor":"","taskCode":"","taskTyp":"QFPID","userCallCode":"","userCallCodePath":["028400BB035500","FG${04}"]}
+Result: successful
+Returned Result: {"code":"0","reqCode":"19F458289BDDBPK","data":"QFPID19F458289C4DBPL","interrupt":false,"message":"successful"}
+
+hoac:
+
+Terminal Type: Invoke REST
+Interface Method Name: genAgvSchedulingTask
+IP: 
+Interface Input Parameters: {"agvCode":"16675","clientCode":"","ctnrCode":"","ctnrNum":"","ctnrTyp":"2","data":{},"eFloor":"","interfaceName":"","mapCode":"","mapShortName":"","materialLot":"","materialType":"","needReqCode":"","podCode":"","podDir":"","podTyp":"","priority":"","reqCode":"19F4581F2F8DBMH","reqTime":"2026-07-09 14:12:52","robotCode":"16675","sFloor":"","taskCode":"","taskTyp":"QFPID","userCallCode":"","userCallCodePath":["028400BB035500","K${02}"]}
+Result: failed
+Returned Result: {"code":"1","reqCode":"19F4581F2F8DBMH","data":"","interrupt":false,"msgErrCode":"0x3a80B015","message":" strategy does not exist:K${02}"}
+
