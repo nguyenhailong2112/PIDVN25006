@@ -1,7 +1,7 @@
 {
-  "enabled": false,
-  "mode": "disabled",
-  "dry_run": true,
+  "enabled": true,
+  "mode": "semi-auto",
+  "dry_run": false,
   "dry_run_auto_complete": false,
   "dry_run_complete_after_sec": 0.0,
   "max_active_tasks": 1,
@@ -26,7 +26,7 @@
   "auto_priority": 20,
   "task_template": {
     "api": "genAgvSchedulingTask",
-    "taskTyp": "QFPID",
+    "taskTyp": "F13ELV",
     "path_field": "userCallCodePath",
     "path_sequence": ["{source}", "{dest}"],
     "path_type_source": "",

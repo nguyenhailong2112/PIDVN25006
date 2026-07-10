@@ -1260,7 +1260,7 @@ Log PDA/RCS cho thay task thanh cong tren site dang di theo dang:
   "interfaceName": "genAgvSchedulingTask",
   "robotCode": "16675",
   "agvCode": "16675",
-  "taskTyp": "QFPID",
+  "taskTyp": "F13ELV",
   "ctnrTyp": "2",
   "userCallCode": "",
   "userCallCodePath": ["<SOURCE_RCS_CALL_CODE>", "<DEST_RCS_CALL_CODE>"]
@@ -1274,7 +1274,7 @@ payload gui RCS se dung `userCallCodePath` thay vi `positionCodePath` neu
 
 Thong tin bat buoc team AGV can cap de test real:
 
-1. Xac nhan `taskTyp=QFPID` la dung cho chu trinh AMR pallet PK -> FG.
+1. Xac nhan `taskTyp=F13ELV` la dung cho chu trinh AMR pallet PK -> FG.
 2. Xac nhan `ctnrTyp=2` la dung pallet.
 3. Xac nhan co can chi dinh `robotCode/agvCode=16675` hay de trong de RCS auto select.
 4. Cap bang mapping day du `call_code_by_position` cho 27 vi tri:
@@ -1329,7 +1329,7 @@ Payload mong doi phai co:
 
 ```json
 {
-  "taskTyp": "QFPID",
+  "taskTyp": "F13ELV",
   "userCallCodePath": ["<PK_AA4_CALL_CODE>", "<FG_BB6_CALL_CODE>"],
   "ctnrTyp": "2",
   "robotCode": "16675",

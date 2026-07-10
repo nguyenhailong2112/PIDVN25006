@@ -2,33 +2,33 @@
   "version": 1,
   "description": "Site mapping for Vision Phase 2 genAgvSchedulingTask userCallCodePath.",
   "call_code_by_position": {
-    "PK_AA4": "",
-    "PK_AA3": "",
-    "PK_AA2": "",
-    "PK_AA1": "",
-    "PK_BB6": "",
-    "PK_BB5": "",
-    "PK_BB2": "",
-    "PK_BB1": "",
-    "PK_CC5": "",
-    "PK_CC4": "",
-    "PK_CC3": "",
-    "PK_DD4": "",
-    "PK_DD3": "",
-    "PK_DD2": "",
-    "PK_DD1": "",
-    "FG_BB6": "",
-    "FG_BB5": "",
-    "FG_BB4": "",
-    "FG_BB3": "",
-    "FG_BB2": "",
-    "FG_BB1": "",
-    "FG_AA6": "",
-    "FG_AA5": "",
-    "FG_AA4": "",
-    "FG_AA3": "",
-    "FG_AA2": "",
-    "FG_AA1": ""
+    "PK_AA4": "020120DD013758",
+    "PK_AA3": "PK_A2",
+    "PK_AA2": "PK_A3",
+    "PK_AA1": "PK_A4",
+    "PK_BB6": "018520DD013758",
+    "PK_BB5": "018520DD012428",
+    "PK_BB2": "018520DD011098",
+    "PK_BB1": "018520DD009818",
+    "PK_CC5": "016920DD013758",
+    "PK_CC4": "016920DD012428",
+    "PK_CC3": "016920DD011258",
+    "PK_DD4": "015320DD013758",
+    "PK_DD3": "015320DD012428",
+    "PK_DD2": "015320DD011098",
+    "PK_DD1": "015320DD009818",
+    "FG_BB6": "031395BB014480",
+    "FG_BB5": "031395BB015910",
+    "FG_BB4": "031395BB017430",
+    "FG_BB3": "031395BB018910",
+    "FG_BB2": "031395BB020410",
+    "FG_BB1": "031395BB021930",
+    "FG_AA6": "031375BB023430",
+    "FG_AA5": "031375BB024950",
+    "FG_AA4": "031375BB026442",
+    "FG_AA3": "031375BB027930",
+    "FG_AA2": "031375BB029330",
+    "FG_AA1": "031375BB030705"
   },
   "rows": [
     {
@@ -37,7 +37,8 @@
       "camera_id": "cam4",
       "zone_id": "A4",
       "stg_bin_code": "A0000403501013",
-      "ctnr_code": "PK_AA4"
+      "ctnr_code": "PK_AA4",
+      "note": "Reference only. Fill call_code_by_position above, not rows."
     },
     {
       "position_code": "PK_AA3",
@@ -45,7 +46,8 @@
       "camera_id": "cam4",
       "zone_id": "A3",
       "stg_bin_code": "A0000303501013",
-      "ctnr_code": "PK_AA3"
+      "ctnr_code": "PK_AA3",
+      "note": "Reference only. Fill call_code_by_position above, not rows."
     },
     {
       "position_code": "PK_AA2",
@@ -53,7 +55,8 @@
       "camera_id": "cam4",
       "zone_id": "A2",
       "stg_bin_code": "A0000203501013",
-      "ctnr_code": "PK_AA2"
+      "ctnr_code": "PK_AA2",
+      "note": "Reference only. Fill call_code_by_position above, not rows."
     },
     {
       "position_code": "PK_AA1",
@@ -61,7 +64,8 @@
       "camera_id": "cam4",
       "zone_id": "A1",
       "stg_bin_code": "A0000103501013",
-      "ctnr_code": "PK_AA1"
+      "ctnr_code": "PK_AA1",
+      "note": "Reference only. Fill call_code_by_position above, not rows."
     },
     {
       "position_code": "PK_BB6",
@@ -69,7 +73,8 @@
       "camera_id": "cam4",
       "zone_id": "B4",
       "stg_bin_code": "B0000603501013",
-      "ctnr_code": "PK_BB6"
+      "ctnr_code": "PK_BB6",
+      "note": "Reference only. Fill call_code_by_position above, not rows."
     },
     {
       "position_code": "PK_BB5",
@@ -77,7 +82,8 @@
       "camera_id": "cam4",
       "zone_id": "B3",
       "stg_bin_code": "B0000503501013",
-      "ctnr_code": "PK_BB5"
+      "ctnr_code": "PK_BB5",
+      "note": "Reference only. Fill call_code_by_position above, not rows."
     },
     {
       "position_code": "PK_BB2",
@@ -85,7 +91,8 @@
       "camera_id": "cam4",
       "zone_id": "B2",
       "stg_bin_code": "B0000203501013",
-      "ctnr_code": "PK_BB2"
+      "ctnr_code": "PK_BB2",
+      "note": "Reference only. Fill call_code_by_position above, not rows."
     },
     {
       "position_code": "PK_BB1",
@@ -93,7 +100,8 @@
       "camera_id": "cam4",
       "zone_id": "B1",
       "stg_bin_code": "B0000103501013",
-      "ctnr_code": "PK_BB1"
+      "ctnr_code": "PK_BB1",
+      "note": "Reference only. Fill call_code_by_position above, not rows."
     },
     {
       "position_code": "PK_CC5",
@@ -101,7 +109,8 @@
       "camera_id": "cam5",
       "zone_id": "C3",
       "stg_bin_code": "C0000503501013",
-      "ctnr_code": "PK_CC5"
+      "ctnr_code": "PK_CC5",
+      "note": "Reference only. Fill call_code_by_position above, not rows."
     },
     {
       "position_code": "PK_CC4",
@@ -109,7 +118,8 @@
       "camera_id": "cam5",
       "zone_id": "C2",
       "stg_bin_code": "C0000403501013",
-      "ctnr_code": "PK_CC4"
+      "ctnr_code": "PK_CC4",
+      "note": "Reference only. Fill call_code_by_position above, not rows."
     },
     {
       "position_code": "PK_CC3",
@@ -117,7 +127,8 @@
       "camera_id": "cam5",
       "zone_id": "C1",
       "stg_bin_code": "C0000303501013",
-      "ctnr_code": "PK_CC3"
+      "ctnr_code": "PK_CC3",
+      "note": "Reference only. Fill call_code_by_position above, not rows."
     },
     {
       "position_code": "PK_DD4",
@@ -125,7 +136,8 @@
       "camera_id": "cam5",
       "zone_id": "D4",
       "stg_bin_code": "D0000403501013",
-      "ctnr_code": "PK_DD4"
+      "ctnr_code": "PK_DD4",
+      "note": "Reference only. Fill call_code_by_position above, not rows."
     },
     {
       "position_code": "PK_DD3",
@@ -133,7 +145,8 @@
       "camera_id": "cam5",
       "zone_id": "D3",
       "stg_bin_code": "D0000303501013",
-      "ctnr_code": "PK_DD3"
+      "ctnr_code": "PK_DD3",
+      "note": "Reference only. Fill call_code_by_position above, not rows."
     },
     {
       "position_code": "PK_DD2",
@@ -141,7 +154,8 @@
       "camera_id": "cam5",
       "zone_id": "D2",
       "stg_bin_code": "D0000203501013",
-      "ctnr_code": "PK_DD2"
+      "ctnr_code": "PK_DD2",
+      "note": "Reference only. Fill call_code_by_position above, not rows."
     },
     {
       "position_code": "PK_DD1",
@@ -149,7 +163,8 @@
       "camera_id": "cam5",
       "zone_id": "D1",
       "stg_bin_code": "D0000103501013",
-      "ctnr_code": "PK_DD1"
+      "ctnr_code": "PK_DD1",
+      "note": "Reference only. Fill call_code_by_position above, not rows."
     },
     {
       "position_code": "FG_BB6",
@@ -157,7 +172,8 @@
       "camera_id": "cam10",
       "zone_id": "B6",
       "stg_bin_code": "FG001203501013",
-      "ctnr_code": "FG_BB6"
+      "ctnr_code": "FG_BB6",
+      "note": "Reference only. Fill call_code_by_position above, not rows."
     },
     {
       "position_code": "FG_BB5",
@@ -165,7 +181,8 @@
       "camera_id": "cam10",
       "zone_id": "B5",
       "stg_bin_code": "FG001103501013",
-      "ctnr_code": "FG_BB5"
+      "ctnr_code": "FG_BB5",
+      "note": "Reference only. Fill call_code_by_position above, not rows."
     },
     {
       "position_code": "FG_BB4",
@@ -173,7 +190,8 @@
       "camera_id": "cam10",
       "zone_id": "B4",
       "stg_bin_code": "FG001003501013",
-      "ctnr_code": "FG_BB4"
+      "ctnr_code": "FG_BB4",
+      "note": "Reference only. Fill call_code_by_position above, not rows."
     },
     {
       "position_code": "FG_BB3",
@@ -181,7 +199,8 @@
       "camera_id": "cam10",
       "zone_id": "B3",
       "stg_bin_code": "FG000903501013",
-      "ctnr_code": "FG_BB3"
+      "ctnr_code": "FG_BB3",
+      "note": "Reference only. Fill call_code_by_position above, not rows."
     },
     {
       "position_code": "FG_BB2",
@@ -189,7 +208,8 @@
       "camera_id": "cam10",
       "zone_id": "B2",
       "stg_bin_code": "FG000803501013",
-      "ctnr_code": "FG_BB2"
+      "ctnr_code": "FG_BB2",
+      "note": "Reference only. Fill call_code_by_position above, not rows."
     },
     {
       "position_code": "FG_BB1",
@@ -197,7 +217,8 @@
       "camera_id": "cam10",
       "zone_id": "B1",
       "stg_bin_code": "FG000703501013",
-      "ctnr_code": "FG_BB1"
+      "ctnr_code": "FG_BB1",
+      "note": "Reference only. Fill call_code_by_position above, not rows."
     },
     {
       "position_code": "FG_AA6",
@@ -205,7 +226,8 @@
       "camera_id": "cam9",
       "zone_id": "A6",
       "stg_bin_code": "FG000603501013",
-      "ctnr_code": "FG_AA6"
+      "ctnr_code": "FG_AA6",
+      "note": "Reference only. Fill call_code_by_position above, not rows."
     },
     {
       "position_code": "FG_AA5",
@@ -213,7 +235,8 @@
       "camera_id": "cam9",
       "zone_id": "A5",
       "stg_bin_code": "FG000503501013",
-      "ctnr_code": "FG_AA5"
+      "ctnr_code": "FG_AA5",
+      "note": "Reference only. Fill call_code_by_position above, not rows."
     },
     {
       "position_code": "FG_AA4",
@@ -221,7 +244,8 @@
       "camera_id": "cam9",
       "zone_id": "A4",
       "stg_bin_code": "FG000403501013",
-      "ctnr_code": "FG_AA4"
+      "ctnr_code": "FG_AA4",
+      "note": "Reference only. Fill call_code_by_position above, not rows."
     },
     {
       "position_code": "FG_AA3",
@@ -229,7 +253,8 @@
       "camera_id": "cam9",
       "zone_id": "A3",
       "stg_bin_code": "FG000303501013",
-      "ctnr_code": "FG_AA3"
+      "ctnr_code": "FG_AA3",
+      "note": "Reference only. Fill call_code_by_position above, not rows."
     },
     {
       "position_code": "FG_AA2",
@@ -237,7 +262,8 @@
       "camera_id": "cam9",
       "zone_id": "A2",
       "stg_bin_code": "FG000203501013",
-      "ctnr_code": "FG_AA2"
+      "ctnr_code": "FG_AA2",
+      "note": "Reference only. Fill call_code_by_position above, not rows."
     },
     {
       "position_code": "FG_AA1",
@@ -245,7 +271,8 @@
       "camera_id": "cam9",
       "zone_id": "A1",
       "stg_bin_code": "FG000103501013",
-      "ctnr_code": "FG_AA1"
+      "ctnr_code": "FG_AA1",
+      "note": "Reference only. Fill call_code_by_position above, not rows."
     }
   ]
 }
