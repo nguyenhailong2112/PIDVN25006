@@ -11,6 +11,7 @@ if str(BOOTSTRAP_ROOT) not in sys.path:
     sys.path.insert(0, str(BOOTSTRAP_ROOT))
 
 from core.auto_dispatch_ledger import write_json_atomic_local
+from core.auto_dispatch_diagnostics import AutoDispatchDiagnostics
 from core.auto_dispatch_runtime import AutoDispatchRuntime
 from core.path_utils import PROJECT_ROOT, resolve_project_path
 
@@ -28,6 +29,12 @@ def print_json(payload) -> None:
     print(json.dumps(payload, ensure_ascii=False, indent=2))
 
 
+def make_diagnostics(runtime: AutoDispatchRuntime | None = None) -> AutoDispatchDiagnostics:
+    if runtime is None:
+        runtime = make_runtime()
+    return AutoDispatchDiagnostics(runtime.auto_config, runtime.hik_config, PROJECT_ROOT)
+
+
 def cmd_plan(args) -> None:
     runtime = make_runtime()
     print_json(runtime.plan_once(mode=args.mode))
@@ -42,6 +49,64 @@ def cmd_tick(args) -> None:
 def cmd_status(args) -> None:
     runtime = make_runtime()
     print_json(runtime.status())
+
+
+def cmd_validate_config(args) -> None:
+    runtime = make_runtime()
+    report = make_diagnostics(runtime).validate_config()
+    print_json(report)
+    if args.strict and not report.get("ok", False):
+        raise SystemExit(2)
+
+
+def cmd_doctor(args) -> None:
+    runtime = make_runtime()
+    diagnostics = make_diagnostics(runtime)
+    report = diagnostics.doctor_report(
+        cameras_payload=runtime.load_latest_cameras_payload(),
+        bridge_state=runtime.load_bridge_state(),
+        active_records=runtime.ledger.active_records(),
+        runtime_state=runtime.ledger.load_runtime_state(),
+    )
+    if args.output:
+        path = diagnostics.write_doctor_report(report, args.output)
+        report["written_to"] = str(path)
+    elif args.write:
+        path = diagnostics.write_doctor_report(report)
+        report["written_to"] = str(path)
+    print_json(report)
+    if args.strict and not report.get("validation", {}).get("ok", False):
+        raise SystemExit(2)
+
+
+def cmd_simulate(args) -> None:
+    runtime = make_runtime()
+    diagnostics = make_diagnostics(runtime)
+    if args.sequence:
+        cameras_payload, bridge_state = diagnostics.build_simulated_payload(args.scenario)
+        print_json(
+            diagnostics.preview_sequence(
+                cameras_payload=cameras_payload,
+                bridge_state=bridge_state,
+                max_tasks=args.max_tasks,
+                mode=args.mode,
+            )
+        )
+    else:
+        print_json(diagnostics.simulate_plan(args.scenario, mode=args.mode))
+
+
+def cmd_preview_sequence(args) -> None:
+    runtime = make_runtime()
+    diagnostics = make_diagnostics(runtime)
+    print_json(
+        diagnostics.preview_sequence(
+            cameras_payload=runtime.load_latest_cameras_payload(),
+            bridge_state=runtime.load_bridge_state(),
+            max_tasks=args.max_tasks,
+            mode=args.mode,
+        )
+    )
 
 
 def cmd_build_task(args) -> None:
@@ -181,6 +246,40 @@ def build_parser() -> argparse.ArgumentParser:
 
     status = sub.add_parser("status", help="Show runtime state, active reservations, and latest snapshot")
     status.set_defaults(func=cmd_status)
+
+    validate_config = sub.add_parser("validate-config", help="Validate Phase 2 config before enabling onsite")
+    validate_config.add_argument("--strict", action="store_true", help="Exit non-zero when validation has errors")
+    validate_config.set_defaults(func=cmd_validate_config)
+
+    doctor = sub.add_parser("doctor", help="Export a complete Phase 2 onsite debug report")
+    doctor.add_argument("--write", action="store_true", help="Write report under outputs/runtime/auto_dispatch/debug_reports")
+    doctor.add_argument("--output", default="", help="Write report to a specific JSON path")
+    doctor.add_argument("--strict", action="store_true", help="Exit non-zero when validation has errors")
+    doctor.set_defaults(func=cmd_doctor)
+
+    simulate = sub.add_parser("simulate", help="Run deterministic Phase 2 planner simulations")
+    simulate.add_argument(
+        "--scenario",
+        default="full_pk_empty_fg",
+        choices=[
+            "full_pk_empty_fg",
+            "site_partial_example",
+            "parallel_after_human",
+            "fg_full",
+            "pk_empty",
+            "unknown_source",
+            "fg_not_canonical",
+        ],
+    )
+    simulate.add_argument("--mode", default="semi_auto", choices=["semi_auto", "full_auto"])
+    simulate.add_argument("--sequence", action="store_true", help="Preview a rolling FIFO/FILO sequence")
+    simulate.add_argument("--max-tasks", type=int, default=12)
+    simulate.set_defaults(func=cmd_simulate)
+
+    preview_sequence = sub.add_parser("preview-sequence", help="Preview a rolling FIFO/FILO sequence from the current snapshot")
+    preview_sequence.add_argument("--mode", default="semi_auto", choices=["semi_auto", "full_auto"])
+    preview_sequence.add_argument("--max-tasks", type=int, default=12)
+    preview_sequence.set_defaults(func=cmd_preview_sequence)
 
     build_task = sub.add_parser("build-task", help="Build a genAgvSchedulingTask payload without submitting")
     build_task.add_argument("--source", required=True)

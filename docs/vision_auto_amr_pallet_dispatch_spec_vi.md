@@ -1013,10 +1013,19 @@ python tools/auto_dispatch_cmd.py <command>
 Lenh audit/kiem tra an toan:
 
 ```bash
+python tools/auto_dispatch_cmd.py validate-config
 python tools/auto_dispatch_cmd.py status
 python tools/auto_dispatch_cmd.py plan --mode semi_auto
 python tools/auto_dispatch_cmd.py plan --mode full_auto
+python tools/auto_dispatch_cmd.py doctor --write
+python tools/auto_dispatch_cmd.py simulate --scenario full_pk_empty_fg --sequence
+python tools/auto_dispatch_cmd.py simulate --scenario site_partial_example --sequence
+python tools/auto_dispatch_cmd.py simulate --scenario parallel_after_human
+python tools/auto_dispatch_cmd.py preview-sequence --max-tasks 12
 ```
+
+`simulate --sequence` dung snapshot gia lap de kiem tra FIFO/FILO. `preview-sequence`
+dung snapshot that hien tai va chi de xem chuoi du kien, khong submit RCS.
 
 Lenh build payload de gui team AGV review, khong submit RCS:
 
@@ -1051,8 +1060,31 @@ python tools/auto_dispatch_cmd.py clear-fault --tick
 Rule quan trong:
 
 - `build-task` chi tao payload va validation errors, khong tao task RCS.
+- `preview-sequence` co the hien thi 12 cap ly tuong, nhung runtime production van chi tao 1 task tai mot thoi diem.
 - `start-batch --tick` chi submit that khi `configs/auto_dispatch.json` co `enabled=true`, `mode=semi_auto`, `dry_run=false`, va task template da het `TBD_BY_AGV`.
 - Mac dinh config dang `enabled=false`, `mode=disabled`, `dry_run=true`, nen Phase 1 khong bi anh huong.
+
+## 21.1 Rolling dispatch khi AMR va human chay song song
+
+Quy tac production:
+
+1. Semi-auto click 1 lan chi arm batch/budget, khong tao truoc 12 task cung luc.
+2. Runtime chi submit 1 task AMR active.
+3. Sau khi RCS bao task xong, Vision doi settle, verify source empty + dest occupied + FG canonical.
+4. Neu verify pass, Vision moi evaluate lai snapshot PK/FG moi nhat va tao task tiep theo.
+5. Neu trong luc AMR chay, human da lay/tra mot so pallet dung FIFO/FILO, task tiep theo tu dong bo qua cac source da empty va dest da occupied.
+6. Neu human dat vao destination dang AMR-reserved, runtime ghi `active_watch.warnings=dest_occupied_before_rcs_complete`; khong tu danh dau thanh cong khi RCS chua bao complete.
+7. Neu verify fail, reservation chuyen `operator_recovery_required`/`FAULT`, can operator inspect roi `mark-verified` hoac `recover`.
+
+Vi du:
+
+- Ban dau PK full, FG empty, preview co the la `PK_AA4 -> FG_BB6`, `PK_AA3 -> FG_BB5`, ...
+- Task that dau tien la `PK_AA4 -> FG_BB6`.
+- Trong luc AMR chay, human co the lam `PK_AA3 -> FG_BB5`, `PK_AA2 -> FG_BB4`.
+- Khi AMR xong va Vision verify, task tiep theo se evaluate lai va chon `PK_AA1 -> FG_BB3`.
+- Case nay co the test nhanh bang `simulate --scenario parallel_after_human`; ket qua mong doi la task ke tiep `PK_AA1 -> FG_BB3`.
+
+Day la cach duy nhat phu hop van hanh song song, vi FIFO/FILO duoc ap dung tren trang thai thuc te moi nhat, khong dua tren danh sach task da dong bang tu dau batch.
 
 ## 22. Go/No-Go gates
 

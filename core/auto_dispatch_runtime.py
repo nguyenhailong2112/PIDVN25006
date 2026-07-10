@@ -16,7 +16,7 @@ from core.auto_dispatch_types import (
 )
 from core.hik_rcs_task_client import HikRcsTaskClient
 from core.logger_config import get_logger
-from core.path_utils import PROJECT_ROOT, resolve_project_path
+from core.path_utils import PROJECT_ROOT
 
 
 logger = get_logger(__name__)
@@ -282,6 +282,7 @@ class AutoDispatchRuntime:
         state = str(record.get("state", ""))
         reservation_id = str(record.get("reservation_id", ""))
         task_code = str(record.get("rcs_task_code", "") or record.get("task_code", ""))
+        active_watch = self._active_reservation_watch(record, cameras_payload, now_ts)
         if state in {"submitted", "running", "submit_unknown"}:
             callback_state = self._state_from_latest_callback(task_code)
             if callback_state:
@@ -356,7 +357,7 @@ class AutoDispatchRuntime:
                     updated_at=round(now_ts, 3),
                 )
                 return {"state": "FAULT", "fault_reason": f"verification_failed:{verify.get('reason', '')}", "verify": verify}
-            return {"state": "VERIFYING_VISION", "verify": verify}
+            return {"state": "VERIFYING_VISION", "verify": verify, "active_watch": active_watch}
 
         started_at = float(latest_record.get("started_at", 0.0) or latest_record.get("submitted_at", 0.0) or now_ts)
         running_timeout = float(self.auto_config.get("task_running_timeout_sec", 900.0))
@@ -366,7 +367,12 @@ class AutoDispatchRuntime:
 
         if str(latest_record.get("state", "")) in {"failed", "canceled", "interrupted", "expired", "operator_recovery_required"}:
             return {"state": "FAULT", "fault_reason": str(latest_record.get("last_error", latest_record.get("state", "")))}
-        return {"state": "WAITING_RCS", "active_reservation_id": reservation_id, "active_task_code": task_code}
+        return {
+            "state": "WAITING_RCS",
+            "active_reservation_id": reservation_id,
+            "active_task_code": task_code,
+            "active_watch": active_watch,
+        }
 
     def _state_from_latest_callback(self, task_code: str) -> dict[str, Any] | None:
         callback_path = self.project_root / "outputs" / "runtime" / "hik_rcs" / "callbacks" / "agvCallback.jsonl"
@@ -421,9 +427,72 @@ class AutoDispatchRuntime:
         manual_lock_path = self.auto_config.get("manual_lock_path")
         if not manual_lock_path:
             return False
-        path = resolve_project_path(str(manual_lock_path))
+        path = self._resolve_runtime_path(str(manual_lock_path))
         payload = self._load_json(path, default={})
         return bool(payload.get("active", False)) if isinstance(payload, dict) else False
+
+    def _active_reservation_watch(
+        self,
+        record: dict[str, Any],
+        cameras_payload: list[dict[str, Any]],
+        now_ts: float,
+    ) -> dict[str, Any]:
+        source = str(record.get("source_position", ""))
+        dest = str(record.get("dest_position", ""))
+        source_state = self._position_state(source, cameras_payload, now_ts)
+        dest_state = self._position_state(dest, cameras_payload, now_ts)
+        warnings: list[str] = []
+        record_state = str(record.get("state", ""))
+        if record_state in {"submitted", "running", "submit_unknown"}:
+            if dest_state.get("state") == "occupied":
+                warnings.append("dest_occupied_before_rcs_complete")
+            if not dest_state.get("usable", False):
+                warnings.append(f"dest_not_usable:{dest_state.get('reason', 'unknown')}")
+            if not source_state.get("usable", False):
+                warnings.append(f"source_not_usable:{source_state.get('reason', 'unknown')}")
+        return {
+            "source": source,
+            "dest": dest,
+            "source_state": source_state,
+            "dest_state": dest_state,
+            "warnings": warnings,
+        }
+
+    def _position_state(self, position: str, cameras_payload: list[dict[str, Any]], now_ts: float) -> dict[str, Any]:
+        positions = self.auto_config.get("positions", {})
+        ref = positions.get(position, {}) if isinstance(positions, dict) else {}
+        if not isinstance(ref, dict):
+            return {"usable": False, "reason": f"{position} missing from positions"}
+        camera_id = str(ref.get("camera_id", ""))
+        zone_id = str(ref.get("zone_id", ""))
+        for camera in cameras_payload:
+            if not isinstance(camera, dict) or str(camera.get("camera_id", "")) != camera_id:
+                continue
+            camera_health = str(camera.get("camera_health", camera.get("health", "unknown")))
+            if camera_health != "online":
+                return {"usable": False, "reason": f"{camera_id} health={camera_health}", "camera_id": camera_id, "zone_id": zone_id}
+            camera_ts = float(camera.get("timestamp", 0.0) or 0.0)
+            age_sec = round(now_ts - camera_ts, 3) if camera_ts > 0.0 else None
+            for zone in camera.get("zones", []):
+                if str(zone.get("zone_id", "")) != zone_id:
+                    continue
+                return {
+                    "usable": str(zone.get("state", "unknown")) in {"occupied", "empty"} and str(zone.get("health", "unknown")) == "online",
+                    "state": str(zone.get("state", "unknown")),
+                    "health": str(zone.get("health", "unknown")),
+                    "score": float(zone.get("score", 0.0) or 0.0),
+                    "camera_id": camera_id,
+                    "zone_id": zone_id,
+                    "age_sec": age_sec,
+                }
+            return {"usable": False, "reason": f"{camera_id}:{zone_id} missing zone", "camera_id": camera_id, "zone_id": zone_id}
+        return {"usable": False, "reason": f"{camera_id} missing snapshot", "camera_id": camera_id, "zone_id": zone_id}
+
+    def _resolve_runtime_path(self, path_text: str) -> Path:
+        path = Path(path_text)
+        if path.is_absolute():
+            return path
+        return self.project_root / path
 
     def _manual_interlock_configured(self) -> bool:
         source = str(self.auto_config.get("manual_interlock_source", "")).strip()
@@ -457,6 +526,7 @@ class AutoDispatchRuntime:
             "enabled": bool(self.auto_config.get("enabled", False)),
             "mode": self.auto_config.get("mode", "disabled"),
             "dry_run": bool(self.auto_config.get("dry_run", True)),
+            "manual_interlock_active": self._manual_active(),
             "runtime_state": runtime_state,
             "active_records": self.ledger.active_records(),
             "last_plan": runtime_state.get("last_plan", {}),

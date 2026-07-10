@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import time
+from copy import deepcopy
 from typing import Any
 
 
@@ -50,10 +51,10 @@ class AutoDispatchPlanner:
             "reason": "ok",
             "source": source_result["position"],
             "dest": dest_result["position"],
-            "source_ref": self.positions.get(source_result["position"], {}),
-            "dest_ref": self.positions.get(dest_result["position"], {}),
-            "source_zone": source_result.get("zone", {}),
-            "dest_zone": dest_result.get("zone", {}),
+            "source_ref": dict(self.positions.get(source_result["position"], {})),
+            "dest_ref": dict(self.positions.get(dest_result["position"], {})),
+            "source_zone": deepcopy(source_result.get("zone", {})),
+            "dest_zone": deepcopy(dest_result.get("zone", {})),
             "evaluated_at": round(now_ts, 3),
         }
 

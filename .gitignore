@@ -10,3 +10,10 @@ __pycache__/
 # env
 venv/
 .env
+
+# outputs
+outputs/
+outputs
+
+# agent
+.agents

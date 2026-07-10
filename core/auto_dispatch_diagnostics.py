@@ -193,6 +193,18 @@ class AutoDispatchDiagnostics:
         if scenario == "full_pk_empty_fg":
             occupied.update(pk_order)
             empty.update(fg_order)
+        elif scenario == "site_partial_example":
+            occupied.update({"PK_AA2", "PK_AA1", "PK_BB2", "PK_BB1", "PK_CC1", "PK_DD2", "PK_DD1"})
+            empty.update(set(pk_order) - occupied)
+            empty.update({"FG_BB2", "FG_BB1", "FG_AA6", "FG_AA5", "FG_AA4", "FG_AA3", "FG_AA2", "FG_AA1"})
+            occupied.update(set(fg_order) - empty)
+        elif scenario == "parallel_after_human":
+            occupied.update(pk_order)
+            occupied.difference_update({"PK_AA4", "PK_AA3", "PK_AA2"})
+            empty.update({"PK_AA4", "PK_AA3", "PK_AA2"})
+            empty.update(fg_order)
+            occupied.update({"FG_BB6", "FG_BB5", "FG_BB4"})
+            empty.difference_update({"FG_BB6", "FG_BB5", "FG_BB4"})
         elif scenario == "fg_full":
             occupied.update(pk_order)
             occupied.update(fg_order)
@@ -270,6 +282,49 @@ class AutoDispatchDiagnostics:
             "camera_count": len(cameras_payload),
             "bridge_zone_count": len(bridge_state.get("zones", {})),
         }
+
+    def preview_sequence(
+        self,
+        *,
+        cameras_payload: list[dict[str, Any]],
+        bridge_state: dict[str, Any],
+        max_tasks: int | None = None,
+        mode: str = "semi_auto",
+        now_ts: float | None = None,
+    ) -> dict[str, Any]:
+        now_ts = float(now_ts if now_ts is not None else time.time())
+        max_tasks = int(max_tasks if max_tasks is not None else self.auto_config.get("max_tasks_per_batch", 12))
+        planner = AutoDispatchPlanner(self.auto_config, self.hik_config)
+        synthetic_cameras = json.loads(json.dumps(cameras_payload, ensure_ascii=False))
+        synthetic_bridge = json.loads(json.dumps(bridge_state, ensure_ascii=False))
+        tasks: list[dict[str, Any]] = []
+
+        for index in range(max_tasks):
+            self._refresh_simulated_camera_timestamps(synthetic_cameras, now_ts + index)
+            plan = planner.evaluate(
+                cameras_payload=synthetic_cameras,
+                bridge_state=synthetic_bridge,
+                active_reservations=[],
+                now_ts=now_ts + index,
+                mode=mode,
+                manual_active=False,
+            )
+            if not plan.get("can_dispatch", False):
+                return {
+                    "mode": mode,
+                    "max_tasks": max_tasks,
+                    "tasks": tasks,
+                    "stop_reason": plan.get("reason", "blocked"),
+                    "stop_plan": plan,
+                }
+            source = str(plan.get("source", ""))
+            dest = str(plan.get("dest", ""))
+            tasks.append({"index": index + 1, "source": source, "dest": dest, "reason": plan.get("reason", "ok")})
+            self._set_simulated_position_state(synthetic_cameras, source, "empty", now_ts + index + 0.1)
+            self._set_simulated_position_state(synthetic_cameras, dest, "occupied", now_ts + index + 0.1)
+            self._set_simulated_fg_canonical(synthetic_bridge, dest)
+
+        return {"mode": mode, "max_tasks": max_tasks, "tasks": tasks, "stop_reason": "max_tasks_reached"}
 
     def _sample_task_payload_errors(self, pk_order: list[str], fg_order: list[str]) -> list[str]:
         if not pk_order or not fg_order:
@@ -404,6 +459,55 @@ class AutoDispatchDiagnostics:
                 },
             }
         return {"zones": zones}
+
+    def _set_simulated_position_state(
+        self,
+        cameras_payload: list[dict[str, Any]],
+        position: str,
+        state: str,
+        now_ts: float,
+    ) -> None:
+        ref = self.auto_config.get("positions", {}).get(position, {})
+        if not isinstance(ref, dict):
+            return
+        camera_id = str(ref.get("camera_id", ""))
+        zone_id = str(ref.get("zone_id", ""))
+        for camera in cameras_payload:
+            if str(camera.get("camera_id", "")) != camera_id:
+                continue
+            camera["timestamp"] = now_ts
+            for zone in camera.get("zones", []):
+                if str(zone.get("zone_id", "")) == zone_id:
+                    zone["state"] = state
+                    zone["health"] = "online"
+                    zone["score"] = 0.99
+                    zone["occupied_since"] = now_ts if state == "occupied" else 0.0
+                    return
+
+    @staticmethod
+    def _refresh_simulated_camera_timestamps(cameras_payload: list[dict[str, Any]], now_ts: float) -> None:
+        for camera in cameras_payload:
+            if isinstance(camera, dict):
+                camera["timestamp"] = now_ts
+
+    def _set_simulated_fg_canonical(self, bridge_state: dict[str, Any], position: str) -> None:
+        if not position.startswith("FG_"):
+            return
+        mapping = self._enabled_bind_mappings_by_position().get(position, {})
+        mapping_id = str(mapping.get("mapping_id", "")).strip()
+        key = mapping_id or f"{mapping.get('camera_id', '')}:{mapping.get('zone_id', '')}:{mapping.get('method', '')}"
+        zones = bridge_state.setdefault("zones", {})
+        if not isinstance(zones, dict):
+            return
+        zones[key] = {
+            "observed_state": "occupied",
+            "last_bound_ctnr_code": position,
+            "hybrid_session": {
+                "owner": "canonical_fg",
+                "actual_ctnr_code": position,
+                "needs_reconcile": False,
+            },
+        }
 
     @staticmethod
     def _duplicate_errors(name: str, values: list[str]) -> list[str]:

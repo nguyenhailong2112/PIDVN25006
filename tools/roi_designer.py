@@ -181,9 +181,9 @@ class RectROIDesigner:
 
 if __name__ == "__main__":
     tool = RectROIDesigner(
-        source_path="dataTest/cam5/192.168.11.5_01_20260611131740150.jpg",
-        output_path="configs/zones_cam5.json",
+        source_path="dataTest/imageTest/Cam9/img.png",
+        output_path="configs/zones_cam9.json",
         target_object="pallet",
-        scale=0.75,
+        scale=1.5,
     )
     tool.run()
