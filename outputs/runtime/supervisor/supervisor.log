@@ -1,0 +1,13 @@
+2026-07-10 12:51:03,526 [INFO] Starting backend with command=['/home/rtc/miniconda3/envs/PIDVN25006/bin/python', '/home/rtc/PyCharmMiscProject/PIDVN25006/mainProcess.py']
+2026-07-10 12:51:03,527 [INFO] backend started with pid=1734611
+2026-07-10 12:51:03,527 [INFO] Waiting 3.0 sec before starting frontend
+2026-07-10 12:51:06,530 [INFO] Starting frontend with command=['/home/rtc/miniconda3/envs/PIDVN25006/bin/python', '/home/rtc/PyCharmMiscProject/PIDVN25006/mainCCTV.py']
+2026-07-10 12:51:06,530 [INFO] frontend started with pid=1734671
+2026-07-10 12:51:18,542 [ERROR] frontend exited with code=0 after 12.0 sec. Restart count=1
+2026-07-10 12:51:18,542 [WARNING] frontend exited too quickly. Applying crash backoff 10.0 sec
+2026-07-10 12:51:18,542 [INFO] Waiting 10.0 sec before starting frontend
+2026-07-10 12:51:28,552 [INFO] Starting frontend with command=['/home/rtc/miniconda3/envs/PIDVN25006/bin/python', '/home/rtc/PyCharmMiscProject/PIDVN25006/mainCCTV.py']
+2026-07-10 12:51:28,553 [INFO] frontend started with pid=1735131
+2026-07-10 12:54:24,893 [INFO] Stop requested. Supervisor will terminate child processes.
+2026-07-10 12:54:25,731 [INFO] Stopping backend (pid=1734611)
+2026-07-10 12:54:25,844 [INFO] Supervisor stopped cleanly.

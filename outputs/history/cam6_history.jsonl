@@ -1,0 +1,7 @@
+{"timestamp": 1783662674.7882545, "camera_id": "cam6", "zone_id": "LIFT_1", "state": "empty", "score": 1.0, "health": "online"}
+{"timestamp": 1783662817.9387033, "camera_id": "cam6", "zone_id": "LIFT_1", "state": "empty", "score": 0.8571, "health": "online"}
+{"timestamp": 1783662819.5352185, "camera_id": "cam6", "zone_id": "LIFT_1", "state": "occupied", "score": 1.0, "health": "online"}
+{"timestamp": 1783662831.3876703, "camera_id": "cam6", "zone_id": "LIFT_1", "state": "occupied", "score": 0.8, "health": "online"}
+{"timestamp": 1783662834.8638878, "camera_id": "cam6", "zone_id": "LIFT_1", "state": "empty", "score": 1.0, "health": "online"}
+{"timestamp": 1783662859.4315982, "camera_id": "cam6", "zone_id": "LIFT_1", "state": "empty", "score": 0.8571, "health": "online"}
+{"timestamp": 1783662861.0209203, "camera_id": "cam6", "zone_id": "LIFT_1", "state": "occupied", "score": 1.0, "health": "online"}

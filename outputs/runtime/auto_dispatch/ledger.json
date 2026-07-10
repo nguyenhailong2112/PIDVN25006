@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "records": [
+    {
+      "reservation_id": "R20260710_125114_817",
+      "batch_id": "B20260710_125114_817",
+      "req_code": "eb3494d14460613fa6331625e4ff7899",
+      "request_hash": "8a398734ad539d1dcc9e35a360f6fda7",
+      "task_code": "VISION_PK_AA4_TO_FG_BB6_20260710_125114",
+      "rcs_task_code": "VISION_PK_AA4_TO_FG_BB6_20260710_125114",
+      "mode": "semi-auto",
+      "source_position": "PK_AA4",
+      "dest_position": "FG_BB6",
+      "source_camera_id": "cam4",
+      "source_zone_id": "A4",
+      "dest_camera_id": "cam10",
+      "dest_zone_id": "B6",
+      "state": "submitted",
+      "created_at": 1783662674.817,
+      "submitted_at": 1783662674.817,
+      "started_at": 0.0,
+      "completed_at": 0.0,
+      "verified_at": 0.0,
+      "updated_at": 1783662864.644,
+      "last_task_status": "1",
+      "last_callback_method": "",
+      "last_bind_notify_at": 0.0,
+      "source_expected_after": "empty",
+      "dest_expected_after": "occupied_canonical",
+      "dest_canonical_ctnr_code": "FG_BB6",
+      "last_error": "",
+      "attempt_count": 1
+    }
+  ]
+}

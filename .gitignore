@@ -11,9 +11,5 @@ __pycache__/
 venv/
 .env
 
-# outputs
-outputs/
-outputs
-
 # agent
 .agents

@@ -1,0 +1,70 @@
+{
+  "state": "WAITING_RCS",
+  "mode": "semi-auto",
+  "last_plan": {
+    "can_dispatch": true,
+    "reason": "ok",
+    "source": "PK_AA4",
+    "dest": "FG_BB6",
+    "source_ref": {
+      "camera_id": "cam4",
+      "zone_id": "A4",
+      "area": "PK"
+    },
+    "dest_ref": {
+      "camera_id": "cam10",
+      "zone_id": "B6",
+      "area": "FG"
+    },
+    "source_zone": {
+      "zone_id": "A4",
+      "value": 1,
+      "binding": "bind",
+      "state": "occupied",
+      "health": "online",
+      "score": 1.0,
+      "occupied_since_ts": 1783662669.8557756,
+      "occupied_since_text": "12:51:09"
+    },
+    "dest_zone": {
+      "zone_id": "B6",
+      "value": 0,
+      "binding": "unbind",
+      "state": "empty",
+      "health": "online",
+      "score": 1.0,
+      "occupied_since_ts": null,
+      "occupied_since_text": null
+    },
+    "evaluated_at": 1783662674.817
+  },
+  "reason": "FG_BB6 state=unknown",
+  "batch_id": "B20260710_125114_817",
+  "last_submitted_reservation_id": "R20260710_125114_817",
+  "last_task_code": "VISION_PK_AA4_TO_FG_BB6_20260710_125114",
+  "active_reservation_id": "R20260710_125114_817",
+  "active_task_code": "VISION_PK_AA4_TO_FG_BB6_20260710_125114",
+  "active_watch": {
+    "source": "PK_AA4",
+    "dest": "FG_BB6",
+    "source_state": {
+      "usable": true,
+      "state": "occupied",
+      "health": "online",
+      "score": 1.0,
+      "camera_id": "cam4",
+      "zone_id": "A4",
+      "age_sec": 0.058
+    },
+    "dest_state": {
+      "usable": true,
+      "state": "empty",
+      "health": "online",
+      "score": 1.0,
+      "camera_id": "cam10",
+      "zone_id": "B6",
+      "age_sec": 0.183
+    },
+    "warnings": []
+  }
+}

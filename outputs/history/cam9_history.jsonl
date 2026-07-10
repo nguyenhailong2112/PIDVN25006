@@ -1,0 +1,16 @@
+{"timestamp": 1783662676.7581813, "camera_id": "cam9", "zone_id": "A1", "state": "empty", "score": 1.0, "health": "online"}
+{"timestamp": 1783662676.7581813, "camera_id": "cam9", "zone_id": "A2", "state": "empty", "score": 1.0, "health": "online"}
+{"timestamp": 1783662676.7581813, "camera_id": "cam9", "zone_id": "A3", "state": "empty", "score": 1.0, "health": "online"}
+{"timestamp": 1783662676.7581813, "camera_id": "cam9", "zone_id": "A4", "state": "empty", "score": 1.0, "health": "online"}
+{"timestamp": 1783662676.7581813, "camera_id": "cam9", "zone_id": "A5", "state": "empty", "score": 1.0, "health": "online"}
+{"timestamp": 1783662676.7581813, "camera_id": "cam9", "zone_id": "A6", "state": "empty", "score": 1.0, "health": "online"}
+{"timestamp": 1783662727.095098, "camera_id": "cam9", "zone_id": "A1", "state": "empty", "score": 0.8571, "health": "online"}
+{"timestamp": 1783662728.3669841, "camera_id": "cam9", "zone_id": "A2", "state": "empty", "score": 0.8571, "health": "online"}
+{"timestamp": 1783662729.446303, "camera_id": "cam9", "zone_id": "A1", "state": "empty", "score": 1.0, "health": "online"}
+{"timestamp": 1783662729.922823, "camera_id": "cam9", "zone_id": "A2", "state": "occupied", "score": 1.0, "health": "online"}
+{"timestamp": 1783662733.0940444, "camera_id": "cam9", "zone_id": "A2", "state": "occupied", "score": 0.8, "health": "online"}
+{"timestamp": 1783662734.0170503, "camera_id": "cam9", "zone_id": "A1", "state": "empty", "score": 0.8571, "health": "online"}
+{"timestamp": 1783662735.0988214, "camera_id": "cam9", "zone_id": "A2", "state": "occupied", "score": 1.0, "health": "online"}
+{"timestamp": 1783662735.7331448, "camera_id": "cam9", "zone_id": "A1", "state": "occupied", "score": 1.0, "health": "online"}
+{"timestamp": 1783662735.7331448, "camera_id": "cam9", "zone_id": "A2", "state": "occupied", "score": 0.8, "health": "online"}
+{"timestamp": 1783662739.2529938, "camera_id": "cam9", "zone_id": "A2", "state": "empty", "score": 1.0, "health": "online"}

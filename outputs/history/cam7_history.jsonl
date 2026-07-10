@@ -1,0 +1,5 @@
+{"timestamp": 1783662677.66159, "camera_id": "cam7", "zone_id": "LIFT_2", "state": "empty", "score": 1.0, "health": "online"}
+{"timestamp": 1783662748.199644, "camera_id": "cam7", "zone_id": "LIFT_2", "state": "empty", "score": 0.8571, "health": "online"}
+{"timestamp": 1783662749.7578714, "camera_id": "cam7", "zone_id": "LIFT_2", "state": "occupied", "score": 1.0, "health": "online"}
+{"timestamp": 1783662799.7282066, "camera_id": "cam7", "zone_id": "LIFT_2", "state": "occupied", "score": 0.8, "health": "online"}
+{"timestamp": 1783662803.2058957, "camera_id": "cam7", "zone_id": "LIFT_2", "state": "empty", "score": 1.0, "health": "online"}
