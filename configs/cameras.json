@@ -2,7 +2,7 @@
   {
     "camera_id": "cam1",
     "camera_type": "trolley_slot",
-    "name": "Cam 01",
+    "name": "Trolley Warehouse 1",
     "source_type": "rtsp",
     "source_path": "rtsp://admin:rtctech!@192.168.11.1:554/Streaming/Channels/101",
     "model_path": "weights/best.pt",
@@ -13,7 +13,7 @@
   {
     "camera_id": "cam2",
     "camera_type": "trolley_slot",
-    "name": "Cam 02",
+    "name": "Trolley Coil 2",
     "source_type": "rtsp",
     "source_path": "rtsp://admin:rtctech!@192.168.11.2:554/Streaming/Channels/101",
     "model_path": "weights/best.pt",
@@ -24,7 +24,7 @@
   {
     "camera_id": "cam3",
     "camera_type": "trolley_slot",
-    "name": "Cam 03",
+    "name": "Trolley Warehouse 2",
     "source_type": "rtsp",
     "source_path": "rtsp://admin:rtctech!@192.168.11.3:554/Streaming/Channels/101",
     "model_path": "weights/best.pt",
@@ -102,6 +102,17 @@
     "camera_id": "cam10",
     "camera_type": "pallet_slot",
     "name": "Pallet FG 2",
+    "source_type": "rtsp",
+    "source_path": "rtsp://admin:rtctech!@192.168.11.10:554/Streaming/Channels/101",
+    "model_path": "weights/best.pt",
+    "zone_config": "configs/zones_cam10.json",
+    "infer_every_n_frames": 2,
+    "enabled": true
+  },
+  {
+    "camera_id": "cam11",
+    "camera_type": "trolley_slot",
+    "name": "Trolley Coil 1",
     "source_type": "rtsp",
     "source_path": "rtsp://admin:rtctech!@192.168.11.10:554/Streaming/Channels/101",
     "model_path": "weights/best.pt",
