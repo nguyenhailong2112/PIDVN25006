@@ -430,14 +430,58 @@
       "unknown_action": "lockPosition"
     },
     {
-      "enabled": false,
+      "enabled": true,
       "camera_id": "cam2",
-      "zone_id": "A5",
+      "zone_id": "COIL_10",
       "method": "bindCtnrAndBin",
-      "position_code": "",
-      "stg_bin_code": "",
-      "ctnr_code": "",
-      "ctnr_typ": "",
+      "position_code": "COIL_10",
+      "stg_bin_code": "COIL1005501013",
+      "ctnr_code": "COIL_10",
+      "ctnr_typ": "3",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": true,
+      "camera_id": "cam2",
+      "zone_id": "COIL_11",
+      "method": "bindCtnrAndBin",
+      "position_code": "COIL_11",
+      "stg_bin_code": "COIL1105501013",
+      "ctnr_code": "COIL_11",
+      "ctnr_typ": "3",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": true,
+      "camera_id": "cam2",
+      "zone_id": "COIL_12",
+      "method": "bindCtnrAndBin",
+      "position_code": "COIL_12",
+      "stg_bin_code": "COIL1205501013",
+      "ctnr_code": "COIL_12",
+      "ctnr_typ": "3",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": true,
+      "camera_id": "cam2",
+      "zone_id": "COIL_13",
+      "method": "bindCtnrAndBin",
+      "position_code": "COIL_13",
+      "stg_bin_code": "COIL1305501013",
+      "ctnr_code": "COIL_13",
+      "ctnr_typ": "3",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": true,
+      "camera_id": "cam2",
+      "zone_id": "COIL_14",
+      "method": "bindCtnrAndBin",
+      "position_code": "COIL_14",
+      "stg_bin_code": "COIL1405501013",
+      "ctnr_code": "COIL_14",
+      "ctnr_typ": "3",
       "unknown_action": "lockPosition"
     },
     {
@@ -474,14 +518,102 @@
       "unknown_action": "lockPosition"
     },
     {
-      "enabled": false,
+      "enabled": true,
       "camera_id": "cam8",
-      "zone_id": "A1",
+      "zone_id": "3T_A1",
       "method": "bindCtnrAndBin",
-      "position_code": "",
-      "stg_bin_code": "",
-      "ctnr_code": "",
-      "ctnr_typ": "",
+      "position_code": "3T_A1",
+      "stg_bin_code": "F0000104501013",
+      "ctnr_code": "3T_A1",
+      "ctnr_typ": "3",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": true,
+      "camera_id": "cam8",
+      "zone_id": "3T_A2",
+      "method": "bindCtnrAndBin",
+      "position_code": "3T_A2",
+      "stg_bin_code": "F0000204501013",
+      "ctnr_code": "3T_A2",
+      "ctnr_typ": "3",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": true,
+      "camera_id": "cam8",
+      "zone_id": "3T_A3",
+      "method": "bindCtnrAndBin",
+      "position_code": "3T_A3",
+      "stg_bin_code": "F0000304501013",
+      "ctnr_code": "3T_A3",
+      "ctnr_typ": "3",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": true,
+      "camera_id": "cam8",
+      "zone_id": "3T_A4",
+      "method": "bindCtnrAndBin",
+      "position_code": "3T_A4",
+      "stg_bin_code": "F0000404501013",
+      "ctnr_code": "3T_A4",
+      "ctnr_typ": "3",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": true,
+      "camera_id": "cam8",
+      "zone_id": "3T_A5",
+      "method": "bindCtnrAndBin",
+      "position_code": "3T_A5",
+      "stg_bin_code": "F0000504501013",
+      "ctnr_code": "3T_A5",
+      "ctnr_typ": "3",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": true,
+      "camera_id": "cam8",
+      "zone_id": "3T_A6",
+      "method": "bindCtnrAndBin",
+      "position_code": "3T_A6",
+      "stg_bin_code": "F0000604501013",
+      "ctnr_code": "3T_A6",
+      "ctnr_typ": "3",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": true,
+      "camera_id": "cam8",
+      "zone_id": "3T_A7",
+      "method": "bindCtnrAndBin",
+      "position_code": "3T_A7",
+      "stg_bin_code": "F0000704501013",
+      "ctnr_code": "3T_A7",
+      "ctnr_typ": "3",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": true,
+      "camera_id": "cam8",
+      "zone_id": "3T_A8",
+      "method": "bindCtnrAndBin",
+      "position_code": "3T_A8",
+      "stg_bin_code": "F0000804501013",
+      "ctnr_code": "3T_A8",
+      "ctnr_typ": "3",
+      "unknown_action": "lockPosition"
+    },
+    {
+      "enabled": true,
+      "camera_id": "cam8",
+      "zone_id": "3T_A9",
+      "method": "bindCtnrAndBin",
+      "position_code": "3T_A9",
+      "stg_bin_code": "F0000904501013",
+      "ctnr_code": "3T_A9",
+      "ctnr_typ": "3",
       "unknown_action": "lockPosition"
     },
     {
