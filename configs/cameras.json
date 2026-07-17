@@ -114,7 +114,7 @@
     "camera_type": "trolley_slot",
     "name": "Trolley Coil 1",
     "source_type": "rtsp",
-    "source_path": "rtsp://admin:rtctech!@192.168.11.10:554/Streaming/Channels/101",
+    "source_path": "rtsp://admin:rtctech!@192.168.11.11:554/Streaming/Channels/101",
     "model_path": "weights/best.pt",
     "zone_config": "configs/zones_cam10.json",
     "infer_every_n_frames": 2,
