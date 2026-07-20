@@ -1,0 +1,6 @@
+2026-07-20 09:47:43 [WARNING] core.hik_rcs_bridge: [HIK-RCS] client_code is empty in configs/hik_rcs.json
+2026-07-20 09:47:43 [INFO] core.hik_callback_server: [HIK-RCS] Callback server listening on http://0.0.0.0:2112/service/rest
+2026-07-20 09:47:43 [INFO] core.hik_rcs_bridge: [HIK-RCS] dry_run api=bindCtnrAndBin req=2397d3f04d989f794e78d0937e6c95b1 payload={'ctnrCode': 'COIL_FF10', 'ctnrTyp': '3', 'stgBinCode': 'F0001004501013', 'positionCode': 'COIL_FF10', 'binName': None, 'characterValue': None, 'indBind': '1'}
+2026-07-20 09:47:56 [WARNING] core.hik_rcs_bridge: [HIK-RCS] client_code is empty in configs/hik_rcs.json
+2026-07-20 09:47:56 [INFO] core.hik_callback_server: [HIK-RCS] Callback server listening on http://0.0.0.0:2112/service/rest
+2026-07-20 09:47:56 [INFO] core.hik_rcs_bridge: [HIK-RCS] dry_run api=bindCtnrAndBin req=48ddc3c3822b31fe55d6abdf1e8d26a1 payload={'ctnrCode': 'COIL_FF10', 'ctnrTyp': '3', 'stgBinCode': 'F0001004501013', 'positionCode': 'COIL_FF10', 'binName': None, 'characterValue': None, 'indBind': '0'}

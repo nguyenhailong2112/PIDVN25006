@@ -1254,6 +1254,47 @@
         "response_ts": 1783662861.074
       },
       "block_state": "blocked"
+    },
+    "cam2:A1:bindCtnrAndBin": {
+      "mapping": "cam2:A1:bindCtnrAndBin",
+      "last_seen_state": "empty",
+      "last_seen_at": 1784515676.989,
+      "bind_dispatch": {
+        "key": "hybrid_canonical:empty_unbind:COIL_FF10",
+        "req_code": "48ddc3c3822b31fe55d6abdf1e8d26a1",
+        "attempt_ts": 1784515676.989,
+        "success": true,
+        "non_retryable": false,
+        "response": {
+          "code": "0",
+          "message": "dry_run",
+          "reqCode": "48ddc3c3822b31fe55d6abdf1e8d26a1",
+          "data": ""
+        },
+        "response_ts": 1784515676.989
+      },
+      "observed_state": "empty",
+      "observed_method": "bindCtnrAndBin",
+      "dispatch_policy": "hybrid_canonical",
+      "main_binding_suppressed": false,
+      "observed_at": 1784515676.989,
+      "hybrid_session": {
+        "policy": "hybrid_canonical",
+        "vision_state": "empty",
+        "updated_at": 1784515676.989,
+        "last_dispatch_at": 1784515676.989,
+        "last_dispatch_ind_bind": "0",
+        "last_dispatch_ctnr_code": "COIL_FF10",
+        "last_response_code": "0",
+        "last_response_message": "dry_run",
+        "owner": "",
+        "actual_ctnr_code": "",
+        "actual_ctnr_source": "",
+        "action": "unbind_success",
+        "needs_reconcile": false
+      },
+      "bound_state": "empty",
+      "last_bound_ctnr_code": ""
     }
   }
 }

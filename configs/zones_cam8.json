@@ -3,7 +3,7 @@
   "target_object": "trolley",
   "zones": [
     {
-      "zone_id": "3T_A1",
+      "zone_id": "A1",
       "target_object": "trolley",
       "polygon": [
         [
@@ -29,7 +29,7 @@
       ]
     },
     {
-      "zone_id": "3T_A2",
+      "zone_id": "A2",
       "target_object": "trolley",
       "polygon": [
         [
@@ -55,7 +55,7 @@
       ]
     },
     {
-      "zone_id": "3T_A3",
+      "zone_id": "A3",
       "target_object": "trolley",
       "polygon": [
         [
@@ -81,7 +81,7 @@
       ]
     },
     {
-      "zone_id": "3T_A4",
+      "zone_id": "A4",
       "target_object": "trolley",
       "polygon": [
         [
@@ -107,7 +107,7 @@
       ]
     },
     {
-      "zone_id": "3T_A5",
+      "zone_id": "A5",
       "target_object": "trolley",
       "polygon": [
         [
@@ -133,7 +133,7 @@
       ]
     },
     {
-      "zone_id": "3T_A6",
+      "zone_id": "A6",
       "target_object": "trolley",
       "polygon": [
         [
@@ -159,7 +159,7 @@
       ]
     },
     {
-      "zone_id": "3T_A7",
+      "zone_id": "A7",
       "target_object": "trolley",
       "polygon": [
         [
@@ -185,7 +185,7 @@
       ]
     },
     {
-      "zone_id": "3T_A8",
+      "zone_id": "A8",
       "target_object": "trolley",
       "polygon": [
         [
@@ -211,7 +211,7 @@
       ]
     },
     {
-      "zone_id": "3T_A9",
+      "zone_id": "A9",
       "target_object": "trolley",
       "polygon": [
         [

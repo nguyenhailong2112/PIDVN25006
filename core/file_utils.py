@@ -3,8 +3,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import cv2
-
 
 def _temp_path_for(path: Path) -> Path:
     return path.with_name(f".{path.name}.tmp")
@@ -28,6 +26,8 @@ def write_json_atomic(path: Path, payload, *, encoding: str = "utf-8", indent: i
 
 
 def write_image_atomic(path: Path, frame, *, quality: int = 92) -> Path:
+    import cv2
+
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp_path = _temp_path_for(path)
     suffix = path.suffix.lower()

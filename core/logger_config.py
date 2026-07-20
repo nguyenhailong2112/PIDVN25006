@@ -4,9 +4,10 @@ from __future__ import annotations
 import logging
 from logging.handlers import TimedRotatingFileHandler
 import os
+from pathlib import Path
 from typing import Optional
 
-from core.path_utils import user_config_dir
+from core.path_utils import PROJECT_ROOT, user_config_dir
 
 _CONFIGURED = False
 
@@ -30,10 +31,14 @@ def _configure_root_if_needed(default_level: int = logging.INFO) -> None:
     if _CONFIGURED:
         return
 
-    log_dir = os.getenv("PIDVN_LOG_DIR", str(user_config_dir() / "logs"))
-    os.makedirs(log_dir, exist_ok=True)
+    log_dir = Path(os.getenv("PIDVN_LOG_DIR", str(user_config_dir() / "logs")))
+    try:
+        log_dir.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        log_dir = PROJECT_ROOT / "outputs" / "runtime" / "logs"
+        log_dir.mkdir(parents=True, exist_ok=True)
     log_name = os.getenv("PIDVN_LOG_NAME", "app.log")
-    log_file = os.path.join(log_dir, log_name)
+    log_file = str(log_dir / log_name)
 
     root = logging.getLogger()
     root.setLevel(default_level)

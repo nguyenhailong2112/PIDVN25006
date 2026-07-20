@@ -3,7 +3,7 @@
   "target_object": "trolley",
   "zones": [
     {
-      "zone_id": "COIL_10",
+      "zone_id": "A1",
       "target_object": "trolley",
       "polygon": [
         [
@@ -29,7 +29,7 @@
       ]
     },
     {
-      "zone_id": "COIL_11",
+      "zone_id": "A2",
       "target_object": "trolley",
       "polygon": [
         [
@@ -55,7 +55,7 @@
       ]
     },
     {
-      "zone_id": "COIL_12",
+      "zone_id": "A3",
       "target_object": "trolley",
       "polygon": [
         [
@@ -81,7 +81,7 @@
       ]
     },
     {
-      "zone_id": "COIL_13",
+      "zone_id": "A4",
       "target_object": "trolley",
       "polygon": [
         [
@@ -107,7 +107,7 @@
       ]
     },
     {
-      "zone_id": "COIL_14",
+      "zone_id": "A5",
       "target_object": "trolley",
       "polygon": [
         [

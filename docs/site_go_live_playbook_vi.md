@@ -98,6 +98,29 @@ Luu y audit:
 - De canonical dat muc chac chan cao nhat, yeu cau RCS bat `bindNotify` cho `bindCtnrAndBin` ve callback server cua Vision.
 - Ket qua RCS Storage Bin Management mong muon sau moi pallet vao FG: `FG_xx = FG_xx`, ke ca pallet do AMR lay tu `PK_xx` xuong.
 
+### 3.3 FMR trolley
+
+FMR trolley dang dung cung HIK bridge voi pallet, nhung policy la:
+
+- `dispatch_policy = hybrid_canonical`
+- `canonical_owner = canonical_trolley`
+- `method = bindCtnrAndBin`
+
+Camera/zone trolley dang bat:
+
+- `cam2` Coil: `A1`..`A5`
+- `cam3` Warehouse: `A1`, `A2`, `B1`, `B2`
+- `cam8` 3T: `A1`..`A9`
+- `cam11` Coil: `A1`..`A7`
+
+`cam7` thang may FMR van de `enabled=false` cho toi khi team AGV/RCS chot thong tin site.
+
+Doc them:
+
+- [docs/hik_rcs_trolley_bind_ctnr_vi.md](C:\Users\longn\PyCharmMiscProject\PIDVN25006\docs\hik_rcs_trolley_bind_ctnr_vi.md)
+
+Ket qua RCS Storage Bin Management mong muon voi trolley: moi diem hang cuoi cung phai canonical ve ctnr static cua chinh diem do, vi du `cam8 A4 = 3T_A4`, `cam2 A1 = COIL_FF10`, ke ca trolley do FMR mang tu diem khac toi.
+
 ## 4. Trinh tu onsite dung
 
 1. Kiem tra IP may Vision.
