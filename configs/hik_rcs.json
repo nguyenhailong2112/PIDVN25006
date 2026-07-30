@@ -379,12 +379,12 @@
       "unknown_action": "none"
     },
     {
-      "enabled": false,
+      "enabled": true,
       "mapping_id": "cam7_lift1_eleT1",
       "camera_id": "cam7",
       "zone_id": "LIFT_2",
       "method": "blockArea",
-      "matter_area": "",
+      "matter_area": "44",
       "control_mod": "1",
       "target_area": "",
       "pause": "0",
@@ -392,12 +392,12 @@
       "unknown_action": "none"
     },
     {
-      "enabled": false,
+      "enabled": true,
       "mapping_id": "cam7_lift1_eleT2",
       "camera_id": "cam7",
       "zone_id": "LIFT_2",
       "method": "blockArea",
-      "matter_area": "",
+      "matter_area": "33",
       "control_mod": "1",
       "target_area": "",
       "pause": "0",
