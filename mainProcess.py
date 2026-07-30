@@ -9,6 +9,7 @@ from datetime import datetime
 import cv2
 
 from core.camera_reader import CameraReader
+from core.auto_dispatcher import AutoDispatcher
 from core.config import (
     load_camera_configs,
     load_ingest_config,
@@ -49,6 +50,7 @@ RULE_CONFIG_PATH = PROJECT_ROOT / "configs" / "rules.json"
 INGEST_CONFIG_PATH = PROJECT_ROOT / "configs" / "ingest.json"
 RUNTIME_CONFIG_PATH = PROJECT_ROOT / "configs" / "runtime.json"
 HIK_RCS_CONFIG_PATH = PROJECT_ROOT / "configs" / "hik_rcs.json"
+AUTO_DISPATCH_CONFIG_PATH = PROJECT_ROOT / "configs" / "auto_dispatch.json"
 ELEVATOR_CONFIG_PATH = PROJECT_ROOT / "configs" / "elevator.json"
 HISTORY_DIR = PROJECT_ROOT / "outputs" / "history"
 logger = get_logger(__name__)
@@ -121,7 +123,9 @@ class CentralBackendRuntime:
         self.model_bundles = {}
         self.elevator_runtime = ElevatorRuntime(ELEVATOR_CONFIG_PATH)
         self.runtime_maintenance = RuntimeMaintenance(PROJECT_ROOT, self.runtime_cfg)
-        self.hik_bridge = HikRcsBridge(load_json_dict(HIK_RCS_CONFIG_PATH), PROJECT_ROOT)
+        hik_rcs_cfg = load_json_dict(HIK_RCS_CONFIG_PATH)
+        self.hik_bridge = HikRcsBridge(hik_rcs_cfg, PROJECT_ROOT)
+        self.auto_dispatcher = AutoDispatcher(load_json_dict(AUTO_DISPATCH_CONFIG_PATH), hik_rcs_cfg, PROJECT_ROOT)
         self._hik_sync_lock = Lock()
         self._hik_sync_worker: Thread | None = None
         self._hik_sync_running = False
@@ -572,6 +576,10 @@ class CentralBackendRuntime:
     def close(self) -> None:
         self._wait_hik_sync_worker(timeout_sec=2.0)
         try:
+            self.auto_dispatcher.close()
+        except Exception:
+            logger.exception("Failed to close AutoDispatcher cleanly")
+        try:
             self.hik_bridge.close()
         except Exception:
             logger.exception("Failed to close HIK bridge cleanly")
@@ -602,6 +610,7 @@ class CentralBackendRuntime:
                 return
             try:
                 self.hik_bridge.sync(payload, timestamp)
+                self.auto_dispatcher.sync(payload, self.hik_bridge.state, timestamp)
             except Exception:
                 logger.exception("HIK bridge async sync failed")
 

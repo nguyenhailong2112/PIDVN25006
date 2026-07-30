@@ -1,0 +1,78 @@
+{
+  "enabled": true,
+  "dry_run": false,
+  "operation_mode": "manual",
+  "profile_id": "PK_AB",
+  "control_state_path": "outputs/runtime/auto_dispatch/mode_control.json",
+  "require_bind_notify": true,
+  "require_canonical": true,
+  "query_interval_sec": 5.0,
+  "completed_statuses": ["completed", "complete", "finish", "finished", "ended", "success"],
+  "failed_statuses": ["failed", "fail", "cancel", "canceled", "cancelled", "abort", "aborted"],
+  "api_server": {
+    "enabled": true,
+    "host": "0.0.0.0",
+    "port": 2113,
+    "base_path": "/service/rest/visionAutoDispatch",
+    "log_max_mb": 10.0,
+    "log_backup_count": 5
+  },
+  "task_template": {
+    "api": "genAgvSchedulingTask",
+    "interfaceName": "genAgvSchedulingTask",
+    "taskTyp": "QUANGPRO",
+    "path_field": "userCallCodePath",
+    "path_sequence": ["{source}", "{dest}"],
+    "ctnrTyp": "2",
+    "send_task_code": true
+  },
+  "routing": {
+    "source_roadways": [
+      {"roadway_id": "PK_A", "call_code": "11${06}", "positions": ["PK_AA4", "PK_AA3", "PK_AA2", "PK_AA1"]},
+      {"roadway_id": "PK_B", "call_code": "22${06}", "positions": ["PK_BB4", "PK_BB3", "PK_BB2", "PK_BB1"]},
+      {"roadway_id": "PK_C", "call_code": "33${06}", "positions": ["PK_CC3", "PK_CC2", "PK_CC1"]},
+      {"roadway_id": "PK_D", "call_code": "44${06}", "positions": ["PK_DD4", "PK_DD3", "PK_DD2", "PK_DD1"]}
+    ],
+    "destination_area": {
+      "area_id": "FG",
+      "call_code": "2${02}",
+      "positions": ["FG_AA1", "FG_AA2", "FG_AA3", "FG_AA4", "FG_AA5", "FG_AA6", "FG_BB1", "FG_BB2", "FG_BB3", "FG_BB4", "FG_BB5", "FG_BB6"]
+    }
+  },
+  "positions": {
+    "PK_AA1": {"camera_id": "cam4", "zone_id": "A1", "area": "PK"},
+    "PK_AA2": {"camera_id": "cam4", "zone_id": "A2", "area": "PK"},
+    "PK_AA3": {"camera_id": "cam4", "zone_id": "A3", "area": "PK"},
+    "PK_AA4": {"camera_id": "cam4", "zone_id": "A4", "area": "PK"},
+    "PK_BB1": {"camera_id": "cam4", "zone_id": "B1", "area": "PK"},
+    "PK_BB2": {"camera_id": "cam4", "zone_id": "B2", "area": "PK"},
+    "PK_BB3": {"camera_id": "cam4", "zone_id": "B3", "area": "PK"},
+    "PK_BB4": {"camera_id": "cam4", "zone_id": "B4", "area": "PK"},
+    "PK_CC1": {"camera_id": "cam5", "zone_id": "C1", "area": "PK"},
+    "PK_CC2": {"camera_id": "cam5", "zone_id": "C2", "area": "PK"},
+    "PK_CC3": {"camera_id": "cam5", "zone_id": "C3", "area": "PK"},
+    "PK_DD1": {"camera_id": "cam5", "zone_id": "D1", "area": "PK"},
+    "PK_DD2": {"camera_id": "cam5", "zone_id": "D2", "area": "PK"},
+    "PK_DD3": {"camera_id": "cam5", "zone_id": "D3", "area": "PK"},
+    "PK_DD4": {"camera_id": "cam5", "zone_id": "D4", "area": "PK"},
+    "FG_AA1": {"camera_id": "cam9", "zone_id": "A1", "area": "FG"},
+    "FG_AA2": {"camera_id": "cam9", "zone_id": "A2", "area": "FG"},
+    "FG_AA3": {"camera_id": "cam9", "zone_id": "A3", "area": "FG"},
+    "FG_AA4": {"camera_id": "cam9", "zone_id": "A4", "area": "FG"},
+    "FG_AA5": {"camera_id": "cam9", "zone_id": "A5", "area": "FG"},
+    "FG_AA6": {"camera_id": "cam9", "zone_id": "A6", "area": "FG"},
+    "FG_BB1": {"camera_id": "cam10", "zone_id": "B1", "area": "FG"},
+    "FG_BB2": {"camera_id": "cam10", "zone_id": "B2", "area": "FG"},
+    "FG_BB3": {"camera_id": "cam10", "zone_id": "B3", "area": "FG"},
+    "FG_BB4": {"camera_id": "cam10", "zone_id": "B4", "area": "FG"},
+    "FG_BB5": {"camera_id": "cam10", "zone_id": "B5", "area": "FG"},
+    "FG_BB6": {"camera_id": "cam10", "zone_id": "B6", "area": "FG"}
+  },
+  "pk_pick_order": ["PK_AA4", "PK_AA3", "PK_AA2", "PK_AA1", "PK_BB4", "PK_BB3", "PK_BB2", "PK_BB1", "PK_CC3", "PK_CC2", "PK_CC1", "PK_DD4", "PK_DD3", "PK_DD2", "PK_DD1"],
+  "fg_observation_order": ["FG_AA1", "FG_AA2", "FG_AA3", "FG_AA4", "FG_AA5", "FG_AA6", "FG_BB1", "FG_BB2", "FG_BB3", "FG_BB4", "FG_BB5", "FG_BB6"],
+  "dispatch_profiles": {
+    "PK_AB": {"description": "One-click semi-auto: complete roadway A and B", "source_order": ["PK_AA4", "PK_AA3", "PK_AA2", "PK_AA1", "PK_BB4", "PK_BB3", "PK_BB2", "PK_BB1"], "required_occupied_count": 8, "minimum_empty_fg_slots": 1, "max_tasks": 8},
+    "PK_CD": {"description": "One-click semi-auto: complete roadway C and D", "source_order": ["PK_CC3", "PK_CC2", "PK_CC1", "PK_DD4", "PK_DD3", "PK_DD2", "PK_DD1"], "required_occupied_count": 7, "minimum_empty_fg_slots": 1, "max_tasks": 7}
+  },
+  "unknown_policy": {"pk": "conservative_by_row", "fg": "conservative"}
+}
