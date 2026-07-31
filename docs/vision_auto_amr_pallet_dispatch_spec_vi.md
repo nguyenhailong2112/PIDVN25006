@@ -220,7 +220,7 @@ Config HIK hien tai dang co 15 vi tri PK va 12 vi tri FG:
 
 PK:
 
-- `PK_AA1`, `PK_AA2`, `PK_AA3`, `PK_AA4`
+- `PK_AA1`, `PK_AA2`, `PK_AA3`, `PK_AA5`
 - `PK_BB1`, `PK_BB2`, `PK_BB3`, `PK_BB4`
 - `PK_CC1`, `PK_CC2`, `PK_CC3`
 - `PK_DD1`, `PK_DD2`, `PK_DD3`, `PK_DD4`
@@ -235,7 +235,7 @@ Phai co file scope chinh xac cu the (mapping Vision - HIK production), vi du:
 ```json
 {
   "pk_pick_order": [
-    "PK_AA4", "PK_AA3", "PK_AA2", "PK_AA1",
+    "PK_AA5", "PK_AA3", "PK_AA2", "PK_AA1",
     "PK_BB4", "PK_BB3", "PK_BB2", "PK_BB1",
     "PK_CC3", "PK_CC2", "PK_CC1",
     "PK_DD4", "PK_DD3", "PK_DD2", "PK_DD1"
@@ -325,7 +325,7 @@ Runtime output:
     "PK_AA1": {"camera_id": "cam4", "zone_id": "A1"},
     "PK_AA2": {"camera_id": "cam4", "zone_id": "A2"},
     "PK_AA3": {"camera_id": "cam4", "zone_id": "A3"},
-    "PK_AA4": {"camera_id": "cam4", "zone_id": "A4"},
+    "PK_AA5": {"camera_id": "cam4", "zone_id": "A4"},
     "FG_BB6": {"camera_id": "cam10", "zone_id": "B6"}
   },
   "pk_pick_order": [],
@@ -348,10 +348,10 @@ Moi record:
 ```json
 {
   "reservation_id": "R20260615_000001",
-  "task_code": "VISION_PK_AA4_TO_FG_BB6_20260615_101530",
+  "task_code": "VISION_PK_AA5_TO_FG_BB6_20260615_101530",
   "rcs_task_code": "",
   "mode": "semi_auto",
-  "source_position": "PK_AA4",
+  "source_position": "PK_AA5",
   "dest_position": "FG_BB6",
   "source_camera_id": "cam4",
   "source_zone_id": "A4",
@@ -406,7 +406,7 @@ Output:
 ```json
 {
   "can_dispatch": true,
-  "source": "PK_AA4",
+  "source": "PK_AA5",
   "dest": "FG_BB6",
   "reason": "ok"
 }
@@ -441,14 +441,14 @@ Request skeleton:
 {
   "taskTyp": "TBD_BY_AGV",
   "positionCodePath": [
-    {"type": "TBD_BY_AGV", "positionCode": "PK_AA4"},
+    {"type": "TBD_BY_AGV", "positionCode": "PK_AA5"},
     {"type": "TBD_BY_AGV", "positionCode": "FG_BB6"}
   ],
   "priority": "20",
   "agvCode": "",
   "agvTyp": "",
-  "taskCode": "VISION_PK_AA4_TO_FG_BB6_20260615_101530",
-  "data": "{\"source\":\"vision\",\"mode\":\"semi_auto\",\"reservation_id\":\"R20260615_000001\",\"from\":\"PK_AA4\",\"to\":\"FG_BB6\"}"
+  "taskCode": "VISION_PK_AA5_TO_FG_BB6_20260615_101530",
+  "data": "{\"source\":\"vision\",\"mode\":\"semi_auto\",\"reservation_id\":\"R20260615_000001\",\"from\":\"PK_AA5\",\"to\":\"FG_BB6\"}"
 }
 ```
 
@@ -718,7 +718,7 @@ Code:
 
 Test 1 cap:
 
-- `PK_AA4 -> FG_BB6`
+- `PK_AA5 -> FG_BB6`
 
 ### Phase 4 - Semi-auto batch
 
@@ -832,13 +832,13 @@ Vi du chi de test, khong hard-code production:
 {
   "taskTyp": "F01",
   "positionCodePath": [
-    {"positionCode": "PK_AA4", "type": "00"},
+    {"positionCode": "PK_AA5", "type": "00"},
     {"positionCode": "FG_BB6", "type": "00"}
   ],
   "priority": "20",
   "agvCode": "",
-  "taskCode": "VISION_PK_AA4_TO_FG_BB6_20260615_101530",
-  "data": "{\"source\":\"vision_auto\",\"mode\":\"semi_auto\",\"reservation_id\":\"R20260615_000001\",\"from\":\"PK_AA4\",\"to\":\"FG_BB6\"}"
+  "taskCode": "VISION_PK_AA5_TO_FG_BB6_20260615_101530",
+  "data": "{\"source\":\"vision_auto\",\"mode\":\"semi_auto\",\"reservation_id\":\"R20260615_000001\",\"from\":\"PK_AA5\",\"to\":\"FG_BB6\"}"
 }
 ```
 
@@ -846,7 +846,7 @@ Test CLI:
 
 ```bash
 python tools/hik_rcs_cli.py call-rpc genAgvSchedulingTask payload.json
-python tools/hik_rcs_cli.py query-task --task-code VISION_PK_AA4_TO_FG_BB6_20260615_101530
+python tools/hik_rcs_cli.py query-task --task-code VISION_PK_AA5_TO_FG_BB6_20260615_101530
 ```
 
 ## 22. Ket luan

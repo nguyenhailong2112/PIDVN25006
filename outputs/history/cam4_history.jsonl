@@ -1,0 +1,12 @@
+{"timestamp": 1785490459.5177584, "camera_id": "cam4", "zone_id": "A1", "state": "occupied", "score": 1.0, "health": "online"}
+{"timestamp": 1785490459.5177584, "camera_id": "cam4", "zone_id": "A2", "state": "occupied", "score": 1.0, "health": "online"}
+{"timestamp": 1785490459.5177584, "camera_id": "cam4", "zone_id": "A3", "state": "occupied", "score": 1.0, "health": "online"}
+{"timestamp": 1785490459.5177584, "camera_id": "cam4", "zone_id": "A4", "state": "occupied", "score": 1.0, "health": "online"}
+{"timestamp": 1785490459.5177584, "camera_id": "cam4", "zone_id": "B1", "state": "occupied", "score": 1.0, "health": "online"}
+{"timestamp": 1785490459.5177584, "camera_id": "cam4", "zone_id": "B2", "state": "occupied", "score": 1.0, "health": "online"}
+{"timestamp": 1785490459.5177584, "camera_id": "cam4", "zone_id": "B3", "state": "occupied", "score": 1.0, "health": "online"}
+{"timestamp": 1785490459.5177584, "camera_id": "cam4", "zone_id": "B4", "state": "occupied", "score": 1.0, "health": "online"}
+{"timestamp": 1785490769.5725946, "camera_id": "cam4", "zone_id": "A4", "state": "occupied", "score": 0.8, "health": "online"}
+{"timestamp": 1785490774.531295, "camera_id": "cam4", "zone_id": "A4", "state": "empty", "score": 1.0, "health": "online"}
+{"timestamp": 1785491626.9652932, "camera_id": "cam4", "zone_id": "A4", "state": "empty", "score": 0.8571, "health": "online"}
+{"timestamp": 1785491628.400457, "camera_id": "cam4", "zone_id": "A4", "state": "occupied", "score": 1.0, "health": "online"}

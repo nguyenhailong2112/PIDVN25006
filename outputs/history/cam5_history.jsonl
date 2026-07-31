@@ -1,0 +1,14 @@
+{"timestamp": 1785490468.651578, "camera_id": "cam5", "zone_id": "CO", "state": "empty", "score": 1.0, "health": "online"}
+{"timestamp": 1785490468.651578, "camera_id": "cam5", "zone_id": "C1", "state": "empty", "score": 1.0, "health": "online"}
+{"timestamp": 1785490468.651578, "camera_id": "cam5", "zone_id": "C2", "state": "empty", "score": 1.0, "health": "online"}
+{"timestamp": 1785490468.651578, "camera_id": "cam5", "zone_id": "C3", "state": "empty", "score": 1.0, "health": "online"}
+{"timestamp": 1785490468.651578, "camera_id": "cam5", "zone_id": "D1", "state": "empty", "score": 1.0, "health": "online"}
+{"timestamp": 1785490468.651578, "camera_id": "cam5", "zone_id": "D2", "state": "empty", "score": 1.0, "health": "online"}
+{"timestamp": 1785490468.651578, "camera_id": "cam5", "zone_id": "D3", "state": "empty", "score": 1.0, "health": "online"}
+{"timestamp": 1785490468.651578, "camera_id": "cam5", "zone_id": "D4", "state": "empty", "score": 1.0, "health": "online"}
+{"timestamp": 1785491622.8931231, "camera_id": "cam5", "zone_id": "D3", "state": "empty", "score": 0.8571, "health": "online"}
+{"timestamp": 1785491623.013737, "camera_id": "cam5", "zone_id": "D4", "state": "empty", "score": 0.8571, "health": "online"}
+{"timestamp": 1785491624.0947518, "camera_id": "cam5", "zone_id": "D3", "state": "empty", "score": 1.0, "health": "online"}
+{"timestamp": 1785491624.2181072, "camera_id": "cam5", "zone_id": "C3", "state": "empty", "score": 0.8571, "health": "online"}
+{"timestamp": 1785491624.4492376, "camera_id": "cam5", "zone_id": "D4", "state": "empty", "score": 1.0, "health": "online"}
+{"timestamp": 1785491625.653168, "camera_id": "cam5", "zone_id": "C3", "state": "empty", "score": 1.0, "health": "online"}

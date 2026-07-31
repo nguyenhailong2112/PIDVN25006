@@ -1,0 +1,3031 @@
+{
+  "zones": {
+    "cam4:A1:bindCtnrAndBin": {
+      "mapping": "cam4:A1:bindCtnrAndBin",
+      "last_seen_state": "occupied",
+      "last_seen_at": 1785491934.005,
+      "lock_dispatch": {
+        "key": "lock:disable",
+        "req_code": "2022d38a64af6119995386fab1de6d24",
+        "attempt_ts": 1785490453.612,
+        "success": false,
+        "non_retryable": true,
+        "response": {
+          "code": "1",
+          "data": "",
+          "interrupt": false,
+          "message": "point code is not exist，pointCode：PK_AA1",
+          "reqCode": "2022d38a64af6119995386fab1de6d24"
+        },
+        "response_ts": 1785490453.612
+      },
+      "bind_dispatch": {
+        "key": "hybrid_canonical:bind_static_or_discover:PK_AA1",
+        "req_code": "ea824c387bcf495d135376a05b24141d",
+        "attempt_ts": 1785490459.563,
+        "success": true,
+        "non_retryable": false,
+        "response": {
+          "code": "0",
+          "data": "",
+          "interrupt": false,
+          "reqCode": "ea824c387bcf495d135376a05b24141d"
+        },
+        "response_ts": 1785490459.563
+      },
+      "observed_state": "occupied",
+      "observed_method": "bindCtnrAndBin",
+      "dispatch_policy": "hybrid_canonical",
+      "main_binding_suppressed": false,
+      "observed_at": 1785491934.005,
+      "hybrid_session": {
+        "policy": "hybrid_canonical",
+        "vision_state": "occupied",
+        "updated_at": 1785491934.005,
+        "last_dispatch_at": 1785490459.563,
+        "last_dispatch_ind_bind": "1",
+        "last_dispatch_ctnr_code": "PK_AA1",
+        "last_response_code": "0",
+        "last_response_message": "",
+        "owner": "canonical_static",
+        "actual_ctnr_code": "PK_AA1",
+        "actual_ctnr_source": "static_canonical",
+        "action": "canonical_static_bound",
+        "needs_reconcile": false,
+        "canonicalized_at": 1785491934.005
+      },
+      "bound_state": "occupied",
+      "last_bound_ctnr_code": "PK_AA1"
+    },
+    "cam4:A2:bindCtnrAndBin": {
+      "mapping": "cam4:A2:bindCtnrAndBin",
+      "last_seen_state": "occupied",
+      "last_seen_at": 1785491934.005,
+      "lock_dispatch": {
+        "key": "lock:disable",
+        "req_code": "03497b5031ea2d9e87223413a6fad219",
+        "attempt_ts": 1785490453.612,
+        "success": false,
+        "non_retryable": true,
+        "response": {
+          "code": "1",
+          "data": "",
+          "interrupt": false,
+          "message": "point code is not exist，pointCode：PK_AA2",
+          "reqCode": "03497b5031ea2d9e87223413a6fad219"
+        },
+        "response_ts": 1785490453.612
+      },
+      "bind_dispatch": {
+        "key": "hybrid_canonical:bind_static_or_discover:PK_AA2",
+        "req_code": "d34d4468566ecdd5c957a0a0cf9791b3",
+        "attempt_ts": 1785490459.563,
+        "success": true,
+        "non_retryable": false,
+        "response": {
+          "code": "0",
+          "data": "",
+          "interrupt": false,
+          "reqCode": "d34d4468566ecdd5c957a0a0cf9791b3"
+        },
+        "response_ts": 1785490459.563
+      },
+      "observed_state": "occupied",
+      "observed_method": "bindCtnrAndBin",
+      "dispatch_policy": "hybrid_canonical",
+      "main_binding_suppressed": false,
+      "observed_at": 1785491934.005,
+      "hybrid_session": {
+        "policy": "hybrid_canonical",
+        "vision_state": "occupied",
+        "updated_at": 1785491934.005,
+        "last_dispatch_at": 1785490459.563,
+        "last_dispatch_ind_bind": "1",
+        "last_dispatch_ctnr_code": "PK_AA2",
+        "last_response_code": "0",
+        "last_response_message": "",
+        "owner": "canonical_static",
+        "actual_ctnr_code": "PK_AA2",
+        "actual_ctnr_source": "static_canonical",
+        "action": "canonical_static_bound",
+        "needs_reconcile": false,
+        "canonicalized_at": 1785491934.005
+      },
+      "bound_state": "occupied",
+      "last_bound_ctnr_code": "PK_AA2"
+    },
+    "cam4:A3:bindCtnrAndBin": {
+      "mapping": "cam4:A3:bindCtnrAndBin",
+      "last_seen_state": "occupied",
+      "last_seen_at": 1785491934.005,
+      "lock_dispatch": {
+        "key": "lock:disable",
+        "req_code": "f9d41c399ea18cf811c7c4b6efce1166",
+        "attempt_ts": 1785490453.612,
+        "success": false,
+        "non_retryable": true,
+        "response": {
+          "code": "1",
+          "data": "",
+          "interrupt": false,
+          "message": "point code is not exist，pointCode：PK_AA3",
+          "reqCode": "f9d41c399ea18cf811c7c4b6efce1166"
+        },
+        "response_ts": 1785490453.612
+      },
+      "bind_dispatch": {
+        "key": "hybrid_canonical:bind_static_or_discover:PK_AA3",
+        "req_code": "17e9720bd2191c4156e450b24bf751e7",
+        "attempt_ts": 1785490459.563,
+        "success": true,
+        "non_retryable": false,
+        "response": {
+          "code": "0",
+          "data": "",
+          "interrupt": false,
+          "reqCode": "17e9720bd2191c4156e450b24bf751e7"
+        },
+        "response_ts": 1785490459.563
+      },
+      "observed_state": "occupied",
+      "observed_method": "bindCtnrAndBin",
+      "dispatch_policy": "hybrid_canonical",
+      "main_binding_suppressed": false,
+      "observed_at": 1785491934.005,
+      "hybrid_session": {
+        "policy": "hybrid_canonical",
+        "vision_state": "occupied",
+        "updated_at": 1785491934.005,
+        "last_dispatch_at": 1785490459.563,
+        "last_dispatch_ind_bind": "1",
+        "last_dispatch_ctnr_code": "PK_AA3",
+        "last_response_code": "0",
+        "last_response_message": "",
+        "owner": "canonical_static",
+        "actual_ctnr_code": "PK_AA3",
+        "actual_ctnr_source": "static_canonical",
+        "action": "canonical_static_bound",
+        "needs_reconcile": false,
+        "canonicalized_at": 1785491934.005
+      },
+      "bound_state": "occupied",
+      "last_bound_ctnr_code": "PK_AA3"
+    },
+    "cam4:A4:bindCtnrAndBin": {
+      "mapping": "cam4:A4:bindCtnrAndBin",
+      "last_seen_state": "occupied",
+      "last_seen_at": 1785491934.005,
+      "lock_dispatch": {
+        "key": "lock:disable",
+        "req_code": "f147d4831e28677e03ed632f5517f66b",
+        "attempt_ts": 1785490453.612,
+        "success": false,
+        "non_retryable": true,
+        "response": {
+          "code": "1",
+          "data": "",
+          "interrupt": false,
+          "message": "point code is not exist，pointCode：PK_AA5",
+          "reqCode": "f147d4831e28677e03ed632f5517f66b"
+        },
+        "response_ts": 1785490453.612
+      },
+      "bind_dispatch": {
+        "key": "hybrid_canonical:bind_static_or_discover:PK_AA5",
+        "req_code": "140098c532a703535a4f4a8fb95c2c47",
+        "attempt_ts": 1785491628.51,
+        "success": true,
+        "non_retryable": false,
+        "response": {
+          "code": "0",
+          "data": "",
+          "interrupt": false,
+          "reqCode": "140098c532a703535a4f4a8fb95c2c47"
+        },
+        "response_ts": 1785491628.51
+      },
+      "observed_state": "occupied",
+      "observed_method": "bindCtnrAndBin",
+      "dispatch_policy": "hybrid_canonical",
+      "main_binding_suppressed": false,
+      "observed_at": 1785491934.005,
+      "hybrid_session": {
+        "policy": "hybrid_canonical",
+        "vision_state": "occupied",
+        "updated_at": 1785491934.005,
+        "last_dispatch_at": 1785491628.51,
+        "last_dispatch_ind_bind": "1",
+        "last_dispatch_ctnr_code": "PK_AA5",
+        "last_response_code": "0",
+        "last_response_message": "",
+        "owner": "canonical_static",
+        "actual_ctnr_code": "PK_AA5",
+        "actual_ctnr_source": "static_canonical",
+        "action": "canonical_static_bound",
+        "needs_reconcile": false,
+        "canonicalized_at": 1785491934.005
+      },
+      "bound_state": "occupied",
+      "last_bound_ctnr_code": "PK_AA5"
+    },
+    "cam4:B1:bindCtnrAndBin": {
+      "mapping": "cam4:B1:bindCtnrAndBin",
+      "last_seen_state": "occupied",
+      "last_seen_at": 1785491934.005,
+      "lock_dispatch": {
+        "key": "lock:disable",
+        "req_code": "448514cb2451e07c37f0915c731bfab0",
+        "attempt_ts": 1785490453.612,
+        "success": false,
+        "non_retryable": true,
+        "response": {
+          "code": "1",
+          "data": "",
+          "interrupt": false,
+          "message": "point code is not exist，pointCode：PK_BB1",
+          "reqCode": "448514cb2451e07c37f0915c731bfab0"
+        },
+        "response_ts": 1785490453.612
+      },
+      "bind_dispatch": {
+        "key": "hybrid_canonical:bind_static_or_discover:PK_BB1",
+        "req_code": "69e4fd5ab9057ea5df6fd82f04043b5d",
+        "attempt_ts": 1785490459.563,
+        "success": true,
+        "non_retryable": false,
+        "response": {
+          "code": "0",
+          "data": "",
+          "interrupt": false,
+          "reqCode": "69e4fd5ab9057ea5df6fd82f04043b5d"
+        },
+        "response_ts": 1785490459.563
+      },
+      "observed_state": "occupied",
+      "observed_method": "bindCtnrAndBin",
+      "dispatch_policy": "hybrid_canonical",
+      "main_binding_suppressed": false,
+      "observed_at": 1785491934.005,
+      "hybrid_session": {
+        "policy": "hybrid_canonical",
+        "vision_state": "occupied",
+        "updated_at": 1785491934.005,
+        "last_dispatch_at": 1785490459.563,
+        "last_dispatch_ind_bind": "1",
+        "last_dispatch_ctnr_code": "PK_BB1",
+        "last_response_code": "0",
+        "last_response_message": "",
+        "owner": "canonical_static",
+        "actual_ctnr_code": "PK_BB1",
+        "actual_ctnr_source": "static_canonical",
+        "action": "canonical_static_bound",
+        "needs_reconcile": false,
+        "canonicalized_at": 1785491934.005
+      },
+      "bound_state": "occupied",
+      "last_bound_ctnr_code": "PK_BB1"
+    },
+    "cam4:B2:bindCtnrAndBin": {
+      "mapping": "cam4:B2:bindCtnrAndBin",
+      "last_seen_state": "occupied",
+      "last_seen_at": 1785491934.005,
+      "lock_dispatch": {
+        "key": "lock:disable",
+        "req_code": "216ff35fae2a534957097549b9be0a88",
+        "attempt_ts": 1785490453.612,
+        "success": false,
+        "non_retryable": true,
+        "response": {
+          "code": "1",
+          "data": "",
+          "interrupt": false,
+          "message": "point code is not exist，pointCode：PK_BB2",
+          "reqCode": "216ff35fae2a534957097549b9be0a88"
+        },
+        "response_ts": 1785490453.612
+      },
+      "bind_dispatch": {
+        "key": "hybrid_canonical:bind_static_or_discover:PK_BB2",
+        "req_code": "8e5c4014e227828c71956f15beb9f7c7",
+        "attempt_ts": 1785490459.563,
+        "success": true,
+        "non_retryable": false,
+        "response": {
+          "code": "0",
+          "data": "",
+          "interrupt": false,
+          "reqCode": "8e5c4014e227828c71956f15beb9f7c7"
+        },
+        "response_ts": 1785490459.563
+      },
+      "observed_state": "occupied",
+      "observed_method": "bindCtnrAndBin",
+      "dispatch_policy": "hybrid_canonical",
+      "main_binding_suppressed": false,
+      "observed_at": 1785491934.005,
+      "hybrid_session": {
+        "policy": "hybrid_canonical",
+        "vision_state": "occupied",
+        "updated_at": 1785491934.005,
+        "last_dispatch_at": 1785490459.563,
+        "last_dispatch_ind_bind": "1",
+        "last_dispatch_ctnr_code": "PK_BB2",
+        "last_response_code": "0",
+        "last_response_message": "",
+        "owner": "canonical_static",
+        "actual_ctnr_code": "PK_BB2",
+        "actual_ctnr_source": "static_canonical",
+        "action": "canonical_static_bound",
+        "needs_reconcile": false,
+        "canonicalized_at": 1785491934.005
+      },
+      "bound_state": "occupied",
+      "last_bound_ctnr_code": "PK_BB2"
+    },
+    "cam4:B3:bindCtnrAndBin": {
+      "mapping": "cam4:B3:bindCtnrAndBin",
+      "last_seen_state": "occupied",
+      "last_seen_at": 1785491934.005,
+      "lock_dispatch": {
+        "key": "lock:disable",
+        "req_code": "ed6f597428e541693d5b3cb243248a53",
+        "attempt_ts": 1785490453.612,
+        "success": false,
+        "non_retryable": true,
+        "response": {
+          "code": "1",
+          "data": "",
+          "interrupt": false,
+          "message": "point code is not exist，pointCode：PK_BB3",
+          "reqCode": "ed6f597428e541693d5b3cb243248a53"
+        },
+        "response_ts": 1785490453.612
+      },
+      "bind_dispatch": {
+        "key": "hybrid_canonical:bind_static_or_discover:PK_BB3",
+        "req_code": "393a093bbbfd4b882e83a01929bd4661",
+        "attempt_ts": 1785490459.563,
+        "success": true,
+        "non_retryable": false,
+        "response": {
+          "code": "0",
+          "data": "",
+          "interrupt": false,
+          "reqCode": "393a093bbbfd4b882e83a01929bd4661"
+        },
+        "response_ts": 1785490459.563
+      },
+      "observed_state": "occupied",
+      "observed_method": "bindCtnrAndBin",
+      "dispatch_policy": "hybrid_canonical",
+      "main_binding_suppressed": false,
+      "observed_at": 1785491934.005,
+      "hybrid_session": {
+        "policy": "hybrid_canonical",
+        "vision_state": "occupied",
+        "updated_at": 1785491934.005,
+        "last_dispatch_at": 1785490459.563,
+        "last_dispatch_ind_bind": "1",
+        "last_dispatch_ctnr_code": "PK_BB3",
+        "last_response_code": "0",
+        "last_response_message": "",
+        "owner": "canonical_static",
+        "actual_ctnr_code": "PK_BB3",
+        "actual_ctnr_source": "static_canonical",
+        "action": "canonical_static_bound",
+        "needs_reconcile": false,
+        "canonicalized_at": 1785491934.005
+      },
+      "bound_state": "occupied",
+      "last_bound_ctnr_code": "PK_BB3"
+    },
+    "cam4:B4:bindCtnrAndBin": {
+      "mapping": "cam4:B4:bindCtnrAndBin",
+      "last_seen_state": "occupied",
+      "last_seen_at": 1785491934.005,
+      "lock_dispatch": {
+        "key": "lock:disable",
+        "req_code": "4973895ac8bef7214f210d7331f86d31",
+        "attempt_ts": 1785490453.612,
+        "success": false,
+        "non_retryable": true,
+        "response": {
+          "code": "1",
+          "data": "",
+          "interrupt": false,
+          "message": "point code is not exist，pointCode：PK_BB4",
+          "reqCode": "4973895ac8bef7214f210d7331f86d31"
+        },
+        "response_ts": 1785490453.612
+      },
+      "bind_dispatch": {
+        "key": "hybrid_canonical:bind_static_or_discover:PK_BB4",
+        "req_code": "7d7121a2cac0bcf90f0c3ac5a1103643",
+        "attempt_ts": 1785490459.563,
+        "success": true,
+        "non_retryable": false,
+        "response": {
+          "code": "0",
+          "data": "",
+          "interrupt": false,
+          "reqCode": "7d7121a2cac0bcf90f0c3ac5a1103643"
+        },
+        "response_ts": 1785490459.563
+      },
+      "observed_state": "occupied",
+      "observed_method": "bindCtnrAndBin",
+      "dispatch_policy": "hybrid_canonical",
+      "main_binding_suppressed": false,
+      "observed_at": 1785491934.005,
+      "hybrid_session": {
+        "policy": "hybrid_canonical",
+        "vision_state": "occupied",
+        "updated_at": 1785491934.005,
+        "last_dispatch_at": 1785490459.563,
+        "last_dispatch_ind_bind": "1",
+        "last_dispatch_ctnr_code": "PK_BB4",
+        "last_response_code": "0",
+        "last_response_message": "",
+        "owner": "canonical_static",
+        "actual_ctnr_code": "PK_BB4",
+        "actual_ctnr_source": "static_canonical",
+        "action": "canonical_static_bound",
+        "needs_reconcile": false,
+        "canonicalized_at": 1785491934.005
+      },
+      "bound_state": "occupied",
+      "last_bound_ctnr_code": "PK_BB4"
+    },
+    "cam5:C1:bindCtnrAndBin": {
+      "mapping": "cam5:C1:bindCtnrAndBin",
+      "last_seen_state": "empty",
+      "last_seen_at": 1785491934.005,
+      "lock_dispatch": {
+        "key": "lock:disable",
+        "req_code": "13ba990021b8e7c088fd4e427154133d",
+        "attempt_ts": 1785490453.612,
+        "success": false,
+        "non_retryable": true,
+        "response": {
+          "code": "1",
+          "data": "",
+          "interrupt": false,
+          "message": "point code is not exist，pointCode：PK_CC1",
+          "reqCode": "13ba990021b8e7c088fd4e427154133d"
+        },
+        "response_ts": 1785490453.612
+      },
+      "bind_dispatch": {
+        "key": "hybrid_canonical:empty_unbind:PK_CC1",
+        "req_code": "982f4545ade9e305c65f306a58c78b1e",
+        "attempt_ts": 1785490468.74,
+        "success": true,
+        "non_retryable": false,
+        "response": {
+          "code": "0",
+          "data": "",
+          "interrupt": false,
+          "reqCode": "982f4545ade9e305c65f306a58c78b1e"
+        },
+        "response_ts": 1785490468.74
+      },
+      "observed_state": "empty",
+      "observed_method": "bindCtnrAndBin",
+      "dispatch_policy": "hybrid_canonical",
+      "main_binding_suppressed": false,
+      "observed_at": 1785491934.005,
+      "hybrid_session": {
+        "policy": "hybrid_canonical",
+        "vision_state": "empty",
+        "updated_at": 1785491934.005,
+        "last_dispatch_at": 1785490468.74,
+        "last_dispatch_ind_bind": "0",
+        "last_dispatch_ctnr_code": "PK_CC1",
+        "last_response_code": "0",
+        "last_response_message": "",
+        "owner": "",
+        "actual_ctnr_code": "",
+        "actual_ctnr_source": "",
+        "action": "unbind_success",
+        "needs_reconcile": false
+      },
+      "bound_state": "empty",
+      "last_bound_ctnr_code": ""
+    },
+    "cam5:C2:bindCtnrAndBin": {
+      "mapping": "cam5:C2:bindCtnrAndBin",
+      "last_seen_state": "empty",
+      "last_seen_at": 1785491934.005,
+      "lock_dispatch": {
+        "key": "lock:disable",
+        "req_code": "c7f6b505727beb544034b1c07e317bdd",
+        "attempt_ts": 1785490453.612,
+        "success": false,
+        "non_retryable": true,
+        "response": {
+          "code": "1",
+          "data": "",
+          "interrupt": false,
+          "message": "point code is not exist，pointCode：PK_CC2",
+          "reqCode": "c7f6b505727beb544034b1c07e317bdd"
+        },
+        "response_ts": 1785490453.612
+      },
+      "bind_dispatch": {
+        "key": "hybrid_canonical:empty_unbind:PK_CC2",
+        "req_code": "80ef92a3192ee098e4bb10c620a40fd4",
+        "attempt_ts": 1785490468.74,
+        "success": true,
+        "non_retryable": false,
+        "response": {
+          "code": "0",
+          "data": "",
+          "interrupt": false,
+          "reqCode": "80ef92a3192ee098e4bb10c620a40fd4"
+        },
+        "response_ts": 1785490468.74
+      },
+      "observed_state": "empty",
+      "observed_method": "bindCtnrAndBin",
+      "dispatch_policy": "hybrid_canonical",
+      "main_binding_suppressed": false,
+      "observed_at": 1785491934.005,
+      "hybrid_session": {
+        "policy": "hybrid_canonical",
+        "vision_state": "empty",
+        "updated_at": 1785491934.005,
+        "last_dispatch_at": 1785490468.74,
+        "last_dispatch_ind_bind": "0",
+        "last_dispatch_ctnr_code": "PK_CC2",
+        "last_response_code": "0",
+        "last_response_message": "",
+        "owner": "",
+        "actual_ctnr_code": "",
+        "actual_ctnr_source": "",
+        "action": "unbind_success",
+        "needs_reconcile": false
+      },
+      "bound_state": "empty",
+      "last_bound_ctnr_code": ""
+    },
+    "cam5:C3:bindCtnrAndBin": {
+      "mapping": "cam5:C3:bindCtnrAndBin",
+      "last_seen_state": "empty",
+      "last_seen_at": 1785491934.005,
+      "lock_dispatch": {
+        "key": "lock:disable",
+        "req_code": "17355443a75a5201e3c316b1e56bf4a9",
+        "attempt_ts": 1785490453.612,
+        "success": false,
+        "non_retryable": true,
+        "response": {
+          "code": "1",
+          "data": "",
+          "interrupt": false,
+          "message": "point code is not exist，pointCode：PK_CC3",
+          "reqCode": "17355443a75a5201e3c316b1e56bf4a9"
+        },
+        "response_ts": 1785490453.612
+      },
+      "bind_dispatch": {
+        "key": "hybrid_canonical:empty_unbind:PK_CC3",
+        "req_code": "66e231a323c27973adf31e18bed3b16e",
+        "attempt_ts": 1785490468.74,
+        "success": true,
+        "non_retryable": false,
+        "response": {
+          "code": "0",
+          "data": "",
+          "interrupt": false,
+          "reqCode": "66e231a323c27973adf31e18bed3b16e"
+        },
+        "response_ts": 1785490468.74
+      },
+      "observed_state": "empty",
+      "observed_method": "bindCtnrAndBin",
+      "dispatch_policy": "hybrid_canonical",
+      "main_binding_suppressed": false,
+      "observed_at": 1785491934.005,
+      "hybrid_session": {
+        "policy": "hybrid_canonical",
+        "vision_state": "empty",
+        "updated_at": 1785491934.005,
+        "last_dispatch_at": 1785490468.74,
+        "last_dispatch_ind_bind": "0",
+        "last_dispatch_ctnr_code": "PK_CC3",
+        "last_response_code": "0",
+        "last_response_message": "",
+        "owner": "",
+        "actual_ctnr_code": "",
+        "actual_ctnr_source": "",
+        "action": "unbind_success",
+        "needs_reconcile": false
+      },
+      "bound_state": "empty",
+      "last_bound_ctnr_code": ""
+    },
+    "cam5:D1:bindCtnrAndBin": {
+      "mapping": "cam5:D1:bindCtnrAndBin",
+      "last_seen_state": "empty",
+      "last_seen_at": 1785491934.005,
+      "lock_dispatch": {
+        "key": "lock:disable",
+        "req_code": "35f4cd9c4fe514d7ce56d8668214a2b0",
+        "attempt_ts": 1785490453.612,
+        "success": false,
+        "non_retryable": true,
+        "response": {
+          "code": "1",
+          "data": "",
+          "interrupt": false,
+          "message": "point code is not exist，pointCode：PK_DD1",
+          "reqCode": "35f4cd9c4fe514d7ce56d8668214a2b0"
+        },
+        "response_ts": 1785490453.612
+      },
+      "bind_dispatch": {
+        "key": "hybrid_canonical:empty_unbind:PK_DD1",
+        "req_code": "7d0f387a71d675331ea89e8f77736f6f",
+        "attempt_ts": 1785490468.74,
+        "success": true,
+        "non_retryable": false,
+        "response": {
+          "code": "0",
+          "data": "",
+          "interrupt": false,
+          "reqCode": "7d0f387a71d675331ea89e8f77736f6f"
+        },
+        "response_ts": 1785490468.74
+      },
+      "observed_state": "empty",
+      "observed_method": "bindCtnrAndBin",
+      "dispatch_policy": "hybrid_canonical",
+      "main_binding_suppressed": false,
+      "observed_at": 1785491934.005,
+      "hybrid_session": {
+        "policy": "hybrid_canonical",
+        "vision_state": "empty",
+        "updated_at": 1785491934.005,
+        "last_dispatch_at": 1785490468.74,
+        "last_dispatch_ind_bind": "0",
+        "last_dispatch_ctnr_code": "PK_DD1",
+        "last_response_code": "0",
+        "last_response_message": "",
+        "owner": "",
+        "actual_ctnr_code": "",
+        "actual_ctnr_source": "",
+        "action": "unbind_success",
+        "needs_reconcile": false
+      },
+      "bound_state": "empty",
+      "last_bound_ctnr_code": ""
+    },
+    "cam5:D2:bindCtnrAndBin": {
+      "mapping": "cam5:D2:bindCtnrAndBin",
+      "last_seen_state": "empty",
+      "last_seen_at": 1785491934.005,
+      "lock_dispatch": {
+        "key": "lock:disable",
+        "req_code": "d55fe43cc6eb370ade8c5758c06fc36d",
+        "attempt_ts": 1785490453.612,
+        "success": false,
+        "non_retryable": true,
+        "response": {
+          "code": "1",
+          "data": "",
+          "interrupt": false,
+          "message": "point code is not exist，pointCode：PK_DD2",
+          "reqCode": "d55fe43cc6eb370ade8c5758c06fc36d"
+        },
+        "response_ts": 1785490453.612
+      },
+      "bind_dispatch": {
+        "key": "hybrid_canonical:empty_unbind:PK_DD2",
+        "req_code": "6e3cbc571c709e676c53eceffc39ff12",
+        "attempt_ts": 1785490468.74,
+        "success": true,
+        "non_retryable": false,
+        "response": {
+          "code": "0",
+          "data": "",
+          "interrupt": false,
+          "reqCode": "6e3cbc571c709e676c53eceffc39ff12"
+        },
+        "response_ts": 1785490468.74
+      },
+      "observed_state": "empty",
+      "observed_method": "bindCtnrAndBin",
+      "dispatch_policy": "hybrid_canonical",
+      "main_binding_suppressed": false,
+      "observed_at": 1785491934.005,
+      "hybrid_session": {
+        "policy": "hybrid_canonical",
+        "vision_state": "empty",
+        "updated_at": 1785491934.005,
+        "last_dispatch_at": 1785490468.74,
+        "last_dispatch_ind_bind": "0",
+        "last_dispatch_ctnr_code": "PK_DD2",
+        "last_response_code": "0",
+        "last_response_message": "",
+        "owner": "",
+        "actual_ctnr_code": "",
+        "actual_ctnr_source": "",
+        "action": "unbind_success",
+        "needs_reconcile": false
+      },
+      "bound_state": "empty",
+      "last_bound_ctnr_code": ""
+    },
+    "cam5:D3:bindCtnrAndBin": {
+      "mapping": "cam5:D3:bindCtnrAndBin",
+      "last_seen_state": "empty",
+      "last_seen_at": 1785491934.005,
+      "lock_dispatch": {
+        "key": "lock:disable",
+        "req_code": "a0e52191e7b5c2dd646260500c848d6d",
+        "attempt_ts": 1785490453.612,
+        "success": false,
+        "non_retryable": true,
+        "response": {
+          "code": "1",
+          "data": "",
+          "interrupt": false,
+          "message": "point code is not exist，pointCode：PK_DD3",
+          "reqCode": "a0e52191e7b5c2dd646260500c848d6d"
+        },
+        "response_ts": 1785490453.612
+      },
+      "bind_dispatch": {
+        "key": "hybrid_canonical:empty_unbind:PK_DD3",
+        "req_code": "e79bf9d8efdac10ac21c3263ea25df9c",
+        "attempt_ts": 1785490468.74,
+        "success": true,
+        "non_retryable": false,
+        "response": {
+          "code": "0",
+          "data": "",
+          "interrupt": false,
+          "reqCode": "e79bf9d8efdac10ac21c3263ea25df9c"
+        },
+        "response_ts": 1785490468.74
+      },
+      "observed_state": "empty",
+      "observed_method": "bindCtnrAndBin",
+      "dispatch_policy": "hybrid_canonical",
+      "main_binding_suppressed": false,
+      "observed_at": 1785491934.005,
+      "hybrid_session": {
+        "policy": "hybrid_canonical",
+        "vision_state": "empty",
+        "updated_at": 1785491934.005,
+        "last_dispatch_at": 1785490468.74,
+        "last_dispatch_ind_bind": "0",
+        "last_dispatch_ctnr_code": "PK_DD3",
+        "last_response_code": "0",
+        "last_response_message": "",
+        "owner": "",
+        "actual_ctnr_code": "",
+        "actual_ctnr_source": "",
+        "action": "unbind_success",
+        "needs_reconcile": false
+      },
+      "bound_state": "empty",
+      "last_bound_ctnr_code": ""
+    },
+    "cam5:D4:bindCtnrAndBin": {
+      "mapping": "cam5:D4:bindCtnrAndBin",
+      "last_seen_state": "empty",
+      "last_seen_at": 1785491934.005,
+      "lock_dispatch": {
+        "key": "lock:disable",
+        "req_code": "f22af5b9c5ebf72793a99e3a51c39e4a",
+        "attempt_ts": 1785490453.612,
+        "success": false,
+        "non_retryable": true,
+        "response": {
+          "code": "1",
+          "data": "",
+          "interrupt": false,
+          "message": "point code is not exist，pointCode：PK_DD4",
+          "reqCode": "f22af5b9c5ebf72793a99e3a51c39e4a"
+        },
+        "response_ts": 1785490453.612
+      },
+      "bind_dispatch": {
+        "key": "hybrid_canonical:empty_unbind:PK_DD4",
+        "req_code": "800078af7f87f2c33a0207eda7ed3537",
+        "attempt_ts": 1785490468.74,
+        "success": true,
+        "non_retryable": false,
+        "response": {
+          "code": "0",
+          "data": "",
+          "interrupt": false,
+          "reqCode": "800078af7f87f2c33a0207eda7ed3537"
+        },
+        "response_ts": 1785490468.74
+      },
+      "observed_state": "empty",
+      "observed_method": "bindCtnrAndBin",
+      "dispatch_policy": "hybrid_canonical",
+      "main_binding_suppressed": false,
+      "observed_at": 1785491934.005,
+      "hybrid_session": {
+        "policy": "hybrid_canonical",
+        "vision_state": "empty",
+        "updated_at": 1785491934.005,
+        "last_dispatch_at": 1785490468.74,
+        "last_dispatch_ind_bind": "0",
+        "last_dispatch_ctnr_code": "PK_DD4",
+        "last_response_code": "0",
+        "last_response_message": "",
+        "owner": "",
+        "actual_ctnr_code": "",
+        "actual_ctnr_source": "",
+        "action": "unbind_success",
+        "needs_reconcile": false
+      },
+      "bound_state": "empty",
+      "last_bound_ctnr_code": ""
+    },
+    "cam9:A1:bindCtnrAndBin": {
+      "mapping": "cam9:A1:bindCtnrAndBin",
+      "last_seen_state": "occupied",
+      "last_seen_at": 1785491934.005,
+      "lock_dispatch": {
+        "key": "lock:disable",
+        "req_code": "e1e50cd756b1ad70c61240ff7cc40a79",
+        "attempt_ts": 1785490453.612,
+        "success": false,
+        "non_retryable": true,
+        "response": {
+          "code": "1",
+          "data": "",
+          "interrupt": false,
+          "message": "point code is not exist，pointCode：FG_AA1",
+          "reqCode": "e1e50cd756b1ad70c61240ff7cc40a79"
+        },
+        "response_ts": 1785490453.612
+      },
+      "bind_dispatch": {
+        "key": "hybrid_canonical:bind_static:FG_AA1:from:PK_AA5",
+        "req_code": "08852bbfd82cb79e7b7b8a873bcc407b",
+        "attempt_ts": 1785491306.246,
+        "success": true,
+        "non_retryable": false,
+        "response": {
+          "code": "0",
+          "data": "",
+          "interrupt": false,
+          "reqCode": "08852bbfd82cb79e7b7b8a873bcc407b"
+        },
+        "response_ts": 1785491306.246
+      },
+      "observed_state": "occupied",
+      "observed_method": "bindCtnrAndBin",
+      "dispatch_policy": "hybrid_canonical",
+      "main_binding_suppressed": false,
+      "observed_at": 1785491934.005,
+      "hybrid_session": {
+        "policy": "hybrid_canonical",
+        "vision_state": "occupied",
+        "updated_at": 1785491934.005,
+        "last_dispatch_at": 1785491306.246,
+        "last_dispatch_ind_bind": "1",
+        "last_dispatch_ctnr_code": "FG_AA1",
+        "last_response_code": "0",
+        "last_response_message": "",
+        "owner": "canonical_static",
+        "actual_ctnr_code": "FG_AA1",
+        "actual_ctnr_source": "static_canonical",
+        "action": "canonical_static_bound",
+        "needs_reconcile": false,
+        "canonicalized_at": 1785491934.005
+      },
+      "bound_state": "occupied",
+      "last_bound_ctnr_code": "FG_AA1"
+    },
+    "cam9:A2:bindCtnrAndBin": {
+      "mapping": "cam9:A2:bindCtnrAndBin",
+      "last_seen_state": "empty",
+      "last_seen_at": 1785491934.005,
+      "lock_dispatch": {
+        "key": "lock:disable",
+        "req_code": "e239a91271f4ee2b96828b3c21d31aa4",
+        "attempt_ts": 1785490453.612,
+        "success": false,
+        "non_retryable": true,
+        "response": {
+          "code": "1",
+          "data": "",
+          "interrupt": false,
+          "message": "point code is not exist，pointCode：FG_AA2",
+          "reqCode": "e239a91271f4ee2b96828b3c21d31aa4"
+        },
+        "response_ts": 1785490453.612
+      },
+      "bind_dispatch": {
+        "key": "hybrid_canonical:empty_unbind:FG_AA2",
+        "req_code": "8a257f4674b12a677c6ba0059eb40262",
+        "attempt_ts": 1785490467.674,
+        "success": true,
+        "non_retryable": false,
+        "response": {
+          "code": "0",
+          "data": "",
+          "interrupt": false,
+          "reqCode": "8a257f4674b12a677c6ba0059eb40262"
+        },
+        "response_ts": 1785490467.674
+      },
+      "observed_state": "empty",
+      "observed_method": "bindCtnrAndBin",
+      "dispatch_policy": "hybrid_canonical",
+      "main_binding_suppressed": false,
+      "observed_at": 1785491934.005,
+      "hybrid_session": {
+        "policy": "hybrid_canonical",
+        "vision_state": "empty",
+        "updated_at": 1785491934.005,
+        "last_dispatch_at": 1785490467.674,
+        "last_dispatch_ind_bind": "0",
+        "last_dispatch_ctnr_code": "FG_AA2",
+        "last_response_code": "0",
+        "last_response_message": "",
+        "owner": "",
+        "actual_ctnr_code": "",
+        "actual_ctnr_source": "",
+        "action": "unbind_success",
+        "needs_reconcile": false
+      },
+      "bound_state": "empty",
+      "last_bound_ctnr_code": ""
+    },
+    "cam9:A3:bindCtnrAndBin": {
+      "mapping": "cam9:A3:bindCtnrAndBin",
+      "last_seen_state": "empty",
+      "last_seen_at": 1785491934.005,
+      "lock_dispatch": {
+        "key": "lock:disable",
+        "req_code": "843ddcffb59bd5645c364587bde4211a",
+        "attempt_ts": 1785490453.612,
+        "success": false,
+        "non_retryable": true,
+        "response": {
+          "code": "1",
+          "data": "",
+          "interrupt": false,
+          "message": "point code is not exist，pointCode：FG_AA3",
+          "reqCode": "843ddcffb59bd5645c364587bde4211a"
+        },
+        "response_ts": 1785490453.612
+      },
+      "bind_dispatch": {
+        "key": "hybrid_canonical:empty_unbind:FG_AA3",
+        "req_code": "250b28a7506aa211d3217db564d7720f",
+        "attempt_ts": 1785490467.674,
+        "success": true,
+        "non_retryable": false,
+        "response": {
+          "code": "0",
+          "data": "",
+          "interrupt": false,
+          "reqCode": "250b28a7506aa211d3217db564d7720f"
+        },
+        "response_ts": 1785490467.674
+      },
+      "observed_state": "empty",
+      "observed_method": "bindCtnrAndBin",
+      "dispatch_policy": "hybrid_canonical",
+      "main_binding_suppressed": false,
+      "observed_at": 1785491934.005,
+      "hybrid_session": {
+        "policy": "hybrid_canonical",
+        "vision_state": "empty",
+        "updated_at": 1785491934.005,
+        "last_dispatch_at": 1785490467.674,
+        "last_dispatch_ind_bind": "0",
+        "last_dispatch_ctnr_code": "FG_AA3",
+        "last_response_code": "0",
+        "last_response_message": "",
+        "owner": "",
+        "actual_ctnr_code": "",
+        "actual_ctnr_source": "",
+        "action": "unbind_success",
+        "needs_reconcile": false
+      },
+      "bound_state": "empty",
+      "last_bound_ctnr_code": ""
+    },
+    "cam9:A4:bindCtnrAndBin": {
+      "mapping": "cam9:A4:bindCtnrAndBin",
+      "last_seen_state": "empty",
+      "last_seen_at": 1785491934.005,
+      "lock_dispatch": {
+        "key": "lock:disable",
+        "req_code": "ffe1b8f245d6438201d426fe603319b4",
+        "attempt_ts": 1785490453.612,
+        "success": false,
+        "non_retryable": true,
+        "response": {
+          "code": "1",
+          "data": "",
+          "interrupt": false,
+          "message": "point code is not exist，pointCode：FG_AA4",
+          "reqCode": "ffe1b8f245d6438201d426fe603319b4"
+        },
+        "response_ts": 1785490453.612
+      },
+      "bind_dispatch": {
+        "key": "hybrid_canonical:empty_unbind:FG_AA4",
+        "req_code": "6da66120b49e97d5f4ce381f8c11f191",
+        "attempt_ts": 1785490467.674,
+        "success": true,
+        "non_retryable": false,
+        "response": {
+          "code": "0",
+          "data": "",
+          "interrupt": false,
+          "reqCode": "6da66120b49e97d5f4ce381f8c11f191"
+        },
+        "response_ts": 1785490467.674
+      },
+      "observed_state": "empty",
+      "observed_method": "bindCtnrAndBin",
+      "dispatch_policy": "hybrid_canonical",
+      "main_binding_suppressed": false,
+      "observed_at": 1785491934.005,
+      "hybrid_session": {
+        "policy": "hybrid_canonical",
+        "vision_state": "empty",
+        "updated_at": 1785491934.005,
+        "last_dispatch_at": 1785490467.674,
+        "last_dispatch_ind_bind": "0",
+        "last_dispatch_ctnr_code": "FG_AA4",
+        "last_response_code": "0",
+        "last_response_message": "",
+        "owner": "",
+        "actual_ctnr_code": "",
+        "actual_ctnr_source": "",
+        "action": "unbind_success",
+        "needs_reconcile": false
+      },
+      "bound_state": "empty",
+      "last_bound_ctnr_code": ""
+    },
+    "cam9:A5:bindCtnrAndBin": {
+      "mapping": "cam9:A5:bindCtnrAndBin",
+      "last_seen_state": "empty",
+      "last_seen_at": 1785491934.005,
+      "lock_dispatch": {
+        "key": "lock:disable",
+        "req_code": "29cccc65497333650ff2675344c918d5",
+        "attempt_ts": 1785490453.612,
+        "success": false,
+        "non_retryable": true,
+        "response": {
+          "code": "1",
+          "data": "",
+          "interrupt": false,
+          "message": "point code is not exist，pointCode：FG_AA5",
+          "reqCode": "29cccc65497333650ff2675344c918d5"
+        },
+        "response_ts": 1785490453.612
+      },
+      "bind_dispatch": {
+        "key": "hybrid_canonical:empty_unbind:FG_AA5",
+        "req_code": "fc9b4caf8543da5d518188da9fce5a79",
+        "attempt_ts": 1785490467.674,
+        "success": true,
+        "non_retryable": false,
+        "response": {
+          "code": "0",
+          "data": "",
+          "interrupt": false,
+          "reqCode": "fc9b4caf8543da5d518188da9fce5a79"
+        },
+        "response_ts": 1785490467.674
+      },
+      "observed_state": "empty",
+      "observed_method": "bindCtnrAndBin",
+      "dispatch_policy": "hybrid_canonical",
+      "main_binding_suppressed": false,
+      "observed_at": 1785491934.005,
+      "hybrid_session": {
+        "policy": "hybrid_canonical",
+        "vision_state": "empty",
+        "updated_at": 1785491934.005,
+        "last_dispatch_at": 1785490467.674,
+        "last_dispatch_ind_bind": "0",
+        "last_dispatch_ctnr_code": "FG_AA5",
+        "last_response_code": "0",
+        "last_response_message": "",
+        "owner": "",
+        "actual_ctnr_code": "",
+        "actual_ctnr_source": "",
+        "action": "unbind_success",
+        "needs_reconcile": false
+      },
+      "bound_state": "empty",
+      "last_bound_ctnr_code": ""
+    },
+    "cam9:A6:bindCtnrAndBin": {
+      "mapping": "cam9:A6:bindCtnrAndBin",
+      "last_seen_state": "empty",
+      "last_seen_at": 1785491934.005,
+      "lock_dispatch": {
+        "key": "lock:disable",
+        "req_code": "74034111cff2738458bbe8f2386652d7",
+        "attempt_ts": 1785490453.612,
+        "success": false,
+        "non_retryable": true,
+        "response": {
+          "code": "1",
+          "data": "",
+          "interrupt": false,
+          "message": "point code is not exist，pointCode：FG_AA6",
+          "reqCode": "74034111cff2738458bbe8f2386652d7"
+        },
+        "response_ts": 1785490453.612
+      },
+      "bind_dispatch": {
+        "key": "hybrid_canonical:empty_unbind:FG_AA6",
+        "req_code": "04ada1060209d6323b3788646dac3ab8",
+        "attempt_ts": 1785490467.674,
+        "success": true,
+        "non_retryable": false,
+        "response": {
+          "code": "0",
+          "data": "",
+          "interrupt": false,
+          "reqCode": "04ada1060209d6323b3788646dac3ab8"
+        },
+        "response_ts": 1785490467.674
+      },
+      "observed_state": "empty",
+      "observed_method": "bindCtnrAndBin",
+      "dispatch_policy": "hybrid_canonical",
+      "main_binding_suppressed": false,
+      "observed_at": 1785491934.005,
+      "hybrid_session": {
+        "policy": "hybrid_canonical",
+        "vision_state": "empty",
+        "updated_at": 1785491934.005,
+        "last_dispatch_at": 1785490467.674,
+        "last_dispatch_ind_bind": "0",
+        "last_dispatch_ctnr_code": "FG_AA6",
+        "last_response_code": "0",
+        "last_response_message": "",
+        "owner": "",
+        "actual_ctnr_code": "",
+        "actual_ctnr_source": "",
+        "action": "unbind_success",
+        "needs_reconcile": false
+      },
+      "bound_state": "empty",
+      "last_bound_ctnr_code": ""
+    },
+    "cam10:B1:bindCtnrAndBin": {
+      "mapping": "cam10:B1:bindCtnrAndBin",
+      "last_seen_state": "empty",
+      "last_seen_at": 1785491934.005,
+      "lock_dispatch": {
+        "key": "lock:disable",
+        "req_code": "62ebb9c85bdb6c6f9ee4dd05d9e31c3b",
+        "attempt_ts": 1785490453.612,
+        "success": false,
+        "non_retryable": true,
+        "response": {
+          "code": "1",
+          "data": "",
+          "interrupt": false,
+          "message": "point code is not exist，pointCode：FG_BB1",
+          "reqCode": "62ebb9c85bdb6c6f9ee4dd05d9e31c3b"
+        },
+        "response_ts": 1785490453.612
+      },
+      "bind_dispatch": {
+        "key": "hybrid_canonical:empty_unbind:FG_BB1",
+        "req_code": "35230331d780b933cd9900cbb62b3695",
+        "attempt_ts": 1785490463.67,
+        "success": true,
+        "non_retryable": false,
+        "response": {
+          "code": "0",
+          "data": "",
+          "interrupt": false,
+          "reqCode": "35230331d780b933cd9900cbb62b3695"
+        },
+        "response_ts": 1785490463.67
+      },
+      "observed_state": "empty",
+      "observed_method": "bindCtnrAndBin",
+      "dispatch_policy": "hybrid_canonical",
+      "main_binding_suppressed": false,
+      "observed_at": 1785491934.005,
+      "hybrid_session": {
+        "policy": "hybrid_canonical",
+        "vision_state": "empty",
+        "updated_at": 1785491934.005,
+        "last_dispatch_at": 1785490463.67,
+        "last_dispatch_ind_bind": "0",
+        "last_dispatch_ctnr_code": "FG_BB1",
+        "last_response_code": "0",
+        "last_response_message": "",
+        "owner": "",
+        "actual_ctnr_code": "",
+        "actual_ctnr_source": "",
+        "action": "unbind_success",
+        "needs_reconcile": false
+      },
+      "bound_state": "empty",
+      "last_bound_ctnr_code": ""
+    },
+    "cam10:B2:bindCtnrAndBin": {
+      "mapping": "cam10:B2:bindCtnrAndBin",
+      "last_seen_state": "empty",
+      "last_seen_at": 1785491934.005,
+      "lock_dispatch": {
+        "key": "lock:disable",
+        "req_code": "36425a985a424b44f813a6c40b8a0cba",
+        "attempt_ts": 1785490453.612,
+        "success": false,
+        "non_retryable": true,
+        "response": {
+          "code": "1",
+          "data": "",
+          "interrupt": false,
+          "message": "point code is not exist，pointCode：FG_BB2",
+          "reqCode": "36425a985a424b44f813a6c40b8a0cba"
+        },
+        "response_ts": 1785490453.612
+      },
+      "bind_dispatch": {
+        "key": "hybrid_canonical:empty_unbind:FG_BB2",
+        "req_code": "5a0a8aa5c90ff123268584c5ed7bd512",
+        "attempt_ts": 1785490463.67,
+        "success": true,
+        "non_retryable": false,
+        "response": {
+          "code": "0",
+          "data": "",
+          "interrupt": false,
+          "reqCode": "5a0a8aa5c90ff123268584c5ed7bd512"
+        },
+        "response_ts": 1785490463.67
+      },
+      "observed_state": "empty",
+      "observed_method": "bindCtnrAndBin",
+      "dispatch_policy": "hybrid_canonical",
+      "main_binding_suppressed": false,
+      "observed_at": 1785491934.005,
+      "hybrid_session": {
+        "policy": "hybrid_canonical",
+        "vision_state": "empty",
+        "updated_at": 1785491934.005,
+        "last_dispatch_at": 1785490463.67,
+        "last_dispatch_ind_bind": "0",
+        "last_dispatch_ctnr_code": "FG_BB2",
+        "last_response_code": "0",
+        "last_response_message": "",
+        "owner": "",
+        "actual_ctnr_code": "",
+        "actual_ctnr_source": "",
+        "action": "unbind_success",
+        "needs_reconcile": false
+      },
+      "bound_state": "empty",
+      "last_bound_ctnr_code": ""
+    },
+    "cam10:B3:bindCtnrAndBin": {
+      "mapping": "cam10:B3:bindCtnrAndBin",
+      "last_seen_state": "empty",
+      "last_seen_at": 1785491934.005,
+      "lock_dispatch": {
+        "key": "lock:disable",
+        "req_code": "49b5cc155544a44d3cee496480db47c7",
+        "attempt_ts": 1785490453.612,
+        "success": false,
+        "non_retryable": true,
+        "response": {
+          "code": "1",
+          "data": "",
+          "interrupt": false,
+          "message": "point code is not exist，pointCode：FG_BB3",
+          "reqCode": "49b5cc155544a44d3cee496480db47c7"
+        },
+        "response_ts": 1785490453.612
+      },
+      "bind_dispatch": {
+        "key": "hybrid_canonical:empty_unbind:FG_BB3",
+        "req_code": "0bbee28392c54dabc9a680d3a65b0014",
+        "attempt_ts": 1785490463.67,
+        "success": true,
+        "non_retryable": false,
+        "response": {
+          "code": "0",
+          "data": "",
+          "interrupt": false,
+          "reqCode": "0bbee28392c54dabc9a680d3a65b0014"
+        },
+        "response_ts": 1785490463.67
+      },
+      "observed_state": "empty",
+      "observed_method": "bindCtnrAndBin",
+      "dispatch_policy": "hybrid_canonical",
+      "main_binding_suppressed": false,
+      "observed_at": 1785491934.005,
+      "hybrid_session": {
+        "policy": "hybrid_canonical",
+        "vision_state": "empty",
+        "updated_at": 1785491934.005,
+        "last_dispatch_at": 1785490463.67,
+        "last_dispatch_ind_bind": "0",
+        "last_dispatch_ctnr_code": "FG_BB3",
+        "last_response_code": "0",
+        "last_response_message": "",
+        "owner": "",
+        "actual_ctnr_code": "",
+        "actual_ctnr_source": "",
+        "action": "unbind_success",
+        "needs_reconcile": false
+      },
+      "bound_state": "empty",
+      "last_bound_ctnr_code": ""
+    },
+    "cam10:B4:bindCtnrAndBin": {
+      "mapping": "cam10:B4:bindCtnrAndBin",
+      "last_seen_state": "empty",
+      "last_seen_at": 1785491934.005,
+      "lock_dispatch": {
+        "key": "lock:disable",
+        "req_code": "4d984e049962fe2799d832401c13c284",
+        "attempt_ts": 1785490453.612,
+        "success": false,
+        "non_retryable": true,
+        "response": {
+          "code": "1",
+          "data": "",
+          "interrupt": false,
+          "message": "point code is not exist，pointCode：FG_BB4",
+          "reqCode": "4d984e049962fe2799d832401c13c284"
+        },
+        "response_ts": 1785490453.612
+      },
+      "bind_dispatch": {
+        "key": "hybrid_canonical:empty_unbind:FG_BB4",
+        "req_code": "75c04459d33b37e5e235acce328e5e2c",
+        "attempt_ts": 1785490463.67,
+        "success": true,
+        "non_retryable": false,
+        "response": {
+          "code": "0",
+          "data": "",
+          "interrupt": false,
+          "reqCode": "75c04459d33b37e5e235acce328e5e2c"
+        },
+        "response_ts": 1785490463.67
+      },
+      "observed_state": "empty",
+      "observed_method": "bindCtnrAndBin",
+      "dispatch_policy": "hybrid_canonical",
+      "main_binding_suppressed": false,
+      "observed_at": 1785491934.005,
+      "hybrid_session": {
+        "policy": "hybrid_canonical",
+        "vision_state": "empty",
+        "updated_at": 1785491934.005,
+        "last_dispatch_at": 1785490463.67,
+        "last_dispatch_ind_bind": "0",
+        "last_dispatch_ctnr_code": "FG_BB4",
+        "last_response_code": "0",
+        "last_response_message": "",
+        "owner": "",
+        "actual_ctnr_code": "",
+        "actual_ctnr_source": "",
+        "action": "unbind_success",
+        "needs_reconcile": false
+      },
+      "bound_state": "empty",
+      "last_bound_ctnr_code": ""
+    },
+    "cam10:B5:bindCtnrAndBin": {
+      "mapping": "cam10:B5:bindCtnrAndBin",
+      "last_seen_state": "empty",
+      "last_seen_at": 1785491934.005,
+      "lock_dispatch": {
+        "key": "lock:disable",
+        "req_code": "8c099ffaa5ce6d00f13cb26d1fb96d3a",
+        "attempt_ts": 1785490453.612,
+        "success": false,
+        "non_retryable": true,
+        "response": {
+          "code": "1",
+          "data": "",
+          "interrupt": false,
+          "message": "point code is not exist，pointCode：FG_BB5",
+          "reqCode": "8c099ffaa5ce6d00f13cb26d1fb96d3a"
+        },
+        "response_ts": 1785490453.612
+      },
+      "bind_dispatch": {
+        "key": "hybrid_canonical:empty_unbind:FG_BB5",
+        "req_code": "bf49f572ce692b3718e221eb5f5c2be1",
+        "attempt_ts": 1785490463.67,
+        "success": true,
+        "non_retryable": false,
+        "response": {
+          "code": "0",
+          "data": "",
+          "interrupt": false,
+          "reqCode": "bf49f572ce692b3718e221eb5f5c2be1"
+        },
+        "response_ts": 1785490463.67
+      },
+      "observed_state": "empty",
+      "observed_method": "bindCtnrAndBin",
+      "dispatch_policy": "hybrid_canonical",
+      "main_binding_suppressed": false,
+      "observed_at": 1785491934.005,
+      "hybrid_session": {
+        "policy": "hybrid_canonical",
+        "vision_state": "empty",
+        "updated_at": 1785491934.005,
+        "last_dispatch_at": 1785490463.67,
+        "last_dispatch_ind_bind": "0",
+        "last_dispatch_ctnr_code": "FG_BB5",
+        "last_response_code": "0",
+        "last_response_message": "",
+        "owner": "",
+        "actual_ctnr_code": "",
+        "actual_ctnr_source": "",
+        "action": "unbind_success",
+        "needs_reconcile": false
+      },
+      "bound_state": "empty",
+      "last_bound_ctnr_code": ""
+    },
+    "cam10:B6:bindCtnrAndBin": {
+      "mapping": "cam10:B6:bindCtnrAndBin",
+      "last_seen_state": "empty",
+      "last_seen_at": 1785491934.005,
+      "lock_dispatch": {
+        "key": "lock:disable",
+        "req_code": "ea2d77b87c5d99e678cef48d8df42a83",
+        "attempt_ts": 1785490453.612,
+        "success": false,
+        "non_retryable": true,
+        "response": {
+          "code": "1",
+          "data": "",
+          "interrupt": false,
+          "message": "point code is not exist，pointCode：FG_BB6",
+          "reqCode": "ea2d77b87c5d99e678cef48d8df42a83"
+        },
+        "response_ts": 1785490453.612
+      },
+      "bind_dispatch": {
+        "key": "hybrid_canonical:empty_unbind:FG_BB6",
+        "req_code": "6d41141de9a3d8827edd20de40115d51",
+        "attempt_ts": 1785490463.67,
+        "success": true,
+        "non_retryable": false,
+        "response": {
+          "code": "0",
+          "data": "",
+          "interrupt": false,
+          "reqCode": "6d41141de9a3d8827edd20de40115d51"
+        },
+        "response_ts": 1785490463.67
+      },
+      "observed_state": "empty",
+      "observed_method": "bindCtnrAndBin",
+      "dispatch_policy": "hybrid_canonical",
+      "main_binding_suppressed": false,
+      "observed_at": 1785491934.005,
+      "hybrid_session": {
+        "policy": "hybrid_canonical",
+        "vision_state": "empty",
+        "updated_at": 1785491934.005,
+        "last_dispatch_at": 1785490463.67,
+        "last_dispatch_ind_bind": "0",
+        "last_dispatch_ctnr_code": "FG_BB6",
+        "last_response_code": "0",
+        "last_response_message": "",
+        "owner": "",
+        "actual_ctnr_code": "",
+        "actual_ctnr_source": "",
+        "action": "unbind_success",
+        "needs_reconcile": false
+      },
+      "bound_state": "empty",
+      "last_bound_ctnr_code": ""
+    },
+    "cam6_lift1_eleT1": {
+      "mapping": "cam6_lift1_eleT1",
+      "last_seen_state": "empty",
+      "last_seen_at": 1785491934.005,
+      "block_dispatch": {
+        "key": "block:empty",
+        "req_code": "8e3aeb5f65ffea63e3066920ab883566",
+        "attempt_ts": 1785491692.034,
+        "success": true,
+        "non_retryable": false,
+        "response": {
+          "code": "0",
+          "data": "",
+          "interrupt": false,
+          "message": "successful",
+          "reqCode": "8e3aeb5f65ffea63e3066920ab883566"
+        },
+        "response_ts": 1785491692.034
+      },
+      "block_state": "unblocked"
+    },
+    "cam6_lift1_eleT2": {
+      "mapping": "cam6_lift1_eleT2",
+      "last_seen_state": "empty",
+      "last_seen_at": 1785491934.005,
+      "block_dispatch": {
+        "key": "block:empty",
+        "req_code": "714fb9f8a7a52942452a253bb6c16c35",
+        "attempt_ts": 1785491692.034,
+        "success": true,
+        "non_retryable": false,
+        "response": {
+          "code": "0",
+          "data": "",
+          "interrupt": false,
+          "message": "successful",
+          "reqCode": "714fb9f8a7a52942452a253bb6c16c35"
+        },
+        "response_ts": 1785491692.034
+      },
+      "block_state": "unblocked"
+    },
+    "cam7_lift1_eleT1": {
+      "mapping": "cam7_lift1_eleT1",
+      "last_seen_state": "empty",
+      "last_seen_at": 1785491934.005,
+      "block_dispatch": {
+        "key": "block:empty",
+        "req_code": "78233b8141a60c10e1e7d68c2d1bf20c",
+        "attempt_ts": 1785491004.146,
+        "success": true,
+        "non_retryable": false,
+        "response": {
+          "code": "0",
+          "data": "",
+          "interrupt": false,
+          "message": "successful",
+          "reqCode": "78233b8141a60c10e1e7d68c2d1bf20c"
+        },
+        "response_ts": 1785491004.146
+      },
+      "block_state": "unblocked"
+    },
+    "cam7_lift1_eleT2": {
+      "mapping": "cam7_lift1_eleT2",
+      "last_seen_state": "empty",
+      "last_seen_at": 1785491934.005,
+      "block_dispatch": {
+        "key": "block:empty",
+        "req_code": "c2cf88d4555cd6720f77bc75971d0139",
+        "attempt_ts": 1785491934.005,
+        "success": false,
+        "non_retryable": false,
+        "response": {
+          "code": "1",
+          "data": "",
+          "interrupt": false,
+          "message": "Area 33 is not exist",
+          "reqCode": "c2cf88d4555cd6720f77bc75971d0139"
+        },
+        "response_ts": 1785491934.005
+      }
+    },
+    "cam2:A1:bindCtnrAndBin": {
+      "mapping": "cam2:A1:bindCtnrAndBin",
+      "last_seen_state": "occupied",
+      "last_seen_at": 1785491934.005,
+      "lock_dispatch": {
+        "key": "lock:disable",
+        "req_code": "62dde955f463e0fbdf9c010c744f8dc8",
+        "attempt_ts": 1785490453.612,
+        "success": false,
+        "non_retryable": true,
+        "response": {
+          "code": "1",
+          "data": "",
+          "interrupt": false,
+          "message": "point code is not exist，pointCode：COIL_FF10",
+          "reqCode": "62dde955f463e0fbdf9c010c744f8dc8"
+        },
+        "response_ts": 1785490453.612
+      },
+      "bind_dispatch": {
+        "key": "hybrid_canonical:bind_static_or_discover:COIL_FF10",
+        "req_code": "983059acc76e21cd4db4c9ef3d1af8ee",
+        "attempt_ts": 1785490458.534,
+        "success": true,
+        "non_retryable": false,
+        "response": {
+          "code": "0",
+          "data": "",
+          "interrupt": false,
+          "reqCode": "983059acc76e21cd4db4c9ef3d1af8ee"
+        },
+        "response_ts": 1785490458.534
+      },
+      "observed_state": "occupied",
+      "observed_method": "bindCtnrAndBin",
+      "dispatch_policy": "hybrid_canonical",
+      "main_binding_suppressed": false,
+      "observed_at": 1785491934.005,
+      "hybrid_session": {
+        "policy": "hybrid_canonical",
+        "vision_state": "occupied",
+        "updated_at": 1785491934.005,
+        "last_dispatch_at": 1785490458.534,
+        "last_dispatch_ind_bind": "1",
+        "last_dispatch_ctnr_code": "COIL_FF10",
+        "last_response_code": "0",
+        "last_response_message": "",
+        "owner": "canonical_static",
+        "actual_ctnr_code": "COIL_FF10",
+        "actual_ctnr_source": "static_canonical",
+        "action": "canonical_static_bound",
+        "needs_reconcile": false,
+        "canonicalized_at": 1785491934.005
+      },
+      "bound_state": "occupied",
+      "last_bound_ctnr_code": "COIL_FF10"
+    },
+    "cam2:A2:bindCtnrAndBin": {
+      "mapping": "cam2:A2:bindCtnrAndBin",
+      "last_seen_state": "occupied",
+      "last_seen_at": 1785491934.005,
+      "lock_dispatch": {
+        "key": "lock:disable",
+        "req_code": "b2f697d1dee8c88a3f6eebe539b2a830",
+        "attempt_ts": 1785490453.612,
+        "success": false,
+        "non_retryable": true,
+        "response": {
+          "code": "1",
+          "data": "",
+          "interrupt": false,
+          "message": "point code is not exist，pointCode：COIL_FF11",
+          "reqCode": "b2f697d1dee8c88a3f6eebe539b2a830"
+        },
+        "response_ts": 1785490453.612
+      },
+      "bind_dispatch": {
+        "key": "hybrid_canonical:bind_static_or_discover:COIL_FF11",
+        "req_code": "c7a7b08eabe7c79403dc13a4940b4d31",
+        "attempt_ts": 1785490458.534,
+        "success": true,
+        "non_retryable": false,
+        "response": {
+          "code": "0",
+          "data": "",
+          "interrupt": false,
+          "reqCode": "c7a7b08eabe7c79403dc13a4940b4d31"
+        },
+        "response_ts": 1785490458.534
+      },
+      "observed_state": "occupied",
+      "observed_method": "bindCtnrAndBin",
+      "dispatch_policy": "hybrid_canonical",
+      "main_binding_suppressed": false,
+      "observed_at": 1785491934.005,
+      "hybrid_session": {
+        "policy": "hybrid_canonical",
+        "vision_state": "occupied",
+        "updated_at": 1785491934.005,
+        "last_dispatch_at": 1785490458.534,
+        "last_dispatch_ind_bind": "1",
+        "last_dispatch_ctnr_code": "COIL_FF11",
+        "last_response_code": "0",
+        "last_response_message": "",
+        "owner": "canonical_static",
+        "actual_ctnr_code": "COIL_FF11",
+        "actual_ctnr_source": "static_canonical",
+        "action": "canonical_static_bound",
+        "needs_reconcile": false,
+        "canonicalized_at": 1785491934.005
+      },
+      "bound_state": "occupied",
+      "last_bound_ctnr_code": "COIL_FF11"
+    },
+    "cam2:A3:bindCtnrAndBin": {
+      "mapping": "cam2:A3:bindCtnrAndBin",
+      "last_seen_state": "occupied",
+      "last_seen_at": 1785491934.005,
+      "lock_dispatch": {
+        "key": "lock:disable",
+        "req_code": "b9cf76edc90bb4c66abd5467799e8c63",
+        "attempt_ts": 1785490453.612,
+        "success": false,
+        "non_retryable": true,
+        "response": {
+          "code": "1",
+          "data": "",
+          "interrupt": false,
+          "message": "point code is not exist，pointCode：COIL_FF12",
+          "reqCode": "b9cf76edc90bb4c66abd5467799e8c63"
+        },
+        "response_ts": 1785490453.612
+      },
+      "bind_dispatch": {
+        "key": "hybrid_canonical:bind_static_or_discover:COIL_FF12",
+        "req_code": "3f9bde73ee1526978421cf4aa78eaa3e",
+        "attempt_ts": 1785490458.534,
+        "success": true,
+        "non_retryable": false,
+        "response": {
+          "code": "0",
+          "data": "",
+          "interrupt": false,
+          "reqCode": "3f9bde73ee1526978421cf4aa78eaa3e"
+        },
+        "response_ts": 1785490458.534
+      },
+      "observed_state": "occupied",
+      "observed_method": "bindCtnrAndBin",
+      "dispatch_policy": "hybrid_canonical",
+      "main_binding_suppressed": false,
+      "observed_at": 1785491934.005,
+      "hybrid_session": {
+        "policy": "hybrid_canonical",
+        "vision_state": "occupied",
+        "updated_at": 1785491934.005,
+        "last_dispatch_at": 1785490458.534,
+        "last_dispatch_ind_bind": "1",
+        "last_dispatch_ctnr_code": "COIL_FF12",
+        "last_response_code": "0",
+        "last_response_message": "",
+        "owner": "canonical_static",
+        "actual_ctnr_code": "COIL_FF12",
+        "actual_ctnr_source": "static_canonical",
+        "action": "canonical_static_bound",
+        "needs_reconcile": false,
+        "canonicalized_at": 1785491934.005
+      },
+      "bound_state": "occupied",
+      "last_bound_ctnr_code": "COIL_FF12"
+    },
+    "cam2:A4:bindCtnrAndBin": {
+      "mapping": "cam2:A4:bindCtnrAndBin",
+      "last_seen_state": "occupied",
+      "last_seen_at": 1785491934.005,
+      "lock_dispatch": {
+        "key": "lock:disable",
+        "req_code": "b2d3aec28d990c6bbb9ceb973d69a4f8",
+        "attempt_ts": 1785490453.612,
+        "success": false,
+        "non_retryable": true,
+        "response": {
+          "code": "1",
+          "data": "",
+          "interrupt": false,
+          "message": "point code is not exist，pointCode：COIL_FF13",
+          "reqCode": "b2d3aec28d990c6bbb9ceb973d69a4f8"
+        },
+        "response_ts": 1785490453.612
+      },
+      "bind_dispatch": {
+        "key": "hybrid_canonical:bind_static_or_discover:COIL_FF13",
+        "req_code": "e17b0ec3904cc612bebbec83f426d5b8",
+        "attempt_ts": 1785490458.534,
+        "success": true,
+        "non_retryable": false,
+        "response": {
+          "code": "0",
+          "data": "",
+          "interrupt": false,
+          "reqCode": "e17b0ec3904cc612bebbec83f426d5b8"
+        },
+        "response_ts": 1785490458.534
+      },
+      "observed_state": "occupied",
+      "observed_method": "bindCtnrAndBin",
+      "dispatch_policy": "hybrid_canonical",
+      "main_binding_suppressed": false,
+      "observed_at": 1785491934.005,
+      "hybrid_session": {
+        "policy": "hybrid_canonical",
+        "vision_state": "occupied",
+        "updated_at": 1785491934.005,
+        "last_dispatch_at": 1785490458.534,
+        "last_dispatch_ind_bind": "1",
+        "last_dispatch_ctnr_code": "COIL_FF13",
+        "last_response_code": "0",
+        "last_response_message": "",
+        "owner": "canonical_static",
+        "actual_ctnr_code": "COIL_FF13",
+        "actual_ctnr_source": "static_canonical",
+        "action": "canonical_static_bound",
+        "needs_reconcile": false,
+        "canonicalized_at": 1785491934.005
+      },
+      "bound_state": "occupied",
+      "last_bound_ctnr_code": "COIL_FF13"
+    },
+    "cam2:A5:bindCtnrAndBin": {
+      "mapping": "cam2:A5:bindCtnrAndBin",
+      "last_seen_state": "occupied",
+      "last_seen_at": 1785491934.005,
+      "lock_dispatch": {
+        "key": "lock:disable",
+        "req_code": "89ebb6220948adce746e3d81ef7596a2",
+        "attempt_ts": 1785490453.612,
+        "success": false,
+        "non_retryable": true,
+        "response": {
+          "code": "1",
+          "data": "",
+          "interrupt": false,
+          "message": "point code is not exist，pointCode：COIL_FF14",
+          "reqCode": "89ebb6220948adce746e3d81ef7596a2"
+        },
+        "response_ts": 1785490453.612
+      },
+      "bind_dispatch": {
+        "key": "hybrid_canonical:bind_static_or_discover:COIL_FF14",
+        "req_code": "127d9356f67546a76d777732a68c74cd",
+        "attempt_ts": 1785490458.534,
+        "success": true,
+        "non_retryable": false,
+        "response": {
+          "code": "0",
+          "data": "",
+          "interrupt": false,
+          "reqCode": "127d9356f67546a76d777732a68c74cd"
+        },
+        "response_ts": 1785490458.534
+      },
+      "observed_state": "occupied",
+      "observed_method": "bindCtnrAndBin",
+      "dispatch_policy": "hybrid_canonical",
+      "main_binding_suppressed": false,
+      "observed_at": 1785491934.005,
+      "hybrid_session": {
+        "policy": "hybrid_canonical",
+        "vision_state": "occupied",
+        "updated_at": 1785491934.005,
+        "last_dispatch_at": 1785490458.534,
+        "last_dispatch_ind_bind": "1",
+        "last_dispatch_ctnr_code": "COIL_FF14",
+        "last_response_code": "0",
+        "last_response_message": "",
+        "owner": "canonical_static",
+        "actual_ctnr_code": "COIL_FF14",
+        "actual_ctnr_source": "static_canonical",
+        "action": "canonical_static_bound",
+        "needs_reconcile": false,
+        "canonicalized_at": 1785491934.005
+      },
+      "bound_state": "occupied",
+      "last_bound_ctnr_code": "COIL_FF14"
+    },
+    "cam3:A1:bindCtnrAndBin": {
+      "mapping": "cam3:A1:bindCtnrAndBin",
+      "last_seen_state": "occupied",
+      "last_seen_at": 1785491934.005,
+      "lock_dispatch": {
+        "key": "lock:disable",
+        "req_code": "b2031252cccdff8fd9a262beba8f6651",
+        "attempt_ts": 1785490453.612,
+        "success": false,
+        "non_retryable": true,
+        "response": {
+          "code": "1",
+          "data": "",
+          "interrupt": false,
+          "message": "point code is not exist，pointCode：WH_A1",
+          "reqCode": "b2031252cccdff8fd9a262beba8f6651"
+        },
+        "response_ts": 1785490453.612
+      },
+      "bind_dispatch": {
+        "key": "hybrid_canonical:bind_static_or_discover:WH_A1",
+        "req_code": "4d6b9ae5244dd96fb74ecb6fa3d5743a",
+        "attempt_ts": 1785490463.461,
+        "success": true,
+        "non_retryable": false,
+        "response": {
+          "code": "0",
+          "data": "",
+          "interrupt": false,
+          "reqCode": "4d6b9ae5244dd96fb74ecb6fa3d5743a"
+        },
+        "response_ts": 1785490463.461
+      },
+      "observed_state": "occupied",
+      "observed_method": "bindCtnrAndBin",
+      "dispatch_policy": "hybrid_canonical",
+      "main_binding_suppressed": false,
+      "observed_at": 1785491934.005,
+      "hybrid_session": {
+        "policy": "hybrid_canonical",
+        "vision_state": "occupied",
+        "updated_at": 1785491934.005,
+        "last_dispatch_at": 1785490463.461,
+        "last_dispatch_ind_bind": "1",
+        "last_dispatch_ctnr_code": "WH_A1",
+        "last_response_code": "0",
+        "last_response_message": "",
+        "owner": "canonical_static",
+        "actual_ctnr_code": "WH_A1",
+        "actual_ctnr_source": "static_canonical",
+        "action": "canonical_static_bound",
+        "needs_reconcile": false,
+        "canonicalized_at": 1785491934.005
+      },
+      "bound_state": "occupied",
+      "last_bound_ctnr_code": "WH_A1"
+    },
+    "cam3:A2:bindCtnrAndBin": {
+      "mapping": "cam3:A2:bindCtnrAndBin",
+      "last_seen_state": "empty",
+      "last_seen_at": 1785491934.005,
+      "lock_dispatch": {
+        "key": "lock:disable",
+        "req_code": "c9a8bdfbf487f70a242b1aff3a1ee84e",
+        "attempt_ts": 1785490453.612,
+        "success": false,
+        "non_retryable": true,
+        "response": {
+          "code": "1",
+          "data": "",
+          "interrupt": false,
+          "message": "point code is not exist，pointCode：WH_A2",
+          "reqCode": "c9a8bdfbf487f70a242b1aff3a1ee84e"
+        },
+        "response_ts": 1785490453.612
+      },
+      "bind_dispatch": {
+        "key": "hybrid_canonical:empty_unbind:WH_A2",
+        "req_code": "9afd9177ba4e3117519444a63b799e7d",
+        "attempt_ts": 1785490464.692,
+        "success": true,
+        "non_retryable": false,
+        "response": {
+          "code": "0",
+          "data": "",
+          "interrupt": false,
+          "reqCode": "9afd9177ba4e3117519444a63b799e7d"
+        },
+        "response_ts": 1785490464.692
+      },
+      "observed_state": "empty",
+      "observed_method": "bindCtnrAndBin",
+      "dispatch_policy": "hybrid_canonical",
+      "main_binding_suppressed": false,
+      "observed_at": 1785491934.005,
+      "hybrid_session": {
+        "policy": "hybrid_canonical",
+        "vision_state": "empty",
+        "updated_at": 1785491934.005,
+        "last_dispatch_at": 1785490464.692,
+        "last_dispatch_ind_bind": "0",
+        "last_dispatch_ctnr_code": "WH_A2",
+        "last_response_code": "0",
+        "last_response_message": "",
+        "owner": "",
+        "actual_ctnr_code": "",
+        "actual_ctnr_source": "",
+        "action": "unbind_success",
+        "needs_reconcile": false
+      },
+      "bound_state": "empty",
+      "last_bound_ctnr_code": ""
+    },
+    "cam3:B1:bindCtnrAndBin": {
+      "mapping": "cam3:B1:bindCtnrAndBin",
+      "last_seen_state": "occupied",
+      "last_seen_at": 1785491934.005,
+      "lock_dispatch": {
+        "key": "lock:disable",
+        "req_code": "49db3c3b3e2ffe8bdd8c614633df6a81",
+        "attempt_ts": 1785490453.612,
+        "success": false,
+        "non_retryable": true,
+        "response": {
+          "code": "1",
+          "data": "",
+          "interrupt": false,
+          "message": "point code is not exist，pointCode：WH_B1",
+          "reqCode": "49db3c3b3e2ffe8bdd8c614633df6a81"
+        },
+        "response_ts": 1785490453.612
+      },
+      "bind_dispatch": {
+        "key": "hybrid_canonical:bind_static_or_discover:WH_B1",
+        "req_code": "46f7462996ab668028c595da3c90102a",
+        "attempt_ts": 1785490463.461,
+        "success": true,
+        "non_retryable": false,
+        "response": {
+          "code": "0",
+          "data": "",
+          "interrupt": false,
+          "reqCode": "46f7462996ab668028c595da3c90102a"
+        },
+        "response_ts": 1785490463.461
+      },
+      "observed_state": "occupied",
+      "observed_method": "bindCtnrAndBin",
+      "dispatch_policy": "hybrid_canonical",
+      "main_binding_suppressed": false,
+      "observed_at": 1785491934.005,
+      "hybrid_session": {
+        "policy": "hybrid_canonical",
+        "vision_state": "occupied",
+        "updated_at": 1785491934.005,
+        "last_dispatch_at": 1785490463.461,
+        "last_dispatch_ind_bind": "1",
+        "last_dispatch_ctnr_code": "WH_B1",
+        "last_response_code": "0",
+        "last_response_message": "",
+        "owner": "canonical_static",
+        "actual_ctnr_code": "WH_B1",
+        "actual_ctnr_source": "static_canonical",
+        "action": "canonical_static_bound",
+        "needs_reconcile": false,
+        "canonicalized_at": 1785491934.005
+      },
+      "bound_state": "occupied",
+      "last_bound_ctnr_code": "WH_B1"
+    },
+    "cam3:B2:bindCtnrAndBin": {
+      "mapping": "cam3:B2:bindCtnrAndBin",
+      "last_seen_state": "empty",
+      "last_seen_at": 1785491934.005,
+      "lock_dispatch": {
+        "key": "lock:disable",
+        "req_code": "7dddc9165284ccdf1724d43524fb7d1e",
+        "attempt_ts": 1785490453.612,
+        "success": false,
+        "non_retryable": true,
+        "response": {
+          "code": "1",
+          "data": "",
+          "interrupt": false,
+          "message": "point code is not exist，pointCode：WH_B2",
+          "reqCode": "7dddc9165284ccdf1724d43524fb7d1e"
+        },
+        "response_ts": 1785490453.612
+      },
+      "bind_dispatch": {
+        "key": "hybrid_canonical:empty_unbind:WH_B2",
+        "req_code": "781de2734a4340902c787fc0fa1f32a7",
+        "attempt_ts": 1785490464.692,
+        "success": true,
+        "non_retryable": false,
+        "response": {
+          "code": "0",
+          "data": "",
+          "interrupt": false,
+          "reqCode": "781de2734a4340902c787fc0fa1f32a7"
+        },
+        "response_ts": 1785490464.692
+      },
+      "observed_state": "empty",
+      "observed_method": "bindCtnrAndBin",
+      "dispatch_policy": "hybrid_canonical",
+      "main_binding_suppressed": false,
+      "observed_at": 1785491934.005,
+      "hybrid_session": {
+        "policy": "hybrid_canonical",
+        "vision_state": "empty",
+        "updated_at": 1785491934.005,
+        "last_dispatch_at": 1785490464.692,
+        "last_dispatch_ind_bind": "0",
+        "last_dispatch_ctnr_code": "WH_B2",
+        "last_response_code": "0",
+        "last_response_message": "",
+        "owner": "",
+        "actual_ctnr_code": "",
+        "actual_ctnr_source": "",
+        "action": "unbind_success",
+        "needs_reconcile": false
+      },
+      "bound_state": "empty",
+      "last_bound_ctnr_code": ""
+    },
+    "cam8:A1:bindCtnrAndBin": {
+      "mapping": "cam8:A1:bindCtnrAndBin",
+      "last_seen_state": "occupied",
+      "last_seen_at": 1785491934.005,
+      "lock_dispatch": {
+        "key": "lock:disable",
+        "req_code": "e863ae7cc06bd68e02e219ecbc2d2a48",
+        "attempt_ts": 1785490453.612,
+        "success": false,
+        "non_retryable": true,
+        "response": {
+          "code": "1",
+          "data": "",
+          "interrupt": false,
+          "message": "point code is not exist，pointCode：3T_A1",
+          "reqCode": "e863ae7cc06bd68e02e219ecbc2d2a48"
+        },
+        "response_ts": 1785490453.612
+      },
+      "bind_dispatch": {
+        "key": "hybrid_canonical:bind_static_or_discover:3T_A1",
+        "req_code": "9d0d9409095d8a9368ed72ce0d089b40",
+        "attempt_ts": 1785490461.488,
+        "success": true,
+        "non_retryable": false,
+        "response": {
+          "code": "0",
+          "data": "",
+          "interrupt": false,
+          "reqCode": "9d0d9409095d8a9368ed72ce0d089b40"
+        },
+        "response_ts": 1785490461.488
+      },
+      "observed_state": "occupied",
+      "observed_method": "bindCtnrAndBin",
+      "dispatch_policy": "hybrid_canonical",
+      "main_binding_suppressed": false,
+      "observed_at": 1785491934.005,
+      "hybrid_session": {
+        "policy": "hybrid_canonical",
+        "vision_state": "occupied",
+        "updated_at": 1785491934.005,
+        "last_dispatch_at": 1785490461.488,
+        "last_dispatch_ind_bind": "1",
+        "last_dispatch_ctnr_code": "3T_A1",
+        "last_response_code": "0",
+        "last_response_message": "",
+        "owner": "canonical_static",
+        "actual_ctnr_code": "3T_A1",
+        "actual_ctnr_source": "static_canonical",
+        "action": "canonical_static_bound",
+        "needs_reconcile": false,
+        "canonicalized_at": 1785491934.005
+      },
+      "bound_state": "occupied",
+      "last_bound_ctnr_code": "3T_A1"
+    },
+    "cam8:A2:bindCtnrAndBin": {
+      "mapping": "cam8:A2:bindCtnrAndBin",
+      "last_seen_state": "occupied",
+      "last_seen_at": 1785491934.005,
+      "lock_dispatch": {
+        "key": "lock:disable",
+        "req_code": "52f7bae90b6ead9d9c08b2d6196281cb",
+        "attempt_ts": 1785490453.612,
+        "success": false,
+        "non_retryable": true,
+        "response": {
+          "code": "1",
+          "data": "",
+          "interrupt": false,
+          "message": "point code is not exist，pointCode：3T_A2",
+          "reqCode": "52f7bae90b6ead9d9c08b2d6196281cb"
+        },
+        "response_ts": 1785490453.612
+      },
+      "bind_dispatch": {
+        "key": "hybrid_canonical:bind_static_or_discover:3T_A2",
+        "req_code": "af8781e19ccb1840caf6902fd5b4b6d8",
+        "attempt_ts": 1785490461.488,
+        "success": true,
+        "non_retryable": false,
+        "response": {
+          "code": "0",
+          "data": "",
+          "interrupt": false,
+          "reqCode": "af8781e19ccb1840caf6902fd5b4b6d8"
+        },
+        "response_ts": 1785490461.488
+      },
+      "observed_state": "occupied",
+      "observed_method": "bindCtnrAndBin",
+      "dispatch_policy": "hybrid_canonical",
+      "main_binding_suppressed": false,
+      "observed_at": 1785491934.005,
+      "hybrid_session": {
+        "policy": "hybrid_canonical",
+        "vision_state": "occupied",
+        "updated_at": 1785491934.005,
+        "last_dispatch_at": 1785490461.488,
+        "last_dispatch_ind_bind": "1",
+        "last_dispatch_ctnr_code": "3T_A2",
+        "last_response_code": "0",
+        "last_response_message": "",
+        "owner": "canonical_static",
+        "actual_ctnr_code": "3T_A2",
+        "actual_ctnr_source": "static_canonical",
+        "action": "canonical_static_bound",
+        "needs_reconcile": false,
+        "canonicalized_at": 1785491934.005
+      },
+      "bound_state": "occupied",
+      "last_bound_ctnr_code": "3T_A2"
+    },
+    "cam8:A3:bindCtnrAndBin": {
+      "mapping": "cam8:A3:bindCtnrAndBin",
+      "last_seen_state": "occupied",
+      "last_seen_at": 1785491934.005,
+      "lock_dispatch": {
+        "key": "lock:disable",
+        "req_code": "0a6578e1a69cd21f77b934b5cfcecfef",
+        "attempt_ts": 1785490453.612,
+        "success": false,
+        "non_retryable": true,
+        "response": {
+          "code": "1",
+          "data": "",
+          "interrupt": false,
+          "message": "point code is not exist，pointCode：3T_A3",
+          "reqCode": "0a6578e1a69cd21f77b934b5cfcecfef"
+        },
+        "response_ts": 1785490453.612
+      },
+      "bind_dispatch": {
+        "key": "hybrid_canonical:bind_static_or_discover:3T_A3",
+        "req_code": "cfa871c05d67a77546605557b5850de8",
+        "attempt_ts": 1785490461.488,
+        "success": true,
+        "non_retryable": false,
+        "response": {
+          "code": "0",
+          "data": "",
+          "interrupt": false,
+          "reqCode": "cfa871c05d67a77546605557b5850de8"
+        },
+        "response_ts": 1785490461.488
+      },
+      "observed_state": "occupied",
+      "observed_method": "bindCtnrAndBin",
+      "dispatch_policy": "hybrid_canonical",
+      "main_binding_suppressed": false,
+      "observed_at": 1785491934.005,
+      "hybrid_session": {
+        "policy": "hybrid_canonical",
+        "vision_state": "occupied",
+        "updated_at": 1785491934.005,
+        "last_dispatch_at": 1785490461.488,
+        "last_dispatch_ind_bind": "1",
+        "last_dispatch_ctnr_code": "3T_A3",
+        "last_response_code": "0",
+        "last_response_message": "",
+        "owner": "canonical_static",
+        "actual_ctnr_code": "3T_A3",
+        "actual_ctnr_source": "static_canonical",
+        "action": "canonical_static_bound",
+        "needs_reconcile": false,
+        "canonicalized_at": 1785491934.005
+      },
+      "bound_state": "occupied",
+      "last_bound_ctnr_code": "3T_A3"
+    },
+    "cam8:A4:bindCtnrAndBin": {
+      "mapping": "cam8:A4:bindCtnrAndBin",
+      "last_seen_state": "occupied",
+      "last_seen_at": 1785491934.005,
+      "lock_dispatch": {
+        "key": "lock:disable",
+        "req_code": "60226d59727d87b5bf71768adabd8517",
+        "attempt_ts": 1785490453.612,
+        "success": false,
+        "non_retryable": true,
+        "response": {
+          "code": "1",
+          "data": "",
+          "interrupt": false,
+          "message": "point code is not exist，pointCode：3T_A4",
+          "reqCode": "60226d59727d87b5bf71768adabd8517"
+        },
+        "response_ts": 1785490453.612
+      },
+      "bind_dispatch": {
+        "key": "hybrid_canonical:bind_static_or_discover:3T_A4",
+        "req_code": "43b68e7de587b49d937f2d963e9b1330",
+        "attempt_ts": 1785490461.488,
+        "success": true,
+        "non_retryable": false,
+        "response": {
+          "code": "0",
+          "data": "",
+          "interrupt": false,
+          "reqCode": "43b68e7de587b49d937f2d963e9b1330"
+        },
+        "response_ts": 1785490461.488
+      },
+      "observed_state": "occupied",
+      "observed_method": "bindCtnrAndBin",
+      "dispatch_policy": "hybrid_canonical",
+      "main_binding_suppressed": false,
+      "observed_at": 1785491934.005,
+      "hybrid_session": {
+        "policy": "hybrid_canonical",
+        "vision_state": "occupied",
+        "updated_at": 1785491934.005,
+        "last_dispatch_at": 1785490461.488,
+        "last_dispatch_ind_bind": "1",
+        "last_dispatch_ctnr_code": "3T_A4",
+        "last_response_code": "0",
+        "last_response_message": "",
+        "owner": "canonical_static",
+        "actual_ctnr_code": "3T_A4",
+        "actual_ctnr_source": "static_canonical",
+        "action": "canonical_static_bound",
+        "needs_reconcile": false,
+        "canonicalized_at": 1785491934.005
+      },
+      "bound_state": "occupied",
+      "last_bound_ctnr_code": "3T_A4"
+    },
+    "cam8:A5:bindCtnrAndBin": {
+      "mapping": "cam8:A5:bindCtnrAndBin",
+      "last_seen_state": "occupied",
+      "last_seen_at": 1785491934.005,
+      "lock_dispatch": {
+        "key": "lock:disable",
+        "req_code": "e42d13e041e452f5d831f5cd6ce949aa",
+        "attempt_ts": 1785490453.612,
+        "success": false,
+        "non_retryable": true,
+        "response": {
+          "code": "1",
+          "data": "",
+          "interrupt": false,
+          "message": "point code is not exist，pointCode：3T_A5",
+          "reqCode": "e42d13e041e452f5d831f5cd6ce949aa"
+        },
+        "response_ts": 1785490453.612
+      },
+      "bind_dispatch": {
+        "key": "hybrid_canonical:bind_static_or_discover:3T_A5",
+        "req_code": "38d7c23df428acf61892dada74129e03",
+        "attempt_ts": 1785490461.488,
+        "success": true,
+        "non_retryable": false,
+        "response": {
+          "code": "0",
+          "data": "",
+          "interrupt": false,
+          "reqCode": "38d7c23df428acf61892dada74129e03"
+        },
+        "response_ts": 1785490461.488
+      },
+      "observed_state": "occupied",
+      "observed_method": "bindCtnrAndBin",
+      "dispatch_policy": "hybrid_canonical",
+      "main_binding_suppressed": false,
+      "observed_at": 1785491934.005,
+      "hybrid_session": {
+        "policy": "hybrid_canonical",
+        "vision_state": "occupied",
+        "updated_at": 1785491934.005,
+        "last_dispatch_at": 1785490461.488,
+        "last_dispatch_ind_bind": "1",
+        "last_dispatch_ctnr_code": "3T_A5",
+        "last_response_code": "0",
+        "last_response_message": "",
+        "owner": "canonical_static",
+        "actual_ctnr_code": "3T_A5",
+        "actual_ctnr_source": "static_canonical",
+        "action": "canonical_static_bound",
+        "needs_reconcile": false,
+        "canonicalized_at": 1785491934.005
+      },
+      "bound_state": "occupied",
+      "last_bound_ctnr_code": "3T_A5"
+    },
+    "cam8:A6:bindCtnrAndBin": {
+      "mapping": "cam8:A6:bindCtnrAndBin",
+      "last_seen_state": "occupied",
+      "last_seen_at": 1785491934.005,
+      "lock_dispatch": {
+        "key": "lock:disable",
+        "req_code": "d8e995ce43a05a456ef614ee0c654751",
+        "attempt_ts": 1785490453.612,
+        "success": false,
+        "non_retryable": true,
+        "response": {
+          "code": "1",
+          "data": "",
+          "interrupt": false,
+          "message": "point code is not exist，pointCode：3T_A6",
+          "reqCode": "d8e995ce43a05a456ef614ee0c654751"
+        },
+        "response_ts": 1785490453.612
+      },
+      "bind_dispatch": {
+        "key": "hybrid_canonical:bind_static_or_discover:3T_A6",
+        "req_code": "b31d64f8cdb138cd0e29538fd7846d68",
+        "attempt_ts": 1785490461.488,
+        "success": true,
+        "non_retryable": false,
+        "response": {
+          "code": "0",
+          "data": "",
+          "interrupt": false,
+          "reqCode": "b31d64f8cdb138cd0e29538fd7846d68"
+        },
+        "response_ts": 1785490461.488
+      },
+      "observed_state": "occupied",
+      "observed_method": "bindCtnrAndBin",
+      "dispatch_policy": "hybrid_canonical",
+      "main_binding_suppressed": false,
+      "observed_at": 1785491934.005,
+      "hybrid_session": {
+        "policy": "hybrid_canonical",
+        "vision_state": "occupied",
+        "updated_at": 1785491934.005,
+        "last_dispatch_at": 1785490461.488,
+        "last_dispatch_ind_bind": "1",
+        "last_dispatch_ctnr_code": "3T_A6",
+        "last_response_code": "0",
+        "last_response_message": "",
+        "owner": "canonical_static",
+        "actual_ctnr_code": "3T_A6",
+        "actual_ctnr_source": "static_canonical",
+        "action": "canonical_static_bound",
+        "needs_reconcile": false,
+        "canonicalized_at": 1785491934.005
+      },
+      "bound_state": "occupied",
+      "last_bound_ctnr_code": "3T_A6"
+    },
+    "cam8:A7:bindCtnrAndBin": {
+      "mapping": "cam8:A7:bindCtnrAndBin",
+      "last_seen_state": "occupied",
+      "last_seen_at": 1785491934.005,
+      "lock_dispatch": {
+        "key": "lock:disable",
+        "req_code": "8fa9b07ca3f329f1feb0152c90f43906",
+        "attempt_ts": 1785490453.612,
+        "success": false,
+        "non_retryable": true,
+        "response": {
+          "code": "1",
+          "data": "",
+          "interrupt": false,
+          "message": "point code is not exist，pointCode：3T_A7",
+          "reqCode": "8fa9b07ca3f329f1feb0152c90f43906"
+        },
+        "response_ts": 1785490453.612
+      },
+      "bind_dispatch": {
+        "key": "hybrid_canonical:bind_static_or_discover:3T_A7",
+        "req_code": "c2294c8a366e565e3a3b0d31865b8f96",
+        "attempt_ts": 1785490461.488,
+        "success": true,
+        "non_retryable": false,
+        "response": {
+          "code": "0",
+          "data": "",
+          "interrupt": false,
+          "reqCode": "c2294c8a366e565e3a3b0d31865b8f96"
+        },
+        "response_ts": 1785490461.488
+      },
+      "observed_state": "occupied",
+      "observed_method": "bindCtnrAndBin",
+      "dispatch_policy": "hybrid_canonical",
+      "main_binding_suppressed": false,
+      "observed_at": 1785491934.005,
+      "hybrid_session": {
+        "policy": "hybrid_canonical",
+        "vision_state": "occupied",
+        "updated_at": 1785491934.005,
+        "last_dispatch_at": 1785490461.488,
+        "last_dispatch_ind_bind": "1",
+        "last_dispatch_ctnr_code": "3T_A7",
+        "last_response_code": "0",
+        "last_response_message": "",
+        "owner": "canonical_static",
+        "actual_ctnr_code": "3T_A7",
+        "actual_ctnr_source": "static_canonical",
+        "action": "canonical_static_bound",
+        "needs_reconcile": false,
+        "canonicalized_at": 1785491934.005
+      },
+      "bound_state": "occupied",
+      "last_bound_ctnr_code": "3T_A7"
+    },
+    "cam8:A8:bindCtnrAndBin": {
+      "mapping": "cam8:A8:bindCtnrAndBin",
+      "last_seen_state": "occupied",
+      "last_seen_at": 1785491934.005,
+      "lock_dispatch": {
+        "key": "lock:disable",
+        "req_code": "84e3cf23bbd12d511d04909308821af9",
+        "attempt_ts": 1785490453.612,
+        "success": false,
+        "non_retryable": true,
+        "response": {
+          "code": "1",
+          "data": "",
+          "interrupt": false,
+          "message": "point code is not exist，pointCode：3T_A8",
+          "reqCode": "84e3cf23bbd12d511d04909308821af9"
+        },
+        "response_ts": 1785490453.612
+      },
+      "bind_dispatch": {
+        "key": "hybrid_canonical:bind_static_or_discover:3T_A8",
+        "req_code": "d1bd49466435c53676aa4c0b46665e56",
+        "attempt_ts": 1785490461.488,
+        "success": true,
+        "non_retryable": false,
+        "response": {
+          "code": "0",
+          "data": "",
+          "interrupt": false,
+          "reqCode": "d1bd49466435c53676aa4c0b46665e56"
+        },
+        "response_ts": 1785490461.488
+      },
+      "observed_state": "occupied",
+      "observed_method": "bindCtnrAndBin",
+      "dispatch_policy": "hybrid_canonical",
+      "main_binding_suppressed": false,
+      "observed_at": 1785491934.005,
+      "hybrid_session": {
+        "policy": "hybrid_canonical",
+        "vision_state": "occupied",
+        "updated_at": 1785491934.005,
+        "last_dispatch_at": 1785490461.488,
+        "last_dispatch_ind_bind": "1",
+        "last_dispatch_ctnr_code": "3T_A8",
+        "last_response_code": "0",
+        "last_response_message": "",
+        "owner": "canonical_static",
+        "actual_ctnr_code": "3T_A8",
+        "actual_ctnr_source": "static_canonical",
+        "action": "canonical_static_bound",
+        "needs_reconcile": false,
+        "canonicalized_at": 1785491934.005
+      },
+      "bound_state": "occupied",
+      "last_bound_ctnr_code": "3T_A8"
+    },
+    "cam8:A9:bindCtnrAndBin": {
+      "mapping": "cam8:A9:bindCtnrAndBin",
+      "last_seen_state": "occupied",
+      "last_seen_at": 1785491934.005,
+      "lock_dispatch": {
+        "key": "lock:disable",
+        "req_code": "9f687790374be4b2c343bdc549807091",
+        "attempt_ts": 1785490453.612,
+        "success": false,
+        "non_retryable": true,
+        "response": {
+          "code": "1",
+          "data": "",
+          "interrupt": false,
+          "message": "point code is not exist，pointCode：3T_A9",
+          "reqCode": "9f687790374be4b2c343bdc549807091"
+        },
+        "response_ts": 1785490453.612
+      },
+      "bind_dispatch": {
+        "key": "hybrid_canonical:bind_static_or_discover:3T_A9",
+        "req_code": "7d628101594c1de7d7423548484106a0",
+        "attempt_ts": 1785490461.488,
+        "success": true,
+        "non_retryable": false,
+        "response": {
+          "code": "0",
+          "data": "",
+          "interrupt": false,
+          "reqCode": "7d628101594c1de7d7423548484106a0"
+        },
+        "response_ts": 1785490461.488
+      },
+      "observed_state": "occupied",
+      "observed_method": "bindCtnrAndBin",
+      "dispatch_policy": "hybrid_canonical",
+      "main_binding_suppressed": false,
+      "observed_at": 1785491934.005,
+      "hybrid_session": {
+        "policy": "hybrid_canonical",
+        "vision_state": "occupied",
+        "updated_at": 1785491934.005,
+        "last_dispatch_at": 1785490461.488,
+        "last_dispatch_ind_bind": "1",
+        "last_dispatch_ctnr_code": "3T_A9",
+        "last_response_code": "0",
+        "last_response_message": "",
+        "owner": "canonical_static",
+        "actual_ctnr_code": "3T_A9",
+        "actual_ctnr_source": "static_canonical",
+        "action": "canonical_static_bound",
+        "needs_reconcile": false,
+        "canonicalized_at": 1785491934.005
+      },
+      "bound_state": "occupied",
+      "last_bound_ctnr_code": "3T_A9"
+    },
+    "cam11:A1:bindCtnrAndBin": {
+      "mapping": "cam11:A1:bindCtnrAndBin",
+      "last_seen_state": "occupied",
+      "last_seen_at": 1785491934.005,
+      "lock_dispatch": {
+        "key": "lock:disable",
+        "req_code": "014add8c159710f7bc02bda7c79c5acf",
+        "attempt_ts": 1785490453.612,
+        "success": false,
+        "non_retryable": true,
+        "response": {
+          "code": "1",
+          "data": "",
+          "interrupt": false,
+          "message": "point code is not exist，pointCode：COIL_AA1",
+          "reqCode": "014add8c159710f7bc02bda7c79c5acf"
+        },
+        "response_ts": 1785490453.612
+      },
+      "bind_dispatch": {
+        "key": "hybrid_canonical:bind_static_or_discover:COIL_AA1",
+        "req_code": "bb6566efc73b034ac198e332fc8bc1d7",
+        "attempt_ts": 1785490465.697,
+        "success": true,
+        "non_retryable": false,
+        "response": {
+          "code": "0",
+          "data": "",
+          "interrupt": false,
+          "reqCode": "bb6566efc73b034ac198e332fc8bc1d7"
+        },
+        "response_ts": 1785490465.697
+      },
+      "observed_state": "occupied",
+      "observed_method": "bindCtnrAndBin",
+      "dispatch_policy": "hybrid_canonical",
+      "main_binding_suppressed": false,
+      "observed_at": 1785491934.005,
+      "hybrid_session": {
+        "policy": "hybrid_canonical",
+        "vision_state": "occupied",
+        "updated_at": 1785491934.005,
+        "last_dispatch_at": 1785490465.697,
+        "last_dispatch_ind_bind": "1",
+        "last_dispatch_ctnr_code": "COIL_AA1",
+        "last_response_code": "0",
+        "last_response_message": "",
+        "owner": "canonical_static",
+        "actual_ctnr_code": "COIL_AA1",
+        "actual_ctnr_source": "static_canonical",
+        "action": "canonical_static_bound",
+        "needs_reconcile": false,
+        "canonicalized_at": 1785491934.005
+      },
+      "bound_state": "occupied",
+      "last_bound_ctnr_code": "COIL_AA1"
+    },
+    "cam11:A2:bindCtnrAndBin": {
+      "mapping": "cam11:A2:bindCtnrAndBin",
+      "last_seen_state": "occupied",
+      "last_seen_at": 1785491934.005,
+      "lock_dispatch": {
+        "key": "lock:disable",
+        "req_code": "7f0bd6f72016040a37a7076199e7cb11",
+        "attempt_ts": 1785490453.612,
+        "success": false,
+        "non_retryable": true,
+        "response": {
+          "code": "1",
+          "data": "",
+          "interrupt": false,
+          "message": "point code is not exist，pointCode：COIL_AA2",
+          "reqCode": "7f0bd6f72016040a37a7076199e7cb11"
+        },
+        "response_ts": 1785490453.612
+      },
+      "bind_dispatch": {
+        "key": "hybrid_canonical:bind_static_or_discover:COIL_AA2",
+        "req_code": "dfda1137293c6c7fcb68db2cc8d94f59",
+        "attempt_ts": 1785490465.697,
+        "success": true,
+        "non_retryable": false,
+        "response": {
+          "code": "0",
+          "data": "",
+          "interrupt": false,
+          "reqCode": "dfda1137293c6c7fcb68db2cc8d94f59"
+        },
+        "response_ts": 1785490465.697
+      },
+      "observed_state": "occupied",
+      "observed_method": "bindCtnrAndBin",
+      "dispatch_policy": "hybrid_canonical",
+      "main_binding_suppressed": false,
+      "observed_at": 1785491934.005,
+      "hybrid_session": {
+        "policy": "hybrid_canonical",
+        "vision_state": "occupied",
+        "updated_at": 1785491934.005,
+        "last_dispatch_at": 1785490465.697,
+        "last_dispatch_ind_bind": "1",
+        "last_dispatch_ctnr_code": "COIL_AA2",
+        "last_response_code": "0",
+        "last_response_message": "",
+        "owner": "canonical_static",
+        "actual_ctnr_code": "COIL_AA2",
+        "actual_ctnr_source": "static_canonical",
+        "action": "canonical_static_bound",
+        "needs_reconcile": false,
+        "canonicalized_at": 1785491934.005
+      },
+      "bound_state": "occupied",
+      "last_bound_ctnr_code": "COIL_AA2"
+    },
+    "cam11:A3:bindCtnrAndBin": {
+      "mapping": "cam11:A3:bindCtnrAndBin",
+      "last_seen_state": "occupied",
+      "last_seen_at": 1785491934.005,
+      "lock_dispatch": {
+        "key": "lock:disable",
+        "req_code": "5c323312fec72cfc49257feec816a963",
+        "attempt_ts": 1785490453.612,
+        "success": false,
+        "non_retryable": true,
+        "response": {
+          "code": "1",
+          "data": "",
+          "interrupt": false,
+          "message": "point code is not exist，pointCode：COIL_AA3",
+          "reqCode": "5c323312fec72cfc49257feec816a963"
+        },
+        "response_ts": 1785490453.612
+      },
+      "bind_dispatch": {
+        "key": "hybrid_canonical:bind_static_or_discover:COIL_AA3",
+        "req_code": "2697f39369badcb1ed8749d4e4f8806d",
+        "attempt_ts": 1785490465.697,
+        "success": true,
+        "non_retryable": false,
+        "response": {
+          "code": "0",
+          "data": "",
+          "interrupt": false,
+          "reqCode": "2697f39369badcb1ed8749d4e4f8806d"
+        },
+        "response_ts": 1785490465.697
+      },
+      "observed_state": "occupied",
+      "observed_method": "bindCtnrAndBin",
+      "dispatch_policy": "hybrid_canonical",
+      "main_binding_suppressed": false,
+      "observed_at": 1785491934.005,
+      "hybrid_session": {
+        "policy": "hybrid_canonical",
+        "vision_state": "occupied",
+        "updated_at": 1785491934.005,
+        "last_dispatch_at": 1785490465.697,
+        "last_dispatch_ind_bind": "1",
+        "last_dispatch_ctnr_code": "COIL_AA3",
+        "last_response_code": "0",
+        "last_response_message": "",
+        "owner": "canonical_static",
+        "actual_ctnr_code": "COIL_AA3",
+        "actual_ctnr_source": "static_canonical",
+        "action": "canonical_static_bound",
+        "needs_reconcile": false,
+        "canonicalized_at": 1785491934.005
+      },
+      "bound_state": "occupied",
+      "last_bound_ctnr_code": "COIL_AA3"
+    },
+    "cam11:A4:bindCtnrAndBin": {
+      "mapping": "cam11:A4:bindCtnrAndBin",
+      "last_seen_state": "occupied",
+      "last_seen_at": 1785491934.005,
+      "lock_dispatch": {
+        "key": "lock:disable",
+        "req_code": "8d1be4c9228b79d25e311ebb557dd4b4",
+        "attempt_ts": 1785490453.612,
+        "success": false,
+        "non_retryable": true,
+        "response": {
+          "code": "1",
+          "data": "",
+          "interrupt": false,
+          "message": "point code is not exist，pointCode：COIL_AA4",
+          "reqCode": "8d1be4c9228b79d25e311ebb557dd4b4"
+        },
+        "response_ts": 1785490453.612
+      },
+      "bind_dispatch": {
+        "key": "hybrid_canonical:bind_static_or_discover:COIL_AA4",
+        "req_code": "71368a0c86b0affa5d7238d385e658fa",
+        "attempt_ts": 1785490465.697,
+        "success": true,
+        "non_retryable": false,
+        "response": {
+          "code": "0",
+          "data": "",
+          "interrupt": false,
+          "reqCode": "71368a0c86b0affa5d7238d385e658fa"
+        },
+        "response_ts": 1785490465.697
+      },
+      "observed_state": "occupied",
+      "observed_method": "bindCtnrAndBin",
+      "dispatch_policy": "hybrid_canonical",
+      "main_binding_suppressed": false,
+      "observed_at": 1785491934.005,
+      "hybrid_session": {
+        "policy": "hybrid_canonical",
+        "vision_state": "occupied",
+        "updated_at": 1785491934.005,
+        "last_dispatch_at": 1785490465.697,
+        "last_dispatch_ind_bind": "1",
+        "last_dispatch_ctnr_code": "COIL_AA4",
+        "last_response_code": "0",
+        "last_response_message": "",
+        "owner": "canonical_static",
+        "actual_ctnr_code": "COIL_AA4",
+        "actual_ctnr_source": "static_canonical",
+        "action": "canonical_static_bound",
+        "needs_reconcile": false,
+        "canonicalized_at": 1785491934.005
+      },
+      "bound_state": "occupied",
+      "last_bound_ctnr_code": "COIL_AA4"
+    },
+    "cam11:A5:bindCtnrAndBin": {
+      "mapping": "cam11:A5:bindCtnrAndBin",
+      "last_seen_state": "occupied",
+      "last_seen_at": 1785491934.005,
+      "lock_dispatch": {
+        "key": "lock:disable",
+        "req_code": "ed2eb0f44bc613b0ee6ae24fd568952b",
+        "attempt_ts": 1785490453.612,
+        "success": false,
+        "non_retryable": true,
+        "response": {
+          "code": "1",
+          "data": "",
+          "interrupt": false,
+          "message": "point code is not exist，pointCode：COIL_AA5",
+          "reqCode": "ed2eb0f44bc613b0ee6ae24fd568952b"
+        },
+        "response_ts": 1785490453.612
+      },
+      "bind_dispatch": {
+        "key": "hybrid_canonical:bind_static_or_discover:COIL_AA5",
+        "req_code": "59ac1aa2845425ac285950f18ec0a1f4",
+        "attempt_ts": 1785490465.697,
+        "success": true,
+        "non_retryable": false,
+        "response": {
+          "code": "0",
+          "data": "",
+          "interrupt": false,
+          "reqCode": "59ac1aa2845425ac285950f18ec0a1f4"
+        },
+        "response_ts": 1785490465.697
+      },
+      "observed_state": "occupied",
+      "observed_method": "bindCtnrAndBin",
+      "dispatch_policy": "hybrid_canonical",
+      "main_binding_suppressed": false,
+      "observed_at": 1785491934.005,
+      "hybrid_session": {
+        "policy": "hybrid_canonical",
+        "vision_state": "occupied",
+        "updated_at": 1785491934.005,
+        "last_dispatch_at": 1785490465.697,
+        "last_dispatch_ind_bind": "1",
+        "last_dispatch_ctnr_code": "COIL_AA5",
+        "last_response_code": "0",
+        "last_response_message": "",
+        "owner": "canonical_static",
+        "actual_ctnr_code": "COIL_AA5",
+        "actual_ctnr_source": "static_canonical",
+        "action": "canonical_static_bound",
+        "needs_reconcile": false,
+        "canonicalized_at": 1785491934.005
+      },
+      "bound_state": "occupied",
+      "last_bound_ctnr_code": "COIL_AA5"
+    },
+    "cam11:A6:bindCtnrAndBin": {
+      "mapping": "cam11:A6:bindCtnrAndBin",
+      "last_seen_state": "occupied",
+      "last_seen_at": 1785491934.005,
+      "lock_dispatch": {
+        "key": "lock:disable",
+        "req_code": "3532e50fc71bc19d343150436284cfc3",
+        "attempt_ts": 1785490453.612,
+        "success": false,
+        "non_retryable": true,
+        "response": {
+          "code": "1",
+          "data": "",
+          "interrupt": false,
+          "message": "point code is not exist，pointCode：COIL_AA6",
+          "reqCode": "3532e50fc71bc19d343150436284cfc3"
+        },
+        "response_ts": 1785490453.612
+      },
+      "bind_dispatch": {
+        "key": "hybrid_canonical:bind_static_or_discover:COIL_AA6",
+        "req_code": "3ef6a6cd48330d204c4e331e66ba988a",
+        "attempt_ts": 1785490465.697,
+        "success": true,
+        "non_retryable": false,
+        "response": {
+          "code": "0",
+          "data": "",
+          "interrupt": false,
+          "reqCode": "3ef6a6cd48330d204c4e331e66ba988a"
+        },
+        "response_ts": 1785490465.697
+      },
+      "observed_state": "occupied",
+      "observed_method": "bindCtnrAndBin",
+      "dispatch_policy": "hybrid_canonical",
+      "main_binding_suppressed": false,
+      "observed_at": 1785491934.005,
+      "hybrid_session": {
+        "policy": "hybrid_canonical",
+        "vision_state": "occupied",
+        "updated_at": 1785491934.005,
+        "last_dispatch_at": 1785490465.697,
+        "last_dispatch_ind_bind": "1",
+        "last_dispatch_ctnr_code": "COIL_AA6",
+        "last_response_code": "0",
+        "last_response_message": "",
+        "owner": "canonical_static",
+        "actual_ctnr_code": "COIL_AA6",
+        "actual_ctnr_source": "static_canonical",
+        "action": "canonical_static_bound",
+        "needs_reconcile": false,
+        "canonicalized_at": 1785491934.005
+      },
+      "bound_state": "occupied",
+      "last_bound_ctnr_code": "COIL_AA6"
+    },
+    "cam11:A7:bindCtnrAndBin": {
+      "mapping": "cam11:A7:bindCtnrAndBin",
+      "last_seen_state": "occupied",
+      "last_seen_at": 1785491934.005,
+      "lock_dispatch": {
+        "key": "lock:disable",
+        "req_code": "20c1c19c46804b4aa19ea8860aca2a6f",
+        "attempt_ts": 1785490453.612,
+        "success": false,
+        "non_retryable": true,
+        "response": {
+          "code": "1",
+          "data": "",
+          "interrupt": false,
+          "message": "point code is not exist，pointCode：COIL_AA7",
+          "reqCode": "20c1c19c46804b4aa19ea8860aca2a6f"
+        },
+        "response_ts": 1785490453.612
+      },
+      "bind_dispatch": {
+        "key": "hybrid_canonical:bind_static_or_discover:COIL_AA7",
+        "req_code": "b49d73439473162bdfe6fce06d335f8d",
+        "attempt_ts": 1785490465.697,
+        "success": true,
+        "non_retryable": false,
+        "response": {
+          "code": "0",
+          "data": "",
+          "interrupt": false,
+          "reqCode": "b49d73439473162bdfe6fce06d335f8d"
+        },
+        "response_ts": 1785490465.697
+      },
+      "observed_state": "occupied",
+      "observed_method": "bindCtnrAndBin",
+      "dispatch_policy": "hybrid_canonical",
+      "main_binding_suppressed": false,
+      "observed_at": 1785491934.005,
+      "hybrid_session": {
+        "policy": "hybrid_canonical",
+        "vision_state": "occupied",
+        "updated_at": 1785491934.005,
+        "last_dispatch_at": 1785490465.697,
+        "last_dispatch_ind_bind": "1",
+        "last_dispatch_ctnr_code": "COIL_AA7",
+        "last_response_code": "0",
+        "last_response_message": "",
+        "owner": "canonical_static",
+        "actual_ctnr_code": "COIL_AA7",
+        "actual_ctnr_source": "static_canonical",
+        "action": "canonical_static_bound",
+        "needs_reconcile": false,
+        "canonicalized_at": 1785491934.005
+      },
+      "bound_state": "occupied",
+      "last_bound_ctnr_code": "COIL_AA7"
+    }
+  }
+}

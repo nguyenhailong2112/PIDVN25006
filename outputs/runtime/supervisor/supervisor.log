@@ -1,0 +1,5 @@
+2026-07-31 16:34:12,182 [INFO] Starting backend with command=['/home/rtc/miniconda3/envs/PIDVN25006/bin/python', '/home/rtc/PyCharmMiscProject/PIDVN25006/mainProcess.py']
+2026-07-31 16:34:12,182 [INFO] backend started with pid=1572448
+2026-07-31 16:34:12,182 [INFO] Waiting 3.0 sec before starting frontend
+2026-07-31 16:34:15,185 [INFO] Starting frontend with command=['/home/rtc/miniconda3/envs/PIDVN25006/bin/python', '/home/rtc/PyCharmMiscProject/PIDVN25006/mainCCTV.py']
+2026-07-31 16:34:15,185 [INFO] frontend started with pid=1572497

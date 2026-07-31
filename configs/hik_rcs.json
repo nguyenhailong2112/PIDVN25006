@@ -70,9 +70,9 @@
       "zone_id": "A4",
       "method": "bindCtnrAndBin",
       "dispatch_policy": "hybrid_canonical",
-      "position_code": "PK_AA4",
+      "position_code": "PK_AA5",
       "stg_bin_code": "A0000403501013",
-      "ctnr_code": "PK_AA4",
+      "ctnr_code": "PK_AA5",
       "ctnr_typ": "2",
       "unknown_action": "lockPosition"
     },

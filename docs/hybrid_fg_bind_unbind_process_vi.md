@@ -157,8 +157,8 @@ Quy tac nay tranh viec gui unbind sai container.
 
 ## 7. Vi du van hanh mong muon
 
-1. AMR mang `PK_AA4` xuong `FG_AA1`
-   - RCS co the bind tam `FG_AA1 = PK_AA4`
+1. AMR mang `PK_AA5` xuong `FG_AA1`
+   - RCS co the bind tam `FG_AA1 = PK_AA5`
    - Vision canonicalize thanh `FG_AA1 = FG_AA1`
 
 2. Cong nhan mang pallet xuong `FG_AA2`

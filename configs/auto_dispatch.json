@@ -1,12 +1,13 @@
 {
   "enabled": true,
   "dry_run": false,
-  "operation_mode": "manual",
-  "profile_id": "PK_AB",
+  "operation_mode": "auto",
+  "profile_id": "PK_CD",
   "control_state_path": "outputs/runtime/auto_dispatch/mode_control.json",
   "require_bind_notify": true,
   "require_canonical": true,
   "query_interval_sec": 5.0,
+  "query_status_agv_code": "16675",
   "completed_statuses": ["completed", "complete", "finish", "finished", "ended", "success"],
   "failed_statuses": ["failed", "fail", "cancel", "canceled", "cancelled", "abort", "aborted"],
   "api_server": {
@@ -28,7 +29,7 @@
   },
   "routing": {
     "source_roadways": [
-      {"roadway_id": "PK_A", "call_code": "11${06}", "positions": ["PK_AA4", "PK_AA3", "PK_AA2", "PK_AA1"]},
+      {"roadway_id": "PK_A", "call_code": "11${06}", "positions": ["PK_AA5", "PK_AA3", "PK_AA2", "PK_AA1"]},
       {"roadway_id": "PK_B", "call_code": "22${06}", "positions": ["PK_BB4", "PK_BB3", "PK_BB2", "PK_BB1"]},
       {"roadway_id": "PK_C", "call_code": "33${06}", "positions": ["PK_CC3", "PK_CC2", "PK_CC1"]},
       {"roadway_id": "PK_D", "call_code": "44${06}", "positions": ["PK_DD4", "PK_DD3", "PK_DD2", "PK_DD1"]}
@@ -43,7 +44,7 @@
     "PK_AA1": {"camera_id": "cam4", "zone_id": "A1", "area": "PK"},
     "PK_AA2": {"camera_id": "cam4", "zone_id": "A2", "area": "PK"},
     "PK_AA3": {"camera_id": "cam4", "zone_id": "A3", "area": "PK"},
-    "PK_AA4": {"camera_id": "cam4", "zone_id": "A4", "area": "PK"},
+    "PK_AA5": {"camera_id": "cam4", "zone_id": "A4", "area": "PK"},
     "PK_BB1": {"camera_id": "cam4", "zone_id": "B1", "area": "PK"},
     "PK_BB2": {"camera_id": "cam4", "zone_id": "B2", "area": "PK"},
     "PK_BB3": {"camera_id": "cam4", "zone_id": "B3", "area": "PK"},
@@ -68,10 +69,10 @@
     "FG_BB5": {"camera_id": "cam10", "zone_id": "B5", "area": "FG"},
     "FG_BB6": {"camera_id": "cam10", "zone_id": "B6", "area": "FG"}
   },
-  "pk_pick_order": ["PK_AA4", "PK_AA3", "PK_AA2", "PK_AA1", "PK_BB4", "PK_BB3", "PK_BB2", "PK_BB1", "PK_CC3", "PK_CC2", "PK_CC1", "PK_DD4", "PK_DD3", "PK_DD2", "PK_DD1"],
+  "pk_pick_order": ["PK_AA5", "PK_AA3", "PK_AA2", "PK_AA1", "PK_BB4", "PK_BB3", "PK_BB2", "PK_BB1", "PK_CC3", "PK_CC2", "PK_CC1", "PK_DD4", "PK_DD3", "PK_DD2", "PK_DD1"],
   "fg_observation_order": ["FG_AA1", "FG_AA2", "FG_AA3", "FG_AA4", "FG_AA5", "FG_AA6", "FG_BB1", "FG_BB2", "FG_BB3", "FG_BB4", "FG_BB5", "FG_BB6"],
   "dispatch_profiles": {
-    "PK_AB": {"description": "One-click semi-auto: complete roadway A and B", "source_order": ["PK_AA4", "PK_AA3", "PK_AA2", "PK_AA1", "PK_BB4", "PK_BB3", "PK_BB2", "PK_BB1"], "required_occupied_count": 8, "minimum_empty_fg_slots": 1, "max_tasks": 8},
+    "PK_AB": {"description": "One-click semi-auto: complete roadway A and B", "source_order": ["PK_AA5", "PK_AA3", "PK_AA2", "PK_AA1", "PK_BB4", "PK_BB3", "PK_BB2", "PK_BB1"], "required_occupied_count": 8, "minimum_empty_fg_slots": 1, "max_tasks": 8},
     "PK_CD": {"description": "One-click semi-auto: complete roadway C and D", "source_order": ["PK_CC3", "PK_CC2", "PK_CC1", "PK_DD4", "PK_DD3", "PK_DD2", "PK_DD1"], "required_occupied_count": 7, "minimum_empty_fg_slots": 1, "max_tasks": 7}
   },
   "unknown_policy": {"pk": "conservative_by_row", "fg": "conservative"}

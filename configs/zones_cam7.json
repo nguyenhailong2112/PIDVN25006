@@ -5,7 +5,7 @@
       "zone_id": "LIFT_2",
       "target_object": "*",
       "spatial_method": "bbox_intersects",
-      "polygon": [[0.0, 0.05], [1, 0.05], [1, 1], [0.0, 1]]
+      "polygon": [[0.0, 0.3], [1, 0.3], [1, 1], [0.0, 1]]
     }
   ]
 }

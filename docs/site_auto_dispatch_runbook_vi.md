@@ -30,7 +30,7 @@ Trong `auto`, Vision chi tao task khi tat ca dieu kien sau deu dung:
 - Mapping source/dest dang policy `hybrid_canonical`.
 - Bind/unbind gan nhat khong fail.
 - `hybrid_session.needs_reconcile = false`.
-- Source occupied dang canonical dung ma slot, vi du `PK_AA4 = PK_AA4`.
+- Source occupied dang canonical dung ma slot, vi du `PK_AA5 = PK_AA5`.
 - Callback server `bindNotify` dang enabled.
 
 Moi lan Vision chi tao 1 task active. Sau khi task do completed theo `queryTaskStatus`, Vision moi xet task tiep theo.
@@ -41,7 +41,7 @@ Neu FG het slot empty trong giua batch, batch dung lai. Cac pallet con lai khong
 
 PK roadway:
 
-- Hang A: `PK_AA4`, `PK_AA3`, `PK_AA2`, `PK_AA1` -> `11${06}`
+- Hang A: `PK_AA5`, `PK_AA3`, `PK_AA2`, `PK_AA1` -> `11${06}`
 - Hang B: `PK_BB4`, `PK_BB3`, `PK_BB2`, `PK_BB1` -> `22${06}`
 - Hang C: `PK_CC3`, `PK_CC2`, `PK_CC1` -> `33${06}`
 - Hang D: `PK_DD4`, `PK_DD3`, `PK_DD2`, `PK_DD1` -> `44${06}`
@@ -56,9 +56,9 @@ Task payload Vision tao co dang:
 {
   "interfaceName": "genAgvSchedulingTask",
   "taskTyp": "QUANGPRO",
-  "taskCode": "VISION_PK_AA4_TO_FG_BB2_YYYYMMDD_HHMMSS",
+  "taskCode": "QUANGPROPK_AA5FG_BB2_YYYYMMDD_HHMMSS",
   "data": {
-    "from": "PK_AA4",
+    "from": "PK_AA5",
     "to": "FG_BB2"
   },
   "userCallCodePath": ["11${06}", "2${02}"],
@@ -135,7 +135,61 @@ Response gom:
 - `require_bind_notify`, `require_canonical`.
 - `callback_server_enabled`.
 
-### 4.3 Set Mode
+### 4.3 Query AGV Status
+
+```http
+POST /service/rest/visionAutoDispatch/queryAgvStatus
+```
+
+Payload co the de trong hoac chi gui `mapShortName` neu team site can filter.
+
+Vi du rong:
+
+```json
+{
+  "reqCode": "REQ_QUERY_AGV_001"
+}
+```
+
+Vi du co filter:
+
+```json
+{
+  "reqCode": "REQ_QUERY_AGV_001",
+  "mapShortName": "PK"
+}
+```
+
+Response tra ve nguyen payload tu RCS query AGV, Vision chi bo sung `reqCode` va `reqTime` neu thieu.
+
+### 4.4 Query Task Status
+
+```http
+POST /service/rest/visionAutoDispatch/queryTaskStatus
+```
+
+Payload bat buoc:
+
+```json
+{
+  "reqCode": "REQ_QUERY_TASK_001",
+  "taskCode": "VISION_PK_AA5_TO_FG_BB2_20260731_080000"
+}
+```
+
+Neu thieu `taskCode`, Vision tra:
+
+```json
+{
+  "code": "CONFIG_ERROR",
+  "message": "taskCode is required",
+  "reqCode": "REQ_QUERY_TASK_001",
+  "reqTime": "YYYY-MM-DD HH:MM:SS",
+  "data": {}
+}
+```
+
+### 4.5 Set Mode
 
 Chuyen sang manual:
 
@@ -262,7 +316,7 @@ http://<VISION_IP>:2112/service/rest/bindNotify
 - `hybrid_session.needs_reconcile = false`
 - `hybrid_session.actual_ctnr_code` bang ma static cua slot.
 
-6. Neu RCS truoc do bind source khac, vi du `FG_BB4 = PK_AA4`, Vision phai canonical hoa ve `FG_BB4 = FG_BB4`.
+6. Neu RCS truoc do bind source khac, vi du `FG_BB4 = PK_AA5`, Vision phai canonical hoa ve `FG_BB4 = FG_BB4`.
 
 ### 6.2 Test manual mode
 
@@ -281,7 +335,7 @@ http://<VISION_IP>:2112/service/rest/bindNotify
 1. Lam day du 8/8 slot:
 
 ```text
-PK_AA4, PK_AA3, PK_AA2, PK_AA1,
+PK_AA5, PK_AA3, PK_AA2, PK_AA1,
 PK_BB4, PK_BB3, PK_BB2, PK_BB1
 ```
 
@@ -295,7 +349,7 @@ PK_BB4, PK_BB3, PK_BB2, PK_BB1
 4. Xac nhan task dau tien dung thu tu source:
 
 ```text
-PK_AA4 -> FG empty dau tien theo thu tu FG_AA1..FG_BB6
+PK_AA5 -> FG empty dau tien theo thu tu FG_AA1..FG_BB6
 ```
 
 5. Khi task completed tren RCS, Vision moi tao task ke tiep.
@@ -331,7 +385,7 @@ Vi du PK_AB du 8 pallet, FG chi con 5 slot empty `FG_BB2..FG_BB6`.
 
 Vision chi tao toi da 5 task:
 
-- `PK_AA4 -> FG_BB2`
+- `PK_AA5 -> FG_BB2`
 - `PK_AA3 -> FG_BB3`
 - `PK_AA2 -> FG_BB4`
 - `PK_AA1 -> FG_BB5`

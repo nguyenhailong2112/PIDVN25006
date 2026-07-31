@@ -45,6 +45,7 @@ class AutoDispatcher:
             for item in self.config.get("failed_statuses", ["failed", "fail", "cancel", "canceled", "cancelled", "abort", "aborted"])
             if str(item).strip()
         }
+        self.query_status_agv_code = str(self.config.get("query_status_agv_code", "")).strip()
         self.client = HikRcsClient(hik_config, self.project_root / "outputs" / "runtime" / "hik_rcs")
         self.state = self._load_state()
         self.api_server = None
@@ -145,7 +146,10 @@ class AutoDispatcher:
 
         task_template = self.config.get("task_template", {})
         stamp = time.strftime("%Y%m%d_%H%M%S", time.localtime(now_ts))
-        task_code = f"VISION_{source}_TO_{dest}_{stamp}"
+        compact_source = source.replace("_", "")
+        compact_dest = dest.replace("_", "")
+        compact_stamp = stamp.replace("_", "")
+        task_code = f"QUANGPRO{compact_source}{compact_dest}{compact_stamp}"
         payload = {
             "interfaceName": str(task_template.get("interfaceName", "genAgvSchedulingTask")),
             "taskTyp": str(task_template.get("taskTyp", "QUANGPRO")),
@@ -215,7 +219,10 @@ class AutoDispatcher:
             self._set_status(f"waiting_task:{task_code}", now_ts)
             return True
 
-        response = self.client.call_rpc("queryTaskStatus", {"taskCode": task_code})
+        query_payload = {"taskCode": task_code}
+        if self.query_status_agv_code:
+            query_payload["agvCode"] = self.query_status_agv_code
+        response = self.client.call_rpc("queryTaskStatus", query_payload)
         active["last_query_at"] = round(now_ts, 3)
         active["last_query_response"] = response
         task_status = self._extract_task_status(response)
@@ -407,6 +414,27 @@ class AutoDispatcher:
             "callback_server_enabled": self.callback_server_enabled,
         }
 
+    def query_agv_status(self, payload: dict[str, Any] | None = None) -> dict[str, Any]:
+        payload = dict(payload or {})
+        if not payload.get("agvCode") and self.query_status_agv_code:
+            payload["agvCode"] = self.query_status_agv_code
+        return self.client.query_agv_status(payload, req_code=str(payload.get("reqCode", "")) or None)
+
+    def query_task_status(self, payload: dict[str, Any] | None = None) -> dict[str, Any]:
+        payload = dict(payload or {})
+        task_code = str(payload.get("taskCode", "")).strip()
+        if not task_code:
+            return {
+                "code": "CONFIG_ERROR",
+                "message": "taskCode is required",
+                "reqCode": str(payload.get("reqCode", "")),
+                "reqTime": HikRcsClient.now_text(),
+                "data": {},
+            }
+        if not payload.get("agvCode") and self.query_status_agv_code:
+            payload["agvCode"] = self.query_status_agv_code
+        return self.client.call_rpc("queryTaskStatus", payload, req_code=str(payload.get("reqCode", "")) or None)
+
     def _set_idle(self, reason: str, now_ts: float) -> None:
         if self.state.get("status") == reason and "batch" not in self.state:
             return
@@ -513,6 +541,8 @@ class AutoDispatchControlServer:
                     f"{outer.base_path}/status": "status",
                     f"{outer.base_path}/getStatus": "status",
                     f"{outer.base_path}/setMode": "set_mode",
+                    f"{outer.base_path}/queryAgvStatus": "query_agv_status",
+                    f"{outer.base_path}/queryTaskStatus": "query_task_status",
                 }
                 return routes.get(normalized)
 
@@ -549,6 +579,12 @@ class AutoDispatchControlServer:
             if result.get("accepted", False):
                 return self._response("0", "successful", req_code, result)
             return self._response("CONFIG_ERROR", str(result.get("reason", "invalid control payload")), req_code, result)
+        if route == "query_agv_status":
+            result = self.dispatcher.query_agv_status(payload)
+            return self._normalize_rcs_response(req_code=req_code, result=result)
+        if route == "query_task_status":
+            result = self.dispatcher.query_task_status(payload)
+            return self._normalize_rcs_response(req_code=req_code, result=result)
         return self._response("404", "unsupported auto dispatch route", req_code, {})
 
     @staticmethod
@@ -575,3 +611,11 @@ class AutoDispatchControlServer:
             max_bytes=self.log_max_bytes,
             backup_count=self.log_backup_count,
         )
+
+    @staticmethod
+    def _normalize_rcs_response(*, req_code: str, result: dict[str, Any]) -> dict[str, Any]:
+        payload = dict(result or {})
+        payload.setdefault("reqCode", req_code)
+        payload.setdefault("reqTime", HikRcsClient.now_text())
+        payload.setdefault("data", {})
+        return payload
