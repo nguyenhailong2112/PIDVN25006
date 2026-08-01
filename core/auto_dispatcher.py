@@ -224,8 +224,10 @@ class AutoDispatcher:
             query_payload["agvCode"] = self.query_status_agv_code
         response = self.client.call_rpc("queryTaskStatus", query_payload)
         active["last_query_at"] = round(now_ts, 3)
-        active["last_query_response"] = response
-        task_status = self._extract_task_status(response)
+        own_response = self._extract_own_task_response(response, task_code)
+        active["last_query_response"] = own_response
+        active["last_query_response_raw"] = response
+        task_status = self._extract_task_status(own_response)
         active["status"] = task_status or str(response.get("message", "")).strip() or str(response.get("code", ""))
         normalized = active["status"].strip().lower()
         if self.client.is_success(response) and normalized in self.completed_statuses:
@@ -343,6 +345,36 @@ class AutoDispatcher:
                 return str(item)
         return ""
 
+    @staticmethod
+    def _extract_own_task_response(response: dict[str, Any], task_code: str) -> dict[str, Any]:
+        payload = dict(response or {})
+        data = payload.get("data")
+        if isinstance(data, str):
+            try:
+                data = json.loads(data)
+            except json.JSONDecodeError:
+                data = []
+        if isinstance(data, dict):
+            items = [data]
+        elif isinstance(data, list):
+            items = [item for item in data if isinstance(item, dict)]
+        else:
+            items = []
+
+        task_code_norm = str(task_code).strip().lower()
+        if task_code_norm:
+            for item in items:
+                if str(item.get("taskCode", "")).strip().lower() == task_code_norm:
+                    payload["data"] = item
+                    return payload
+
+        if len(items) == 1:
+            payload["data"] = items[0]
+            return payload
+
+        payload["data"] = {}
+        return payload
+
     def _load_control(self) -> dict[str, Any]:
         control = {
             "operation_mode": self.config.get("operation_mode", "manual"),
@@ -433,7 +465,8 @@ class AutoDispatcher:
             }
         if not payload.get("agvCode") and self.query_status_agv_code:
             payload["agvCode"] = self.query_status_agv_code
-        return self.client.call_rpc("queryTaskStatus", payload, req_code=str(payload.get("reqCode", "")) or None)
+        response = self.client.call_rpc("queryTaskStatus", payload, req_code=str(payload.get("reqCode", "")) or None)
+        return self._extract_own_task_response(response, task_code)
 
     def _set_idle(self, reason: str, now_ts: float) -> None:
         if self.state.get("status") == reason and "batch" not in self.state:
