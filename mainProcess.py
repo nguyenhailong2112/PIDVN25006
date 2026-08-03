@@ -20,7 +20,6 @@ from core.config import (
     validate_rule_config,
     load_zone_configs,
 )
-from core.elevator_runtime import ElevatorRuntime
 from core.frame_store import FrameStore
 from core.hik_rcs_bridge import HikRcsBridge
 from core.history_logger import HistoryLogger
@@ -40,7 +39,7 @@ from core.runtime_bridge import (
     write_json_atomic,
 )
 from core.state_tracker import StateTracker
-from core.types import CameraConfig, Detection, DetectionResult
+from core.types import CameraConfig, Detection, DetectionResult, ZoneObservation, ZoneState
 from core.video_file_reader import VideoFileReader
 from core.visualizer import draw_debug_frame
 from core.zone_reasoner import ZoneReasoner
@@ -51,7 +50,6 @@ INGEST_CONFIG_PATH = PROJECT_ROOT / "configs" / "ingest.json"
 RUNTIME_CONFIG_PATH = PROJECT_ROOT / "configs" / "runtime.json"
 HIK_RCS_CONFIG_PATH = PROJECT_ROOT / "configs" / "hik_rcs.json"
 AUTO_DISPATCH_CONFIG_PATH = PROJECT_ROOT / "configs" / "auto_dispatch.json"
-ELEVATOR_CONFIG_PATH = PROJECT_ROOT / "configs" / "elevator.json"
 HISTORY_DIR = PROJECT_ROOT / "outputs" / "history"
 logger = get_logger(__name__)
 
@@ -121,7 +119,6 @@ class CentralBackendRuntime:
 
         self.workers = [self._build_worker(cfg) for cfg in self.camera_configs]
         self.model_bundles = {}
-        self.elevator_runtime = ElevatorRuntime(ELEVATOR_CONFIG_PATH)
         self.runtime_maintenance = RuntimeMaintenance(PROJECT_ROOT, self.runtime_cfg)
         hik_rcs_cfg = load_json_dict(HIK_RCS_CONFIG_PATH)
         self.hik_bridge = HikRcsBridge(hik_rcs_cfg, PROJECT_ROOT)
@@ -232,7 +229,7 @@ class CentralBackendRuntime:
                 live_frame = worker.get_latest_frame()
                 if live_frame is None:
                     continue
-                frames.append(live_frame.frame)
+                frames.append(self._inference_image_for_worker(worker, live_frame.frame))
                 live_frames.append((worker, live_frame))
             if not frames:
                 continue
@@ -248,7 +245,18 @@ class CentralBackendRuntime:
             detect_ms = ((time.perf_counter() - t0) * 1000.0) / max(1, len(live_frames))
             for (worker, live_frame), result in zip(live_frames, results):
                 detections = []
-                if hasattr(result, "boxes"):
+                if worker.camera_cfg.camera_type == "elevator" and getattr(result, "probs", None) is not None:
+                    class_name, confidence = self._classification_result(result, bundle)
+                    if class_name:
+                        x1, y1, x2, y2 = self._elevator_roi_xyxy(live_frame.frame.shape)
+                        detections.append(
+                            Detection(
+                                class_name=class_name,
+                                confidence=confidence,
+                                bbox_xyxy=(x1, y1, x2, y2),
+                            )
+                        )
+                elif hasattr(result, "boxes"):
                     for box in result.boxes:
                         cls_id = int(box.cls[0])
                         class_name = bundle.model.names[cls_id]
@@ -268,6 +276,36 @@ class CentralBackendRuntime:
                     )
                 )
         return processed
+
+    @staticmethod
+    def _elevator_roi_xyxy(frame_shape) -> tuple[int, int, int, int]:
+        height, width = frame_shape[:2]
+        x1 = max(0, min(width - 1, int(round(0.2 * width))))
+        y1 = max(0, min(height - 1, int(round(0.30 * height))))
+        x2 = max(x1 + 1, min(width, int(round(0.8 * width))))
+        y2 = max(y1 + 1, min(height, int(round(1.00 * height))))
+        return x1, y1, x2, y2
+
+    def _inference_image_for_worker(self, worker: CameraWorker, frame):
+        if worker.camera_cfg.camera_type != "elevator":
+            return frame
+        x1, y1, x2, y2 = self._elevator_roi_xyxy(frame.shape)
+        return frame[y1:y2, x1:x2]
+
+    @staticmethod
+    def _classification_result(result, bundle) -> tuple[str, float]:
+        probs = getattr(result, "probs", None)
+        if probs is None:
+            return "", 0.0
+        cls_id = int(probs.top1)
+        confidence = float(probs.top1conf)
+        names = bundle.model.names
+        if isinstance(names, dict):
+            class_name = names.get(cls_id, cls_id)
+        else:
+            class_name = names[cls_id] if 0 <= cls_id < len(names) else cls_id
+        class_name = str(class_name).strip().lower()
+        return class_name, confidence
 
     @staticmethod
     def _format_wall_clock(ts: float | None) -> str | None:
@@ -352,7 +390,19 @@ class CentralBackendRuntime:
 
         current_states = []
         changed_states = []
-        if worker.reasoner is not None and worker.tracker is not None:
+        if worker.camera_cfg.camera_type == "elevator" and worker.tracker is not None:
+            observations = self._build_elevator_observations(worker, detection_result, live_frame)
+            if observations:
+                changed_states = worker.tracker.update_observations(observations)
+                current_states = worker.tracker.get_current_states(worker.camera_cfg.camera_id, live_frame.timestamp)
+            else:
+                current_states = self._elevator_unknown_states(worker, live_frame)
+            if changed_states:
+                last_ts = self.last_logged_ts.get(worker.camera_cfg.camera_id)
+                if live_frame.timestamp != last_ts:
+                    self.history_logger.log_zone_states(worker.camera_cfg.camera_id, changed_states, live_frame.timestamp)
+                    self.last_logged_ts[worker.camera_cfg.camera_id] = live_frame.timestamp
+        elif worker.reasoner is not None and worker.tracker is not None:
             observations = worker.reasoner.observe(detection_result, live_frame.frame.shape)
             changed_states = worker.tracker.update_observations(observations)
             current_states = worker.tracker.get_current_states(worker.camera_cfg.camera_id, live_frame.timestamp)
@@ -423,6 +473,44 @@ class CentralBackendRuntime:
             "debug_frame": debug_frame,
         }
 
+    def _build_elevator_observations(self, worker: CameraWorker, detection_result: DetectionResult, live_frame) -> list[ZoneObservation]:
+        if not worker.zone_configs:
+            return []
+        class_name = ""
+        confidence = 0.0
+        if detection_result.detections:
+            top = max(detection_result.detections, key=lambda det: det.confidence)
+            class_name = top.class_name.strip().lower()
+            confidence = top.confidence
+        if class_name not in {"empty", "occupied"} or confidence < self.rule_cfg.conf_threshold:
+            return []
+        is_occupied = class_name == "occupied"
+        return [
+            ZoneObservation(
+                camera_id=worker.camera_cfg.camera_id,
+                zone_id=zone.zone_id,
+                frame_id=live_frame.frame_id,
+                timestamp=live_frame.timestamp,
+                target_present=is_occupied,
+                matched_confidence=confidence,
+                occlusion_present=False,
+            )
+            for zone in worker.zone_configs
+        ]
+
+    def _elevator_unknown_states(self, worker: CameraWorker, live_frame) -> list[ZoneState]:
+        return [
+            ZoneState(
+                camera_id=worker.camera_cfg.camera_id,
+                zone_id=zone.zone_id,
+                state="unknown",
+                score=0.0,
+                timestamp=live_frame.timestamp,
+                health="unknown",
+            )
+            for zone in worker.zone_configs
+        ]
+
     def _export_preview_if_due(self, worker: CameraWorker, now_ts: float) -> None:
         live_frame = worker.get_latest_frame()
         if live_frame is None:
@@ -468,81 +556,6 @@ class CentralBackendRuntime:
         }
         write_json_atomic(AGV_SNAPSHOT_PATH, agv_payload, indent=None)
 
-    @staticmethod
-    def _elevator_zone_payload_from_snapshot(snapshot: dict) -> dict:
-        fault_active = bool(snapshot.get("fault_active", False))
-        entry_clear = bool(snapshot.get("entry_clear", False))
-        if fault_active:
-            state = "unknown"
-            health = "unknown"
-            score = 0.0
-            binding = "unknown"
-            value = None
-        elif entry_clear:
-            state = "empty"
-            health = "online"
-            score = 1.0
-            binding = "unbind"
-            value = 0
-        else:
-            state = "occupied"
-            health = "online"
-            score = 1.0
-            binding = "bind"
-            value = 1
-        return {
-            "zone_id": snapshot.get("zone_id", ""),
-            "state": state,
-            "health": health,
-            "score": score,
-            "binding": binding,
-            "value": value,
-            "lift_state": snapshot.get("lift_state", ""),
-            "safety_ok": bool(snapshot.get("safety_ok", False)),
-            "entry_clear": entry_clear,
-            "intrusion_alarm": bool(snapshot.get("intrusion_alarm", False)),
-            "fault_code": snapshot.get("fault_code", ""),
-        }
-
-    def _build_control_payload(self, cameras_payload: list[dict], elevator_payload: dict) -> list[dict]:
-        elevator_map = {
-            str(item.get("camera_id", "")): item
-            for item in elevator_payload.get("lifts", [])
-            if isinstance(item, dict)
-        }
-        if not elevator_map:
-            return cameras_payload
-
-        hik_payload = []
-        for payload in cameras_payload:
-            camera_id = str(payload.get("camera_id", ""))
-            snapshot = elevator_map.get(camera_id)
-            if snapshot is None:
-                hik_payload.append(payload)
-                continue
-
-            zone_id = str(snapshot.get("zone_id", ""))
-            replaced_zone = self._elevator_zone_payload_from_snapshot(snapshot)
-            zones = []
-            replaced = False
-            for zone in payload.get("zones", []):
-                if str(zone.get("zone_id", "")) == zone_id:
-                    zones.append(replaced_zone)
-                    replaced = True
-                else:
-                    zones.append(dict(zone))
-            if not replaced:
-                zones.append(replaced_zone)
-
-            updated_payload = dict(payload)
-            updated_payload["zones"] = zones
-            updated_payload["agv_answer"] = zones
-            updated_payload["elevator_state"] = snapshot.get("lift_state", "")
-            updated_payload["elevator_entry_clear"] = bool(snapshot.get("entry_clear", False))
-            updated_payload["elevator_intrusion_alarm"] = bool(snapshot.get("intrusion_alarm", False))
-            hik_payload.append(updated_payload)
-        return hik_payload
-
     def run(self) -> None:
         while True:
             now_ts = time.time()
@@ -554,20 +567,17 @@ class CentralBackendRuntime:
 
             if (now_ts - self.last_export_ts) >= self.export_interval_sec:
                 cameras_payload = [self._export_worker_snapshot(worker, selected_cameras, now_ts) for worker in self.workers]
-                elevator_payload = self.elevator_runtime.update(cameras_payload, now_ts)
                 write_json_atomic(
                     PROCESS_SNAPSHOT_PATH,
                     {
                         "timestamp": now_ts,
                         "camera_count": len(cameras_payload),
                         "cameras": cameras_payload,
-                        "elevators": elevator_payload.get("lifts", []),
                     },
                     indent=None,
                 )
-                control_payload = self._build_control_payload(cameras_payload, elevator_payload)
-                self._export_agv_snapshot(control_payload, now_ts)
-                self._schedule_hik_sync(control_payload, now_ts)
+                self._export_agv_snapshot(cameras_payload, now_ts)
+                self._schedule_hik_sync(cameras_payload, now_ts)
                 self.runtime_maintenance.run_if_due(now_ts)
                 self.last_export_ts = now_ts
 

@@ -56,7 +56,7 @@ Task payload Vision tao co dang:
 {
   "interfaceName": "genAgvSchedulingTask",
   "taskTyp": "QUANGPRO",
-  "taskCode": "QUANGPROPK_AA5FG_BB2_YYYYMMDD_HHMMSS",
+  "taskCode": "QUANGPROPKAA5FGBB220260731080000",
   "data": {
     "from": "PK_AA5",
     "to": "FG_BB2"
@@ -65,6 +65,12 @@ Task payload Vision tao co dang:
   "ctnrTyp": "2"
 }
 ```
+
+Quy uoc taskCode:
+
+- Khong co dau `_`.
+- Dinh dang: `QUANGPRO` + `source` + `dest` + `YYYYMMDDHHMMSS`.
+- Vi du: `QUANGPROPKAA5FGBB220260731080000`.
 
 ## 3. File cau hinh
 
@@ -80,6 +86,7 @@ Task payload Vision tao co dang:
 - `profile_id = PK_AB` la default.
 - `api_server.port = 2113`.
 - Chi co 2 profile hop le: `PK_AB`, `PK_CD`.
+- `query_status_agv_code = 16675` duoc dung de query task status cua dung AGV/site dang chay.
 
 `outputs/runtime/auto_dispatch/mode_control.json`
 
@@ -135,6 +142,13 @@ Response gom:
 - `require_bind_notify`, `require_canonical`.
 - `callback_server_enabled`.
 
+Luu y:
+
+- `manual`: Vision chi bind/unbind, khong sinh task moi.
+- `auto + PK_AB`: Vision chi sinh batch PK_AB.
+- `auto + PK_CD`: Vision chi sinh batch PK_CD.
+- Chuyen mode qua API chi co tac dung khi `code = 0`, sau do Vision se doc file control o chu ky sync tiep theo.
+
 ### 4.3 Query AGV Status
 
 ```http
@@ -176,6 +190,8 @@ Payload bat buoc:
   "taskCode": "VISION_PK_AA5_TO_FG_BB2_20260731_080000"
 }
 ```
+
+Vision chi theo doi dung taskCode do chinh Vision tao ra. Vision khong dung cac task khac cua AGV de quyet dinh sinh task tiep theo.
 
 Neu thieu `taskCode`, Vision tra:
 
@@ -267,6 +283,73 @@ Response loi:
     "accepted": false,
     "reason": "profile_id must be one of ['PK_AB', 'PK_CD']"
   }
+}
+```
+
+## 4.6 Cac mode van hanh
+
+Ba mode thuc te team site can dung:
+
+1. `manual`
+2. `auto` + `PK_AB`
+3. `auto` + `PK_CD`
+
+Cach setup ban dau:
+
+1. Kiem tra `configs/auto_dispatch.json` co `api_server.enabled = true`.
+2. Kiem tra `configs/auto_dispatch.json` co `operation_mode = manual` neu muon boot an toan.
+3. Kiem tra `profile_id` mac dinh la `PK_AB` hoac set theo luong site.
+4. Bat Vision.
+5. App Caller goi `setMode` de chuyen sang `auto` va chon `profile_id`.
+6. Khi can dung auto, goi `setMode` ve `manual`.
+
+Truong hop co the chuyen mode thanh cong:
+
+- API tra `code = 0`.
+- `outputs/runtime/auto_dispatch/mode_control.json` duoc cap nhat.
+- `GET /status` tra lai mode/profile moi.
+
+Truong hop khong chuyen duoc:
+
+- `operation_mode` khong phai `manual` hoac `auto`.
+- `profile_id` khong phai `PK_AB` hoac `PK_CD` khi vao `auto`.
+- Vision chua restart sau khi cap nhat config ma app can doc tham so moi trong process cu.
+
+## 4.7 Chuyen mode mau cho App Caller
+
+Bat auto PK_AB:
+
+```json
+{
+  "reqCode": "REQ_AUTO_AB_001",
+  "operation_mode": "auto",
+  "profile_id": "PK_AB",
+  "updated_by": "third_party",
+  "note": "start auto PK_AB"
+}
+```
+
+Bat auto PK_CD:
+
+```json
+{
+  "reqCode": "REQ_AUTO_CD_001",
+  "operation_mode": "auto",
+  "profile_id": "PK_CD",
+  "updated_by": "third_party",
+  "note": "start auto PK_CD"
+}
+```
+
+Tat auto:
+
+```json
+{
+  "reqCode": "REQ_MANUAL_001",
+  "operation_mode": "manual",
+  "profile_id": "PK_AB",
+  "updated_by": "third_party",
+  "note": "pause auto"
 }
 ```
 

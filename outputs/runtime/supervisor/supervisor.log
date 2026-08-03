@@ -1,0 +1,38 @@
+2026-08-03 23:05:18,250 [INFO] Starting backend with command=['C:\\Users\\longn\\miniconda3\\envs\\pallet_bobbin\\python.exe', 'C:\\Users\\longn\\PyCharmMiscProject\\PIDVN25006\\mainProcess.py']
+2026-08-03 23:05:18,259 [INFO] backend started with pid=6840
+2026-08-03 23:05:18,260 [INFO] Waiting 3.0 sec before starting frontend
+2026-08-03 23:05:21,267 [INFO] Starting frontend with command=['C:\\Users\\longn\\miniconda3\\envs\\pallet_bobbin\\python.exe', 'C:\\Users\\longn\\PyCharmMiscProject\\PIDVN25006\\mainCCTV.py']
+2026-08-03 23:05:21,277 [INFO] frontend started with pid=2488
+2026-08-03 23:05:45,521 [INFO] Stop requested. Supervisor will terminate child processes.
+2026-08-03 23:05:45,571 [INFO] Stopping frontend (pid=2488)
+2026-08-03 23:05:45,592 [INFO] Stopping backend (pid=6840)
+2026-08-03 23:05:45,634 [INFO] Supervisor stopped cleanly.
+2026-08-03 23:06:15,693 [INFO] Starting backend with command=['C:\\Users\\longn\\miniconda3\\envs\\pallet_bobbin\\python.exe', 'C:\\Users\\longn\\PyCharmMiscProject\\PIDVN25006\\mainProcess.py']
+2026-08-03 23:06:15,701 [INFO] backend started with pid=19128
+2026-08-03 23:06:15,702 [INFO] Waiting 3.0 sec before starting frontend
+2026-08-03 23:06:18,703 [INFO] Starting frontend with command=['C:\\Users\\longn\\miniconda3\\envs\\pallet_bobbin\\python.exe', 'C:\\Users\\longn\\PyCharmMiscProject\\PIDVN25006\\mainCCTV.py']
+2026-08-03 23:06:18,709 [INFO] frontend started with pid=13792
+2026-08-03 23:06:38,915 [ERROR] backend exited with code=1 after 23.2 sec. Restart count=1
+2026-08-03 23:06:38,915 [INFO] Waiting 3.0 sec before starting backend
+2026-08-03 23:06:41,927 [INFO] Starting backend with command=['C:\\Users\\longn\\miniconda3\\envs\\pallet_bobbin\\python.exe', 'C:\\Users\\longn\\PyCharmMiscProject\\PIDVN25006\\mainProcess.py']
+2026-08-03 23:06:41,931 [INFO] backend started with pid=18736
+2026-08-03 23:06:49,215 [INFO] Stop requested. Supervisor will terminate child processes.
+2026-08-03 23:06:58,342 [INFO] Starting backend with command=['C:\\Users\\longn\\miniconda3\\envs\\pallet_bobbin\\python.exe', 'C:\\Users\\longn\\PyCharmMiscProject\\PIDVN25006\\mainProcess.py']
+2026-08-03 23:06:58,349 [INFO] backend started with pid=17520
+2026-08-03 23:06:58,349 [INFO] Waiting 3.0 sec before starting frontend
+2026-08-03 23:07:01,358 [INFO] Starting frontend with command=['C:\\Users\\longn\\miniconda3\\envs\\pallet_bobbin\\python.exe', 'C:\\Users\\longn\\PyCharmMiscProject\\PIDVN25006\\mainCCTV.py']
+2026-08-03 23:07:01,365 [INFO] frontend started with pid=11320
+2026-08-03 23:07:06,405 [ERROR] backend exited with code=1 after 8.1 sec. Restart count=1
+2026-08-03 23:07:06,405 [WARNING] backend exited too quickly. Applying crash backoff 10.0 sec
+2026-08-03 23:07:06,405 [INFO] Waiting 10.0 sec before starting backend
+2026-08-03 23:07:16,418 [INFO] Starting backend with command=['C:\\Users\\longn\\miniconda3\\envs\\pallet_bobbin\\python.exe', 'C:\\Users\\longn\\PyCharmMiscProject\\PIDVN25006\\mainProcess.py']
+2026-08-03 23:07:16,420 [INFO] backend started with pid=14816
+2026-08-03 23:07:24,492 [ERROR] backend exited with code=1 after 8.1 sec. Restart count=2
+2026-08-03 23:07:24,492 [WARNING] backend exited too quickly. Applying crash backoff 10.0 sec
+2026-08-03 23:07:24,492 [INFO] Waiting 10.0 sec before starting backend
+2026-08-03 23:07:34,503 [INFO] Starting backend with command=['C:\\Users\\longn\\miniconda3\\envs\\pallet_bobbin\\python.exe', 'C:\\Users\\longn\\PyCharmMiscProject\\PIDVN25006\\mainProcess.py']
+2026-08-03 23:07:34,506 [INFO] backend started with pid=21752
+2026-08-03 23:07:41,562 [ERROR] backend exited with code=1 after 7.1 sec. Restart count=3
+2026-08-03 23:07:41,562 [WARNING] backend exited too quickly. Applying crash backoff 10.0 sec
+2026-08-03 23:07:41,562 [INFO] Waiting 10.0 sec before starting backend
+2026-08-03 23:07:46,756 [INFO] Stop requested. Supervisor will terminate child processes.
