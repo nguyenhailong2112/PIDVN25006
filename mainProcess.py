@@ -7,6 +7,7 @@ from threading import Lock, Thread
 from datetime import datetime
 
 import cv2
+import torch
 
 from core.camera_reader import CameraReader
 from core.auto_dispatcher import AutoDispatcher
@@ -51,6 +52,7 @@ RUNTIME_CONFIG_PATH = PROJECT_ROOT / "configs" / "runtime.json"
 HIK_RCS_CONFIG_PATH = PROJECT_ROOT / "configs" / "hik_rcs.json"
 AUTO_DISPATCH_CONFIG_PATH = PROJECT_ROOT / "configs" / "auto_dispatch.json"
 HISTORY_DIR = PROJECT_ROOT / "outputs" / "history"
+ELEVATOR_CLASSIFY_IMGSZ = 224
 logger = get_logger(__name__)
 
 
@@ -130,6 +132,7 @@ class CentralBackendRuntime:
         self._hik_sync_timestamp: float | None = None
         self.zone_occupied_since_ts: dict[str, float] = {}
         self.zone_empty_since_ts: dict[str, float] = {}
+        self.inference_device = "cuda" if torch.cuda.is_available() else "cpu"
         logger.info("CentralBackendRuntime started with %d cameras", len(self.workers))
 
     def _decode_fps_for(self, camera_cfg) -> float:
@@ -238,9 +241,9 @@ class CentralBackendRuntime:
             results = bundle.model.predict(
                 frames,
                 conf=self.rule_cfg.conf_threshold,
-                imgsz=self.rule_cfg.img_size,
+                imgsz=ELEVATOR_CLASSIFY_IMGSZ if group[0].camera_cfg.camera_type == "elevator" else self.rule_cfg.img_size,
                 verbose=False,
-                device=0,
+                device=self.inference_device,
             )
             detect_ms = ((time.perf_counter() - t0) * 1000.0) / max(1, len(live_frames))
             for (worker, live_frame), result in zip(live_frames, results):

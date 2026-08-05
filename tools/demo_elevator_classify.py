@@ -27,10 +27,10 @@ def elevator_roi_xyxy(frame_shape: tuple[int, int, int]) -> tuple[int, int, int,
     return x1, y1, x2, y2
 
 
-def classify_frame(model: YOLO, frame, conf_threshold: float, device: str | int) -> tuple[str, float]:
+def classify_frame(model: YOLO, frame, conf_threshold: float, device: str | int, imgsz: int) -> tuple[str, float]:
     x1, y1, x2, y2 = elevator_roi_xyxy(frame.shape)
     crop = frame[y1:y2, x1:x2]
-    result = model.predict(crop, conf=conf_threshold, verbose=False, device=device)[0]
+    result = model.predict(crop, conf=conf_threshold, imgsz=imgsz, verbose=False, device=device)[0]
     probs = getattr(result, "probs", None)
     if probs is None:
         return "unknown", 0.0
@@ -49,7 +49,7 @@ def draw_overlay(frame, label: str, confidence: float, fps: float) -> None:
     x1, y1, x2, y2 = elevator_roi_xyxy(frame.shape)
     color = (0, 200, 0) if label == "empty" else (0, 0, 255) if label == "occupied" else (0, 180, 255)
     cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
-    text = f"{label.upper()}  {confidence:.3f}  {fps:.1f} FPS"
+    text = f"{label.upper()}  {fps:.1f} FPS"
     cv2.putText(frame, text, (x1, max(30, y1 - 10)), cv2.FONT_HERSHEY_SIMPLEX, 0.8, color, 2)
 
 
@@ -76,6 +76,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--conf", type=float, default=0.5, help="Confidence threshold")
     parser.add_argument("--device", default=0, help="YOLO device. Use 0 for GPU, 'cpu' for CPU")
+    parser.add_argument("--imgsz", type=int, default=224, help="Classification image size")
     parser.add_argument("--scale", type=float, default=0.75, help="Display scale factor")
     parser.add_argument("--step", type=int, default=1, help="Process every Nth frame")
     return parser.parse_args()
@@ -122,7 +123,7 @@ def main() -> None:
         if args.step > 1 and (frame_idx % args.step) != 0:
             continue
 
-        label, confidence = classify_frame(model, frame, args.conf, device)
+        label, confidence = classify_frame(model, frame, args.conf, device, args.imgsz)
         now = time.perf_counter()
         fps = 1.0 / max(1e-6, now - last_time)
         last_time = now

@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from threading import Lock
 
+import torch
 from ultralytics import YOLO
 
 from core.logger_config import get_logger
@@ -28,7 +29,8 @@ class ModelRegistry:
                 return bundle
 
             model = YOLO(model_path)
-            model.to("cuda")
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+            model.to(device)
 
             try:
                 model.fuse()

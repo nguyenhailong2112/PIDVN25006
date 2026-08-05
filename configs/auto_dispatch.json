@@ -15,6 +15,7 @@
     "host": "0.0.0.0",
     "port": 2113,
     "base_path": "/service/rest/visionAutoDispatch",
+    "allowlist": ["192.168.10.44"],
     "log_max_mb": 10.0,
     "log_backup_count": 5
   },

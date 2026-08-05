@@ -5,14 +5,13 @@ from core.types import DetectionResult, ZoneConfig, ZoneState
 
 
 STATE_COLORS = {
-    "occupied": (0, 0, 150),
-    "empty": (0, 150, 0),
-    "unknown": (0, 150, 150),
+    "occupied": (0, 0, 180),
+    "empty": (0, 180, 0),
+    "unknown": (0, 180, 180),
 }
 
 DET_COLORS = {
     "person": (0, 255, 0),
-    "obstacle": (0, 150, 255),
     "pallet": (255, 0, 0),
     "trolley": (255, 150, 0),
 }
@@ -57,13 +56,12 @@ def draw_debug_frame(
         for det in detection_result.detections:
             x1, y1, x2, y2 = det.bbox_xyxy
             cls_name = det.class_name
-            conf = det.confidence
 
             color = DET_COLORS.get(cls_name, (180, 180, 180))
 
             cv2.rectangle(canvas, (x1, y1), (x2, y2), color, 1)
 
-            label = f"{cls_name} {conf:.2f}"
+            label = f"{cls_name}"
 
             font = cv2.FONT_HERSHEY_SIMPLEX
             font_scale = 0.65

@@ -12,8 +12,14 @@ Phạm vi:
 ## 1. Base URL
 
 ```text
-http://<VISION_IP>:2113/service/rest/visionAutoDispatch
+http://192.168.10.44:2113/service/rest/visionAutoDispatch
 ```
+
+Luu y:
+
+- Vision API chi cho phep cac IP nam trong allowlist.
+- Muon them thiet bi moi, cap nhat `configs/auto_dispatch.json` -> `api_server.allowlist`.
+- Neu IP client khong nam trong allowlist, request bi tra `403 forbidden by allowlist`.
 
 ## 2. Các API cung cấp
 

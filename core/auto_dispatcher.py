@@ -6,6 +6,7 @@ import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
+from ipaddress import ip_address
 
 from core.file_utils import append_jsonl_rotating, write_json_atomic
 from core.hik_rcs_client import HikRcsClient
@@ -510,6 +511,7 @@ class AutoDispatchControlServer:
         self.host = str(config.get("host", "0.0.0.0")).strip() or "0.0.0.0"
         self.port = int(config.get("port", 2113))
         self.base_path = str(config.get("base_path", "/service/rest/visionAutoDispatch")).rstrip("/")
+        self.allowlist = self._parse_allowlist(config.get("allowlist", []))
         self.log_max_bytes = max(0, int(float(config.get("log_max_mb", 10.0)) * 1024 * 1024))
         self.log_backup_count = max(0, int(config.get("log_backup_count", 5)))
         self._server: ThreadingHTTPServer | None = None
@@ -541,6 +543,9 @@ class AutoDispatchControlServer:
             server_version = "PIDVN-AUTO-DISPATCH/1.0"
 
             def do_GET(self) -> None:  # noqa: N802
+                if not outer._client_allowed(self.client_address[0]):
+                    self._write_json(403, outer._response("403", "forbidden by allowlist", "", {}))
+                    return
                 route = self._resolve_route(self.path)
                 if route in {"health", "status"}:
                     payload = {"reqCode": "", "path": self.path}
@@ -551,6 +556,16 @@ class AutoDispatchControlServer:
                 self._write_json(404, outer._response("404", "unsupported auto dispatch endpoint", "", {}))
 
             def do_POST(self) -> None:  # noqa: N802
+                if not outer._client_allowed(self.client_address[0]):
+                    req_code = ""
+                    try:
+                        req_code = str(self._read_json_body().get("reqCode", ""))
+                    except Exception:
+                        req_code = ""
+                    response = outer._response("403", "forbidden by allowlist", req_code, {})
+                    outer._store_api_event(self.path, {"client_ip": self.client_address[0]}, response)
+                    self._write_json(403, response)
+                    return
                 route = self._resolve_route(self.path)
                 body = self._read_json_body()
                 req_code = str(body.get("reqCode", ""))
@@ -644,6 +659,30 @@ class AutoDispatchControlServer:
             max_bytes=self.log_max_bytes,
             backup_count=self.log_backup_count,
         )
+
+    @staticmethod
+    def _parse_allowlist(raw_value: Any) -> set[str]:
+        allowlist: set[str] = set()
+        if isinstance(raw_value, list):
+            for item in raw_value:
+                value = str(item).strip()
+                if value:
+                    allowlist.add(value)
+        return allowlist
+
+    def _client_allowed(self, client_ip: str) -> bool:
+        if not self.allowlist:
+            return True
+        client_ip = str(client_ip).strip()
+        if not client_ip:
+            return False
+        if client_ip in self.allowlist:
+            return True
+        try:
+            parsed = ip_address(client_ip)
+        except ValueError:
+            return False
+        return str(parsed) in self.allowlist
 
     @staticmethod
     def _normalize_rcs_response(*, req_code: str, result: dict[str, Any]) -> dict[str, Any]:
