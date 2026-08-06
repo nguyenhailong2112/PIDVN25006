@@ -509,7 +509,7 @@ class AutoDispatchControlServer:
         self.config = config
         self.dispatcher = dispatcher
         self.host = str(config.get("host", "0.0.0.0")).strip() or "0.0.0.0"
-        self.port = int(config.get("port", 2113))
+        self.port = int(config.get("port", 8023))
         self.base_path = str(config.get("base_path", "/service/rest/visionAutoDispatch")).rstrip("/")
         self.allowlist = self._parse_allowlist(config.get("allowlist", []))
         self.log_max_bytes = max(0, int(float(config.get("log_max_mb", 10.0)) * 1024 * 1024))

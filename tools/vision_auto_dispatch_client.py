@@ -11,7 +11,7 @@ from pathlib import Path
 
 DEFAULT_BASE_URL = os.environ.get(
     "VISION_AUTO_DISPATCH_BASE_URL",
-    "http://192.168.10.44:2113/service/rest/visionAutoDispatch",
+    "http://192.168.10.44:8023/service/rest/visionAutoDispatch",
 ).rstrip("/")
 
 

@@ -84,7 +84,7 @@ Quy uoc taskCode:
 
 - `operation_mode = manual` la default an toan.
 - `profile_id = PK_AB` la default.
-- `api_server.port = 2113`.
+- `api_server.port = 8023`.
 - Chi co 2 profile hop le: `PK_AB`, `PK_CD`.
 - `query_status_agv_code = 16675` duoc dung de query task status cua dung AGV/site dang chay.
 
@@ -98,7 +98,7 @@ Quy uoc taskCode:
 Base URL:
 
 ```text
-http://<VISION_IP>:2113/service/rest/visionAutoDispatch
+http://<VISION_IP>:8023/service/rest/visionAutoDispatch
 ```
 
 ### 4.1 Health

@@ -28,12 +28,12 @@ Muc tieu:
 ### 1.3 Port mac dinh
 
 - Callback bindNotify: `2112`
-- Auto dispatch API: `2113`
+- Auto dispatch API: `8023`
 
 ### 1.4 IP site
 
 - PC Vision: `192.168.10.44`
-- Default client target trong script test: `http://192.168.10.44:2113/service/rest/visionAutoDispatch`
+- Default client target trong script test: `http://192.168.10.44:8023/service/rest/visionAutoDispatch`
 
 ## 2. Cac file cau hinh can biet
 

@@ -1,110 +1,144 @@
-# FMR Trolley - bindCtnrAndBin Integration
+# FMR Trolley - bindCtnrAndBin + hybrid_canonical
 
 ## 1. Muc tieu
 
-Tai lieu nay chot huong truyen thong Vision -> HIK RCS cho chu trinh FMR trolley theo quyet dinh dung `bindCtnrAndBin`, dong bo voi cach mapping hien tai cua AMR pallet.
+Tai lieu nay chot cach Vision truyen thong bind/unbind cho chu trinh FMR trolley.
 
-Trang thai da trien khai:
+Quyet dinh hien tai:
 
-- da bo sung mapping trolley vao `configs/hik_rcs.json`
-- tat ca mapping trolley dang `enabled=false`
-- cac tham so business de trong de team AGV/RCS dien onsite
-- khong anh huong cac mapping pallet dang chay
+- FMR trolley dung `bindCtnrAndBin`, dong bo voi pipeline AMR pallet.
+- Tat ca diem hang trolley khong thuoc thang may dung `dispatch_policy = "hybrid_canonical"`.
+- Tat ca diem trolley dung `canonical_owner = "canonical_trolley"` de tach session canonical trolley voi cac luong khac.
+- Callback `bindNotify` cua RCS la dieu kien bat buoc de Vision biet actual `ctnrCode` ma RCS/FMR vua bind vao slot.
+- Thang may `cam7` khong nam trong luong bind/unbind trolley; thang may van di theo `blockArea`.
 
 ## 2. Co so API HIK
 
-Theo `UD35865B_RCS-2000 API_Developer Guide_V3.3_20231204(1)`:
+Theo `UD35865B_RCS-2000 API_Developer Guide_V3.3_20231204(1)`, `bindCtnrAndBin` dung de bind/unbind container va storage bin/position.
 
-- `bindCtnrAndBin` dung de bind/unbind container va bin
-- API nay ap dung cho CTU va FMR task
-- `indBind="1"` la bind
-- `indBind="0"` la unbind
-- `ctnrCode` va `ctnrTyp` la bat buoc
-- it nhat mot trong `stgBinCode` hoac `positionCode` phai co
-- `characterValue` la trait value cho FMR roadway neu site can
+Thong so chinh:
 
-## 3. Mapping da them vao hik_rcs.json
+- `indBind = "1"`: bind container vao bin/position.
+- `indBind = "0"`: unbind container khoi bin/position.
+- `ctnrCode`: ma container/trolley can bind hoac unbind.
+- `ctnrTyp`: container type.
+- `stgBinCode` hoac `positionCode`: vi tri RCS can tac dong.
 
-Da them cac camera/zone trolley:
+Voi chu trinh FMR co RCS dieu phoi, RCS co the tu bind actual `ctnrCode` duoc mang tu diem pick sang diem put. Vi vay Vision khong duoc gia dinh rang actual `ctnrCode` tai diem put luon bang static `ctnr_code` trong config. Vision phai doc `bindNotify`, nho actual `ctnrCode`, sau do canonical hoa ve static code cua slot neu can.
 
-- `cam1`: `A1`, `A2`, `A3`, `B1`, `B2`, `B3`
-- `cam2`: `A5`
-- `cam3`: `A3`, `A4`, `A5`
-- `cam8`: `A1`, `A2`, `A3`, `B1`, `B2`, `B3`, `C1`, `C2`, `C3`
+## 3. Mapping trolley hien tai
 
-Moi mapping co dang:
+Trong [configs/hik_rcs.json](C:\Users\longn\PyCharmMiscProject\PIDVN25006\configs\hik_rcs.json), cac mapping trolley dang duoc bat cho:
+
+| Camera | Khu vuc | Zone Vision | RCS position | ctnrTyp |
+|---|---|---|---|---|
+| `cam2` | Coil | `A1` -> `A5` | `COIL_FF10` -> `COIL_FF14` | `3` |
+| `cam3` | Warehouse | `A1`, `A2`, `B1`, `B2` | `WH_A1`, `WH_A2`, `WH_B1`, `WH_B2` | `4` |
+| `cam8` | 3T | `A1` -> `A9` | `3T_A1` -> `3T_A9` | `3` |
+| `cam11` | Coil | `A1` -> `A7` | `COIL_AA1` -> `COIL_AA7` | `4` |
+
+Tong cong: 25 diem trolley.
+
+Moi mapping trolley can co dang:
 
 ```json
 {
-  "enabled": false,
-  "camera_id": "cam1",
+  "enabled": true,
+  "camera_id": "cam8",
   "zone_id": "A1",
   "method": "bindCtnrAndBin",
-  "position_code": "",
-  "stg_bin_code": "",
-  "ctnr_code": "",
-  "ctnr_typ": "",
+  "dispatch_policy": "hybrid_canonical",
+  "canonical_owner": "canonical_trolley",
+  "position_code": "3T_A1",
+  "stg_bin_code": "...",
+  "ctnr_code": "3T_A1",
+  "ctnr_typ": "3",
   "unknown_action": "lockPosition"
 }
 ```
 
-## 4. Tham so can team AGV/RCS cung cap
+## 4. Logic hybrid_canonical cho trolley
 
-Moi vi tri trolley can chot:
+### 4.1 Khi Vision thay trolley OCCUPIED
 
-- `camera_id`
-- `zone_id`
-- RCS `position_code` neu bind theo virtual rack/bin position
-- RCS `stg_bin_code` neu bind theo storage bin
-- `ctnr_code`: ma trolley/container RCS su dung cho vi tri/doi tuong do
-- `ctnr_typ`: container type cua trolley trong RCS
-- `bin_name` neu site bat custom bin ID
-- `character_value` neu FMR roadway can trait value
-- `lock_position_code` neu muon lockPosition bang ma khac `position_code`
+Vision xu ly theo thu tu:
 
-Luu y quan trong:
+1. Kiem tra session hien tai cua slot.
+2. Neu RCS da notify actual `ctnrCode` bang `bindNotify`, Vision dung actual code do lam source truth tam thoi.
+3. Neu actual code khac static `ctnr_code` cua slot, Vision canonical hoa:
+   - unbind actual `ctnrCode` hien dang nam o slot.
+   - bind lai static `ctnr_code` cua chinh slot.
+4. Neu actual code da bang static code cua slot, Vision chi danh dau slot dang canonical OK.
 
-- Neu chi dien `stg_bin_code` ma de trong `position_code`, `unknown_action=lockPosition` se can them `lock_position_code`.
-- Neu `position_code` duoc dien dung, bridge co the dung chinh `position_code` de lock/unlock khi zone unknown.
-- Khi chua chot du mapping, giu `enabled=false`.
+Ket qua mong muon: moi slot trolley tren RCS duoc quan ly bang static `ctnr_code` cua chinh slot, tranh viec ma trolley cua diem pick bi giu tai diem put va lam diem pick khong bind lai duoc.
 
-## 5. Luong runtime
+### 4.2 Khi Vision thay trolley EMPTY
 
-Luong xu ly trolley giong pallet:
+Vision khong unbind mu quang theo static code. Vision uu tien:
 
-1. Model detect `trolley`.
-2. ROI state qua `StateTracker` thanh `occupied / empty / unknown`.
-3. HIK bridge doc mapping trong `hik_rcs.json`.
-4. Neu state `occupied` hop le:
-   - goi `bindCtnrAndBin(indBind="1")`.
-5. Neu state `empty` hop le:
-   - goi `bindCtnrAndBin(indBind="0")`.
-6. Neu state `unknown`:
-   - neu `unknown_action="lockPosition"` thi khoa vi tri bang `lockPosition(indBind="0")`.
+1. Actual `ctnrCode` da hoc duoc tu `bindNotify`.
+2. Static `ctnr_code` cua mapping neu chua co actual code.
 
-## 6. Quy trinh test
+Neu RCS bao bin dang locked hoac container co incomplete task, Vision giu session de reconcile sau, khong ep unbind sai trong luc FMR dang thuc hien task.
 
-1. Dien mapping cho 1 zone trolley duy nhat.
-2. Giu `dry_run=true`.
-3. Bat `enabled=true` cho mapping do.
-4. Dat trolley vao ROI, xac nhan log sinh `indBind=1`.
-5. Keo trolley ra khoi ROI, xac nhan log sinh `indBind=0`.
-6. Che camera/lam stale input, xac nhan sinh lock disable neu co `position_code`.
-7. Doi `dry_run=false` va test voi RCS that.
-8. Sau khi 1 zone pass moi nhan rong toan bo trolley zones.
+### 4.3 Khi Vision thay UNKNOWN
 
-## 7. Dieu kien acceptance
+`UNKNOWN` khong duoc suy dien thanh `EMPTY`.
 
-Trolley integration duoc xem la pass khi:
+Neu mapping co `unknown_action = "lockPosition"` thi bridge co the goi action bao ve theo config hien co. Voi trolley, nen uu tien tuning debounce/hold time cua ROI de tranh nhay trang thai do che khuat hoac trolley di ngang.
 
-- `occupied` on dinh moi bind
-- trolley di ngang qua ROI khong bind sai
-- che khuat ngan/trung han khong unbind sai
-- `empty` on dinh moi unbind
-- `unknown` khong bao gio bi suy ra empty
-- RCS response `code="0"` duoc log day du
-- mapping sai tra business error ro rang, khong retry vo han voi loi non-retryable
+## 5. Cau hinh RCS bat buoc
+
+RCS can mo callback:
+
+- Application name: `VISION`
+- Type: WCS/device access control service
+- IP: IP may Vision
+- Port: `2112`
+- Protocol: `http`
+- Base path phia Vision: `/service/rest`
+- Task Notify: `bindCtnrAndBin`
+- Notification path: `/bindNotify`
+
+Endpoint day du tren Vision:
+
+```text
+http://<VISION_IP>:2112/service/rest/bindNotify
+```
+
+## 6. Dieu kien nghiem thu
+
+Trolley hybrid canonical duoc xem la pass khi:
+
+- 25 diem trolley deu co `dispatch_policy = "hybrid_canonical"`.
+- 25 diem trolley deu co `canonical_owner = "canonical_trolley"`.
+- RCS bind trolley do FMR mang tu diem khac den, Vision nhan duoc `bindNotify`.
+- Vision co the unbind actual code va bind lai static code cua slot khi slot OCCUPIED on dinh.
+- Khi trolley duoc lay ra khoi slot, Vision unbind dung actual/static code dang duoc quan ly.
+- Log locked/incomplete task khong bi retry ep sai vo han; slot duoc giu de reconcile.
+- Thang may `cam7` khong bi tac dong boi policy bind/unbind nay.
+
+## 7. Cach audit nhanh truoc khi chay site
+
+Chay:
+
+```powershell
+python -m py_compile core\hik_rcs_bridge.py
+```
+
+Kiem tra config trolley:
+
+```powershell
+python -c "import json; c=json.load(open('configs/hik_rcs.json',encoding='utf-8')); ms=[m for m in c['mappings'] if m.get('method')=='bindCtnrAndBin' and m.get('camera_id') in {'cam2','cam3','cam8','cam11'}]; print(len(ms)); print([m.get('position_code') for m in ms if m.get('dispatch_policy')!='hybrid_canonical' or m.get('canonical_owner')!='canonical_trolley'])"
+```
+
+Ket qua mong muon:
+
+```text
+25
+[]
+```
 
 ## 8. Ket luan
 
-Ve mat code, FMR trolley da duoc dua vao cung pipeline HIK voi pallet. Phan con lai la business mapping cua RCS: ma bin/position/container type/container code. Khi cac ma nay duoc dien va test tung zone, runtime co the bind/unbind trolley bang `bindCtnrAndBin` nhu pallet.
+Ve phia Vision, FMR trolley da duoc scale len cung co che bindNotify/canonical nhu pallet. Diem khac biet quan trong la trolley dung owner rieng `canonical_trolley`, giup chuong trinh quan ly dung actual/static `ctnrCode` cho toan bo diem trolley ma khong lam lan session voi AMR pallet.

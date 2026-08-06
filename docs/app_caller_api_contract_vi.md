@@ -12,7 +12,7 @@ Phạm vi:
 ## 1. Base URL
 
 ```text
-http://192.168.10.44:2113/service/rest/visionAutoDispatch
+http://192.168.10.44:8023/service/rest/visionAutoDispatch
 ```
 
 Luu y:

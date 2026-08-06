@@ -1,7 +1,7 @@
 {
   "enabled": true,
   "dry_run": false,
-  "operation_mode": "auto",
+  "operation_mode": "manual",
   "profile_id": "PK_AB",
   "control_state_path": "outputs/runtime/auto_dispatch/mode_control.json",
   "require_bind_notify": true,
@@ -13,7 +13,7 @@
   "api_server": {
     "enabled": true,
     "host": "0.0.0.0",
-    "port": 2113,
+    "port": 8023,
     "base_path": "/service/rest/visionAutoDispatch",
     "allowlist": ["192.168.10.44"],
     "log_max_mb": 10.0,
