@@ -227,7 +227,6 @@ class AutoDispatcher:
         active["last_query_at"] = round(now_ts, 3)
         own_response = self._extract_own_task_response(response, task_code)
         active["last_query_response"] = own_response
-        active["last_query_response_raw"] = response
         task_status = self._extract_task_status(own_response)
         active["status"] = task_status or str(response.get("message", "")).strip() or str(response.get("code", ""))
         normalized = active["status"].strip().lower()
@@ -259,9 +258,6 @@ class AutoDispatcher:
             return False, f"{position}:needs_reconcile"
         if self.require_canonical and str(session.get("policy", "")).strip() not in {"hybrid_canonical", "hybrid_fg_canonical"}:
             return False, f"{position}:not_hybrid_canonical"
-        dispatch = entry.get("bind_dispatch", {}) if isinstance(entry.get("bind_dispatch", {}), dict) else {}
-        if dispatch and dispatch.get("success") is False:
-            return False, f"{position}:last_bind_dispatch_failed"
         if required_state == "occupied":
             actual_ctnr = str(session.get("actual_ctnr_code", "") or entry.get("last_bound_ctnr_code", "")).strip()
             if actual_ctnr and actual_ctnr.lower() != position.lower():
@@ -397,6 +393,7 @@ class AutoDispatcher:
 
     def set_control(self, payload: dict[str, Any], now_ts: float | None = None) -> dict[str, Any]:
         now_ts = float(now_ts if now_ts is not None else time.time())
+        previous_control = self._load_control()
         operation_mode = str(payload.get("operation_mode", payload.get("mode", ""))).strip().lower()
         profile_id = str(payload.get("profile_id", self.config.get("profile_id", "PK_AB"))).strip()
         if operation_mode not in {"manual", "auto"}:
@@ -427,6 +424,19 @@ class AutoDispatcher:
         if operation_mode == "manual":
             self.state.pop("batch", None)
             self._set_status("manual_mode", now_ts)
+            self._save_state()
+        elif operation_mode == "auto":
+            self.state.pop("batch", None)
+            self._set_status(f"auto_mode_requested:{profile_id}", now_ts)
+            self._log_event(
+                "auto_batch_reset",
+                {
+                    "profile_id": profile_id,
+                    "previous_operation_mode": previous_control.get("operation_mode", ""),
+                    "previous_profile_id": previous_control.get("profile_id", ""),
+                },
+                now_ts,
+            )
             self._save_state()
         return {
             "accepted": True,

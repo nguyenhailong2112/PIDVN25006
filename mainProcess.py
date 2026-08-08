@@ -52,7 +52,6 @@ RUNTIME_CONFIG_PATH = PROJECT_ROOT / "configs" / "runtime.json"
 HIK_RCS_CONFIG_PATH = PROJECT_ROOT / "configs" / "hik_rcs.json"
 AUTO_DISPATCH_CONFIG_PATH = PROJECT_ROOT / "configs" / "auto_dispatch.json"
 HISTORY_DIR = PROJECT_ROOT / "outputs" / "history"
-ELEVATOR_CLASSIFY_IMGSZ = 224
 logger = get_logger(__name__)
 
 
@@ -117,6 +116,7 @@ class CentralBackendRuntime:
         self.preview_width = int(self.runtime_cfg.get("preview_width", 960))
         self.preview_height = int(self.runtime_cfg.get("preview_height", 540))
         self.occupied_session_break_sec = max(0.0, float(self.runtime_cfg.get("occupied_session_break_sec", 5.0)))
+        self.elevator_classify_imgsz = int(self.runtime_cfg.get("elevator_classify_imgsz", 224))
         self.last_export_ts = 0.0
 
         self.workers = [self._build_worker(cfg) for cfg in self.camera_configs]
@@ -241,7 +241,7 @@ class CentralBackendRuntime:
             results = bundle.model.predict(
                 frames,
                 conf=self.rule_cfg.conf_threshold,
-                imgsz=ELEVATOR_CLASSIFY_IMGSZ if group[0].camera_cfg.camera_type == "elevator" else self.rule_cfg.img_size,
+                imgsz=self.elevator_classify_imgsz if group[0].camera_cfg.camera_type == "elevator" else self.rule_cfg.img_size,
                 verbose=False,
                 device=self.inference_device,
             )
