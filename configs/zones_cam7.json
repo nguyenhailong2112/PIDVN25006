@@ -1,11 +1,22 @@
 {
   "camera_id": "cam7",
+  "elevator_vision": {
+    "enabled": true,
+    "img_size": 224,
+    "floor": {
+      "model_path": "weights_elevatorbase/best.pt",
+      "labels": ["empty", "occupied"],
+      "roi": [[0.2, 0.30], [0.8, 0.30], [0.8, 1.00], [0.2, 1.00]]
+    },
+    "gate": {
+      "model_path": "weights_elevatorgate/best.pt",
+      "labels": ["ok", "ng"],
+      "roi": [[0.375, 0.00], [0.675, 0.00], [0.675, 0.25], [0.375, 0.25]]
+    }
+  },
   "zones": [
     {
-      "zone_id": "LIFT_2",
-      "target_object": "*",
-      "spatial_method": "bbox_intersects",
-      "polygon": [[0.2, 0.35], [0.8, 0.35], [0.8, 1.00], [0.2, 1.00]]
+      "zone_id": "LIFT_2"
     }
   ]
 }

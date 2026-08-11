@@ -2,8 +2,8 @@ import json
 import os
 from pathlib import Path
 
-from core.path_utils import ensure_exists, resolve_project_path
-from core.types import CameraConfig, IngestConfig, RuleConfig, ZoneConfig
+from core.path_utils import ensure_exists
+from core.types import CameraConfig, ElevatorClassifierConfig, ElevatorVisionConfig, IngestConfig, RuleConfig, ZoneConfig
 
 
 def _coerce_str(value, fallback="") -> str:
@@ -49,18 +49,34 @@ def load_camera_configs(path: str | Path) -> list[CameraConfig]:
 def load_zone_configs(path: str | Path) -> list[ZoneConfig]:
     path = ensure_exists(path, "Zone config")
     data = json.loads(path.read_text(encoding="utf-8-sig"))
+    return _load_zone_configs_from_data(data, path)
+
+
+def _load_zone_configs_from_data(
+    data: dict,
+    path: Path,
+    default_polygon: list[tuple[float, float]] | None = None,
+    default_target_object: str | None = None,
+    default_spatial_method: str | None = None,
+) -> list[ZoneConfig]:
     zone_items = data["zones"]
     allowed_spatial_methods = {"bbox_center", "bbox_all_corners", "bbox_intersects", ""}
 
     zones: list[ZoneConfig] = []
     for item in zone_items:
-        spatial_method = _coerce_str(item.get("spatial_method", ""))
+        spatial_method = _coerce_str(item.get("spatial_method", default_spatial_method or ""))
         if spatial_method not in allowed_spatial_methods:
             raise ValueError(f"Unsupported zone spatial_method={spatial_method} in {path}")
-        target_object = _coerce_str(item.get("target_object", "")).strip()
+        target_object = _coerce_str(item.get("target_object", default_target_object or "")).strip()
         if not target_object:
             raise ValueError(f"Zone target_object is required in {path}")
-        polygon = [(float(x), float(y)) for x, y in item["polygon"]]
+        raw_polygon = item.get("polygon")
+        if raw_polygon is None:
+            if default_polygon is None:
+                raise ValueError(f"Zone polygon is required in {path}")
+            polygon = list(default_polygon)
+        else:
+            polygon = [(float(x), float(y)) for x, y in raw_polygon]
         zones.append(
             ZoneConfig(
                 zone_id=item["zone_id"],
@@ -70,6 +86,46 @@ def load_zone_configs(path: str | Path) -> list[ZoneConfig]:
             )
         )
     return zones
+
+
+def _load_elevator_classifier_config(name: str, data: dict) -> ElevatorClassifierConfig:
+    roi = [(float(x), float(y)) for x, y in data["roi"]]
+    labels = [_coerce_str(label).strip().lower() for label in data.get("labels", [])]
+    return ElevatorClassifierConfig(
+        name=name,
+        model_path=_expand_env(_coerce_str(data.get("model_path", ""))),
+        roi=roi,
+        labels=labels,
+    )
+
+
+def load_elevator_vision_config(path: str | Path) -> ElevatorVisionConfig:
+    path = ensure_exists(path, "Elevator vision config")
+    data = json.loads(path.read_text(encoding="utf-8-sig"))
+    vision_data = data.get("elevator_vision", data)
+    return ElevatorVisionConfig(
+        enabled=bool(vision_data.get("enabled", True)),
+        img_size=int(vision_data.get("img_size", 224)),
+        floor=_load_elevator_classifier_config("floor", vision_data["floor"]),
+        gate=_load_elevator_classifier_config("gate", vision_data["gate"]),
+        camera_id=_coerce_str(data.get("camera_id", "")),
+    )
+
+
+def load_elevator_zone_configs(path: str | Path) -> tuple[ElevatorVisionConfig, list[ZoneConfig]]:
+    path = ensure_exists(path, "Elevator zone config")
+    data = json.loads(path.read_text(encoding="utf-8-sig"))
+    if "elevator_vision" not in data:
+        raise ValueError(f"elevator_vision is required in {path}")
+    config = load_elevator_vision_config(path)
+    zones = _load_zone_configs_from_data(
+        data,
+        path,
+        default_polygon=config.floor.roi,
+        default_target_object="*",
+        default_spatial_method="bbox_intersects",
+    )
+    return config, zones
 
 
 def load_rule_config(path: str | Path) -> RuleConfig:
@@ -88,8 +144,6 @@ def load_rule_config(path: str | Path) -> RuleConfig:
         conf_threshold=float(data["conf_threshold"]),
         img_size=img_size,
         batch_size=int(data.get("batch_size", 1)),
-        batch_timeout_ms=int(data.get("batch_timeout_ms", 0)),
-        max_pending_requests=int(data.get("max_pending_requests", 0)),
         enter_confirm_sec=float(data.get("enter_confirm_sec", 0.0)),
         exit_confirm_sec=float(data.get("exit_confirm_sec", 0.0)),
         occupied_hold_sec=float(data.get("occupied_hold_sec", 0.0)),
@@ -103,7 +157,6 @@ def load_ingest_config(path: str | Path) -> IngestConfig:
         stream_profile=str(data.get("stream_profile", "main")).lower(),
         latest_frame_only=bool(data.get("latest_frame_only", True)),
         reader_output_fps=float(data.get("reader_output_fps", 10.0)),
-        expected_source_fps=float(data.get("expected_source_fps", 25.0)),
         buffer_size=int(data.get("buffer_size", 1)),
         reconnect_delay_sec=float(data.get("reconnect_delay_sec", 1.0)),
         rtsp_transport=str(data.get("rtsp_transport", "tcp")).lower(),
@@ -171,14 +224,61 @@ def validate_rule_config(rule_cfg: RuleConfig) -> None:
     if errors:
         raise ValueError("Rule config validation failed:\n- " + "\n- ".join(errors))
 
+
+def validate_elevator_vision_config(config: ElevatorVisionConfig) -> None:
+    errors = []
+    if config.img_size <= 0:
+        errors.append("img_size must be > 0")
+    for classifier in (config.floor, config.gate):
+        if not classifier.model_path:
+            errors.append(f"{classifier.name}: model_path is required")
+        if len(classifier.roi) != 4:
+            errors.append(f"{classifier.name}: roi must contain exactly 4 points")
+        for x, y in classifier.roi:
+            if not (0.0 <= x <= 1.0 and 0.0 <= y <= 1.0):
+                errors.append(f"{classifier.name}: roi points must be normalized to [0,1]")
+                break
+        labels = set(classifier.labels)
+        if classifier.name == "floor" and labels != {"empty", "occupied"}:
+            errors.append("floor labels must be exactly: empty, occupied")
+        if classifier.name == "gate" and labels != {"ok", "ng"}:
+            errors.append("gate labels must be exactly: ok, ng")
+    if errors:
+        raise ValueError("Elevator vision config validation failed:\n- " + "\n- ".join(errors))
+
+
+def validate_elevator_runtime_config(camera_configs: list[CameraConfig]) -> None:
+    elevator_cameras = [cfg for cfg in camera_configs if cfg.camera_type == "elevator"]
+    if not elevator_cameras:
+        return
+
+    errors = []
+    for cfg in elevator_cameras:
+        if cfg.model_path.strip():
+            errors.append(f"{cfg.camera_id}: elevator model_path must be configured in its zone_config elevator_vision block, not configs/cameras.json")
+        if not cfg.zone_config.strip():
+            errors.append(f"{cfg.camera_id}: zone_config is required for elevator RCS mapping")
+            continue
+        try:
+            config, _ = load_elevator_zone_configs(cfg.zone_config)
+            validate_elevator_vision_config(config)
+            if config.camera_id and config.camera_id != cfg.camera_id:
+                errors.append(f"{cfg.camera_id}: zone_config camera_id must match camera config, got {config.camera_id}")
+            if not config.enabled:
+                errors.append(f"{cfg.camera_id}: elevator_vision.enabled must be true")
+            ensure_exists(config.floor.model_path, f"{cfg.camera_id} elevator floor model")
+        except (FileNotFoundError, ValueError, KeyError) as exc:
+            errors.append(str(exc))
+
+    if errors:
+        raise ValueError("Elevator runtime config validation failed:\n- " + "\n- ".join(errors))
+
 def validate_ingest_config(ingest_cfg: IngestConfig) -> None:
     errors = []
     if ingest_cfg.stream_profile not in {"main", "sub", "third"}:
         errors.append("stream_profile must be one of: main, sub, third")
     if ingest_cfg.reader_output_fps <= 0:
         errors.append("reader_output_fps must be > 0")
-    if ingest_cfg.expected_source_fps <= 0:
-        errors.append("expected_source_fps must be > 0")
     if ingest_cfg.buffer_size <= 0:
         errors.append("buffer_size must be > 0")
     if ingest_cfg.reconnect_delay_sec <= 0:
@@ -192,7 +292,7 @@ def validate_ingest_config(ingest_cfg: IngestConfig) -> None:
 
 def validate_gui_config(gui_cfg: dict) -> None:
     errors = []
-    for key in ("grid_rows", "grid_cols", "cell_min_width", "cell_min_height"):
+    for key in ("grid_rows", "grid_cols", "cell_min_width", "cell_min_height", "grid_spacing"):
         if key not in gui_cfg:
             errors.append(f"gui.json missing {key}")
     if errors:

@@ -60,7 +60,7 @@
     "name": "Thang May 1",
     "source_type": "rtsp",
     "source_path": "rtsp://admin:rtctech!@192.168.11.6:554/Streaming/Channels/101",
-    "model_path": "weights_classification/best.pt",
+    "model_path": "",
     "zone_config": "configs/zones_cam6.json",
     "infer_every_n_frames": 2,
     "enabled": true
@@ -71,7 +71,7 @@
     "name": "Thang May 2",
     "source_type": "rtsp",
     "source_path": "rtsp://admin:rtctech!@192.168.11.7:554/Streaming/Channels/101",
-    "model_path": "weights_classification/best.pt",
+    "model_path": "",
     "zone_config": "configs/zones_cam7.json",
     "infer_every_n_frames": 2,
     "enabled": true

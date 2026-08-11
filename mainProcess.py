@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import time
 from dataclasses import dataclass
 from threading import Lock, Thread
@@ -13,14 +12,17 @@ from core.camera_reader import CameraReader
 from core.auto_dispatcher import AutoDispatcher
 from core.config import (
     load_camera_configs,
+    load_elevator_zone_configs,
     load_ingest_config,
     load_json_dict,
     load_rule_config,
     validate_camera_configs,
+    validate_elevator_runtime_config,
     validate_ingest_config,
     validate_rule_config,
     load_zone_configs,
 )
+from core.elevator_vision import ElevatorVisionProcessor
 from core.frame_store import FrameStore
 from core.hik_rcs_bridge import HikRcsBridge
 from core.history_logger import HistoryLogger
@@ -89,6 +91,7 @@ class CentralBackendRuntime:
         validate_camera_configs(self.camera_configs)
         validate_rule_config(self.rule_cfg)
         validate_ingest_config(self.ingest_cfg)
+        validate_elevator_runtime_config(self.camera_configs)
 
         history_log_max_bytes = max(
             0,
@@ -105,18 +108,16 @@ class CentralBackendRuntime:
         self.debug_export_interval_sec = 1.0 / max(1.0, float(self.runtime_cfg.get("debug_export_fps", 15.0)))
         self.preview_export_interval_sec = 1.0 / max(1.0, float(self.runtime_cfg.get("grid_display_fps", 10.0)))
         self.schedule_sleep_sec = max(0.001, float(self.runtime_cfg.get("schedule_sleep_ms", 5)) / 1000.0)
-        self.selected_priority_boost = float(self.runtime_cfg.get("selected_priority_boost", 1000.0))
-        self.detail_priority_boost = float(self.runtime_cfg.get("detail_priority_boost", 1200.0))
+        self.selected_priority_boost = float(self.runtime_cfg.get("selected_priority_boost", 2200.0))
         self.offline_priority_penalty = max(0.0, float(self.runtime_cfg.get("offline_priority_penalty", 0.2)))
-        self.decode_fps_default = float(self.runtime_cfg.get("decode_fps_default", self.ingest_cfg.reader_output_fps))
         self.selected_infer_fps = float(self.runtime_cfg.get("selected_infer_fps", 15.0))
-        self.detail_infer_fps = float(self.runtime_cfg.get("detail_infer_fps", self.selected_infer_fps))
         self.slot_infer_fps_default = float(self.runtime_cfg.get("slot_infer_fps_default", 10.0))
-        self.general_infer_fps_default = float(self.runtime_cfg.get("general_infer_fps_default", 5.0))
         self.preview_width = int(self.runtime_cfg.get("preview_width", 960))
         self.preview_height = int(self.runtime_cfg.get("preview_height", 540))
         self.occupied_session_break_sec = max(0.0, float(self.runtime_cfg.get("occupied_session_break_sec", 5.0)))
-        self.elevator_classify_imgsz = int(self.runtime_cfg.get("elevator_classify_imgsz", 224))
+        self.elevator_vision: dict[str, ElevatorVisionProcessor] = {}
+        self.elevator_zone_configs: dict[str, list] = {}
+        self._load_elevator_configs()
         self.last_export_ts = 0.0
 
         self.workers = [self._build_worker(cfg) for cfg in self.camera_configs]
@@ -135,8 +136,19 @@ class CentralBackendRuntime:
         self.inference_device = "cuda" if torch.cuda.is_available() else "cpu"
         logger.info("CentralBackendRuntime started with %d cameras", len(self.workers))
 
+    def _load_elevator_configs(self) -> None:
+        for cfg in self.camera_configs:
+            if cfg.camera_type != "elevator":
+                continue
+            elevator_config, zone_configs = load_elevator_zone_configs(cfg.zone_config)
+            self.elevator_vision[cfg.camera_id] = ElevatorVisionProcessor(elevator_config)
+            self.elevator_zone_configs[cfg.camera_id] = zone_configs
+
+    def _elevator_processor(self, camera_id: str) -> ElevatorVisionProcessor:
+        return self.elevator_vision[camera_id]
+
     def _decode_fps_for(self, camera_cfg) -> float:
-        return max(self.decode_fps_default, float(self.ingest_cfg.reader_output_fps))
+        return float(self.ingest_cfg.reader_output_fps)
 
     def _build_reader(self, camera_cfg, frame_store: FrameStore):
         decode_fps = self._decode_fps_for(camera_cfg)
@@ -161,27 +173,47 @@ class CentralBackendRuntime:
         reasoner = None
         tracker = None
         if camera_cfg.zone_config:
-            zone_config_path = ensure_exists(camera_cfg.zone_config, "Zone config")
-            zone_configs = load_zone_configs(zone_config_path)
+            if camera_cfg.camera_type == "elevator":
+                zone_configs = self.elevator_zone_configs.get(camera_cfg.camera_id, [])
+            else:
+                zone_config_path = ensure_exists(camera_cfg.zone_config, "Zone config")
+                zone_configs = load_zone_configs(zone_config_path)
             reasoner = ZoneReasoner(zone_configs, self.rule_cfg)
             tracker = StateTracker(self.rule_cfg)
         return CameraWorker(camera_cfg, reader, frame_store, reasoner, tracker, zone_configs)
 
     def _get_model_bundle(self, camera_cfg):
-        model_path = str(ensure_exists(camera_cfg.model_path, "Model file"))
+        return self._get_model_bundle_by_path(self._model_path_for_worker(camera_cfg))
+
+    def _get_model_bundle_by_path(self, model_path: str):
+        model_path = str(ensure_exists(model_path, "Model file"))
         bundle = self.model_bundles.get(model_path)
         if bundle is None:
             bundle = ModelRegistry.get(model_path)
             self.model_bundles[model_path] = bundle
         return bundle
 
+    def _model_path_for_worker(self, camera_cfg: CameraConfig) -> str:
+        if camera_cfg.camera_type == "elevator":
+            return self._elevator_processor(camera_cfg.camera_id).floor_model_path
+        return str(ensure_exists(camera_cfg.model_path, "Model file"))
+
+    def _img_size_for_worker(self, camera_cfg: CameraConfig) -> int | None:
+        if camera_cfg.camera_type == "elevator":
+            return self._elevator_processor(camera_cfg.camera_id).img_size
+        return self.rule_cfg.img_size
+
+    def _get_elevator_gate_bundle(self, camera_id: str):
+        processor = self._elevator_processor(camera_id)
+        if not processor.gate_model_exists():
+            return None
+        return self._get_model_bundle_by_path(processor.gate_model_path)
+
     def _target_infer_fps(self, worker: CameraWorker, selected_cameras: set[str]) -> float:
         if worker.camera_cfg.camera_id in selected_cameras:
-            base_fps = self.detail_infer_fps
-        elif worker.reasoner is not None:
-            base_fps = self.slot_infer_fps_default
+            base_fps = self.selected_infer_fps
         else:
-            base_fps = self.general_infer_fps_default
+            base_fps = self.slot_infer_fps_default
         infer_every_n_frames = max(1, int(worker.camera_cfg.infer_every_n_frames))
         return max(0.1, base_fps / infer_every_n_frames)
 
@@ -200,7 +232,7 @@ class CentralBackendRuntime:
 
         score = elapsed / target_interval
         if worker.camera_cfg.camera_id in selected_cameras:
-            score += self.selected_priority_boost + self.detail_priority_boost
+            score += self.selected_priority_boost
         if worker.get_health() != "online":
             score *= self.offline_priority_penalty
         return score
@@ -218,10 +250,11 @@ class CentralBackendRuntime:
         if not workers:
             return []
 
-        groups: dict[str, list[CameraWorker]] = {}
+        groups: dict[tuple[str, int | None], list[CameraWorker]] = {}
         for worker in workers:
-            model_path = str(ensure_exists(worker.camera_cfg.model_path, "Model file"))
-            groups.setdefault(model_path, []).append(worker)
+            model_path = self._model_path_for_worker(worker.camera_cfg)
+            img_size = self._img_size_for_worker(worker.camera_cfg)
+            groups.setdefault((model_path, img_size), []).append(worker)
 
         processed = []
         for group in groups.values():
@@ -238,27 +271,40 @@ class CentralBackendRuntime:
                 continue
 
             t0 = time.perf_counter()
+            is_elevator_group = group[0].camera_cfg.camera_type == "elevator"
             results = bundle.model.predict(
                 frames,
                 conf=self.rule_cfg.conf_threshold,
-                imgsz=self.elevator_classify_imgsz if group[0].camera_cfg.camera_type == "elevator" else self.rule_cfg.img_size,
+                imgsz=self._img_size_for_worker(group[0].camera_cfg),
                 verbose=False,
                 device=self.inference_device,
             )
+            gate_results = self._run_elevator_gate_inference(live_frames) if is_elevator_group else {}
             detect_ms = ((time.perf_counter() - t0) * 1000.0) / max(1, len(live_frames))
             for (worker, live_frame), result in zip(live_frames, results):
                 detections = []
                 if worker.camera_cfg.camera_type == "elevator" and getattr(result, "probs", None) is not None:
-                    class_name, confidence = self._classification_result(result, bundle)
-                    if class_name:
-                        x1, y1, x2, y2 = self._elevator_roi_xyxy(live_frame.frame.shape)
-                        detections.append(
-                            Detection(
-                                class_name=class_name,
-                                confidence=confidence,
-                                bbox_xyxy=(x1, y1, x2, y2),
-                            )
+                    processor = self._elevator_processor(worker.camera_cfg.camera_id)
+                    floor_detection = processor.result_to_detection(
+                        result,
+                        bundle,
+                        processor.config.floor,
+                        processor.floor_bbox(live_frame.frame.shape),
+                    )
+                    if floor_detection is not None:
+                        detections.append(floor_detection)
+                    gate_result = gate_results.get(worker.camera_cfg.camera_id)
+                    gate_bundle = self._get_elevator_gate_bundle(worker.camera_cfg.camera_id) if gate_result is not None else None
+                    if gate_result is not None and gate_bundle is not None and getattr(gate_result, "probs", None) is not None:
+                        gate_detection = processor.result_to_detection(
+                            gate_result,
+                            gate_bundle,
+                            processor.config.gate,
+                            processor.gate_bbox(live_frame.frame.shape),
+                            class_prefix="gate:",
                         )
+                        if gate_detection is not None:
+                            detections.append(gate_detection)
                 elif hasattr(result, "boxes"):
                     for box in result.boxes:
                         cls_id = int(box.cls[0])
@@ -280,35 +326,38 @@ class CentralBackendRuntime:
                 )
         return processed
 
-    @staticmethod
-    def _elevator_roi_xyxy(frame_shape) -> tuple[int, int, int, int]:
-        height, width = frame_shape[:2]
-        x1 = max(0, min(width - 1, int(round(0.2 * width))))
-        y1 = max(0, min(height - 1, int(round(0.30 * height))))
-        x2 = max(x1 + 1, min(width, int(round(0.8 * width))))
-        y2 = max(y1 + 1, min(height, int(round(1.00 * height))))
-        return x1, y1, x2, y2
-
     def _inference_image_for_worker(self, worker: CameraWorker, frame):
         if worker.camera_cfg.camera_type != "elevator":
             return frame
-        x1, y1, x2, y2 = self._elevator_roi_xyxy(frame.shape)
-        return frame[y1:y2, x1:x2]
+        return self._elevator_processor(worker.camera_cfg.camera_id).floor_crop(frame)
 
-    @staticmethod
-    def _classification_result(result, bundle) -> tuple[str, float]:
-        probs = getattr(result, "probs", None)
-        if probs is None:
-            return "", 0.0
-        cls_id = int(probs.top1)
-        confidence = float(probs.top1conf)
-        names = bundle.model.names
-        if isinstance(names, dict):
-            class_name = names.get(cls_id, cls_id)
-        else:
-            class_name = names[cls_id] if 0 <= cls_id < len(names) else cls_id
-        class_name = str(class_name).strip().lower()
-        return class_name, confidence
+    def _run_elevator_gate_inference(self, live_frames: list[tuple[CameraWorker, object]]) -> dict[str, object]:
+        groups: dict[tuple[str, int], list[tuple[CameraWorker, object]]] = {}
+        for worker, live_frame in live_frames:
+            processor = self._elevator_processor(worker.camera_cfg.camera_id)
+            if not processor.gate_model_exists():
+                continue
+            groups.setdefault((processor.gate_model_path, processor.img_size), []).append((worker, live_frame))
+
+        output = {}
+        for (model_path, img_size), group in groups.items():
+            bundle = self._get_model_bundle_by_path(model_path)
+            crops = []
+            camera_ids = []
+            for worker, live_frame in group:
+                crops.append(self._elevator_processor(worker.camera_cfg.camera_id).gate_crop(live_frame.frame))
+                camera_ids.append(worker.camera_cfg.camera_id)
+            if not crops:
+                continue
+            results = bundle.model.predict(
+                crops,
+                conf=self.rule_cfg.conf_threshold,
+                imgsz=img_size,
+                verbose=False,
+                device=self.inference_device,
+            )
+            output.update({camera_id: result for camera_id, result in zip(camera_ids, results)})
+        return output
 
     @staticmethod
     def _format_wall_clock(ts: float | None) -> str | None:
@@ -440,6 +489,12 @@ class CentralBackendRuntime:
                     )
                 }
                 zone_detected_classes[zone.zone_id] = sorted(matched_classes)
+        elevator_floor_state = ""
+        elevator_gate_state = ""
+        if worker.camera_cfg.camera_type == "elevator":
+            elevator_decision = self._elevator_processor(worker.camera_cfg.camera_id).decide(detection_result, self.rule_cfg.conf_threshold)
+            elevator_floor_state = elevator_decision.floor_state
+            elevator_gate_state = elevator_decision.gate_state
         zones = []
         for state in current_states:
             zone_key = self._zone_key(state.camera_id, state.zone_id)
@@ -447,6 +502,9 @@ class CentralBackendRuntime:
             zone_payload = self._zone_state_payload(state, occupied_since_ts=occupied_since_ts)
             if state.zone_id in zone_detected_classes:
                 zone_payload["detected_classes"] = zone_detected_classes[state.zone_id]
+            if worker.camera_cfg.camera_type == "elevator":
+                zone_payload["elevator_floor_state"] = elevator_floor_state or "unknown"
+                zone_payload["elevator_gate_state"] = elevator_gate_state or "unknown"
             zones.append(zone_payload)
         detected_classes = sorted(
             {
@@ -479,23 +537,17 @@ class CentralBackendRuntime:
     def _build_elevator_observations(self, worker: CameraWorker, detection_result: DetectionResult, live_frame) -> list[ZoneObservation]:
         if not worker.zone_configs:
             return []
-        class_name = ""
-        confidence = 0.0
-        if detection_result.detections:
-            top = max(detection_result.detections, key=lambda det: det.confidence)
-            class_name = top.class_name.strip().lower()
-            confidence = top.confidence
-        if class_name not in {"empty", "occupied"} or confidence < self.rule_cfg.conf_threshold:
+        decision = self._elevator_processor(worker.camera_cfg.camera_id).decide(detection_result, self.rule_cfg.conf_threshold)
+        if decision.state == "unknown":
             return []
-        is_occupied = class_name == "occupied"
         return [
             ZoneObservation(
                 camera_id=worker.camera_cfg.camera_id,
                 zone_id=zone.zone_id,
                 frame_id=live_frame.frame_id,
                 timestamp=live_frame.timestamp,
-                target_present=is_occupied,
-                matched_confidence=confidence,
+                target_present=decision.state == "occupied",
+                matched_confidence=decision.confidence,
                 occlusion_present=False,
             )
             for zone in worker.zone_configs

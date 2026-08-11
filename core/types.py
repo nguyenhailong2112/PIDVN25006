@@ -19,7 +19,6 @@ class IngestConfig:
     stream_profile: str = "main"
     latest_frame_only: bool = True
     reader_output_fps: float = 10.0
-    expected_source_fps: float = 25.0
     buffer_size: int = 1
     reconnect_delay_sec: float = 1.0
     rtsp_transport: str = "tcp"
@@ -36,6 +35,23 @@ class ZoneConfig:
 
 
 @dataclass
+class ElevatorClassifierConfig:
+    name: str
+    model_path: str
+    roi: list[tuple[float, float]]
+    labels: list[str]
+
+
+@dataclass
+class ElevatorVisionConfig:
+    enabled: bool
+    img_size: int
+    floor: ElevatorClassifierConfig
+    gate: ElevatorClassifierConfig
+    camera_id: str = ""
+
+
+@dataclass
 class RuleConfig:
     spatial_method: str
     enter_window: int
@@ -46,8 +62,6 @@ class RuleConfig:
     conf_threshold: float
     img_size: int | None = None
     batch_size: int = 1
-    batch_timeout_ms: int = 0
-    max_pending_requests: int = 0
     enter_confirm_sec: float = 0.0
     exit_confirm_sec: float = 0.0
     occupied_hold_sec: float = 0.0

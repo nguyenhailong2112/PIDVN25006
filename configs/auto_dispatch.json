@@ -73,8 +73,19 @@
   "pk_pick_order": ["PK_AA5", "PK_AA3", "PK_AA2", "PK_AA1", "PK_BB4", "PK_BB3", "PK_BB2", "PK_BB1", "PK_CC3", "PK_CC2", "PK_CC1", "PK_DD4", "PK_DD3", "PK_DD2", "PK_DD1"],
   "fg_observation_order": ["FG_AA1", "FG_AA2", "FG_AA3", "FG_AA4", "FG_AA5", "FG_AA6", "FG_BB1", "FG_BB2", "FG_BB3", "FG_BB4", "FG_BB5", "FG_BB6"],
   "dispatch_profiles": {
-    "PK_AB": {"description": "One-click semi-auto: complete roadway A and B", "source_order": ["PK_AA5", "PK_AA3", "PK_AA2", "PK_AA1", "PK_BB4", "PK_BB3", "PK_BB2", "PK_BB1"], "required_occupied_count": 8, "minimum_empty_fg_slots": 1, "max_tasks": 8},
-    "PK_CD": {"description": "One-click semi-auto: complete roadway C and D", "source_order": ["PK_CC3", "PK_CC2", "PK_CC1", "PK_DD4", "PK_DD3", "PK_DD2", "PK_DD1"], "required_occupied_count": 7, "minimum_empty_fg_slots": 1, "max_tasks": 7}
+    "PK_AB": {
+      "description": "Roadway A and B",
+      "source_order": ["PK_AA5", "PK_AA3", "PK_AA2", "PK_AA1", "PK_BB4", "PK_BB3", "PK_BB2", "PK_BB1"],
+      "required_occupied_count": 8,
+      "minimum_empty_fg_slots": 1,
+      "max_tasks": 8
+    },
+    "PK_CD": {
+      "description": "Roadway C and D",
+      "source_order": ["PK_CC3", "PK_CC2", "PK_CC1", "PK_DD4", "PK_DD3", "PK_DD2", "PK_DD1"],
+      "required_occupied_count": 7,
+      "minimum_empty_fg_slots": 1,
+      "max_tasks": 7}
   },
   "unknown_policy": {"pk": "conservative_by_row", "fg": "conservative"}
 }

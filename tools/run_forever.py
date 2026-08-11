@@ -99,6 +99,13 @@ class RuntimeSupervisor:
         self.backend = ManagedProcess(name="backend", script_path=BACKEND_SCRIPT, enabled=True)
         self.frontend = ManagedProcess(name="frontend", script_path=FRONTEND_SCRIPT, enabled=self.start_frontend)
         self.processes = [self.backend, self.frontend]
+        LOGGER.info(
+            "Runtime mode: backend=%s frontend=%s backend_script=%s frontend_script=%s",
+            "enabled",
+            "enabled" if self.frontend.enabled else "disabled",
+            self.backend.script_path.name,
+            self.frontend.script_path.name,
+        )
 
     @staticmethod
     def _should_start_frontend(requested: bool) -> bool:

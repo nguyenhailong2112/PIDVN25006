@@ -1,10 +1,11 @@
+import argparse
 import json
 from pathlib import Path
 
 import cv2
 import numpy as np
 
-from core.path_utils import PROJECT_ROOT, resolve_project_path
+from core.path_utils import resolve_project_path
 
 
 class RectROIDesigner:
@@ -143,11 +144,15 @@ class RectROIDesigner:
 
     def _save_json(self):
         self.output_path.parent.mkdir(parents=True, exist_ok=True)
-        payload = {
-            "source": str(self.source_path),
-            "target_object": self.target_object,
-            "zones": self.zones,
-        }
+        payload = {}
+        if self.output_path.exists():
+            try:
+                payload = json.loads(self.output_path.read_text(encoding="utf-8-sig"))
+            except json.JSONDecodeError:
+                payload = {}
+        payload.pop("source", None)
+        payload.pop("target_object", None)
+        payload["zones"] = self.zones
         self.output_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
         print(f"Saved ROI config to: {self.output_path}")
 
@@ -179,11 +184,21 @@ class RectROIDesigner:
         cv2.destroyAllWindows()
 
 
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Draw normalized rectangular ROI zones from an image or video frame.")
+    parser.add_argument("--source", required=True, help="Image or video file used as ROI reference.")
+    parser.add_argument("--output", required=True, help="Zone config JSON output path, for example configs/zones_cam5.json.")
+    parser.add_argument("--target-object", required=True, help="Runtime class name expected inside each zone.")
+    parser.add_argument("--scale", type=float, default=0.75, help="Display scale for the designer window.")
+    return parser
+
+
 if __name__ == "__main__":
+    args = build_parser().parse_args()
     tool = RectROIDesigner(
-        source_path="dataTest/cam5/192.168.11.5_01_20260611131740150.jpg",
-        output_path="configs/zones_cam5.json",
-        target_object="pallet",
-        scale=0.75,
+        source_path=args.source,
+        output_path=args.output,
+        target_object=args.target_object,
+        scale=args.scale,
     )
     tool.run()

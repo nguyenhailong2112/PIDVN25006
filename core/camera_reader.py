@@ -28,9 +28,8 @@ class CameraReader:
         self.frame_store = frame_store
         self.reconnect_delay_sec = float(self.ingest_config.reconnect_delay_sec if ingest_config is not None else reconnect_delay_sec)
         self.max_reconnect_delay_sec = max(5.0, self.reconnect_delay_sec * 6.0)
-        default_expected_fps = self.ingest_config.expected_source_fps
-        self.expected_fps = float(expected_fps) if expected_fps and expected_fps > 0 else float(default_expected_fps)
         self.output_fps = max(1.0, float(self.ingest_config.reader_output_fps))
+        self.expected_fps = float(expected_fps) if expected_fps and expected_fps > 0 else self.output_fps
         self.buffer_size = max(1, int(self.ingest_config.buffer_size if ingest_config is not None else buffer_size))
         self.latest_frame_only = bool(self.ingest_config.latest_frame_only)
         self.open_timeout_msec = int(self.ingest_config.open_timeout_msec)
