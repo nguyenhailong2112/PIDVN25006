@@ -267,6 +267,7 @@ def validate_elevator_runtime_config(camera_configs: list[CameraConfig]) -> None
             if not config.enabled:
                 errors.append(f"{cfg.camera_id}: elevator_vision.enabled must be true")
             ensure_exists(config.floor.model_path, f"{cfg.camera_id} elevator floor model")
+            ensure_exists(config.gate.model_path, f"{cfg.camera_id} elevator gate model")
         except (FileNotFoundError, ValueError, KeyError) as exc:
             errors.append(str(exc))
 

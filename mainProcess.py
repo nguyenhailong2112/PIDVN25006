@@ -115,13 +115,14 @@ class CentralBackendRuntime:
         self.preview_width = int(self.runtime_cfg.get("preview_width", 960))
         self.preview_height = int(self.runtime_cfg.get("preview_height", 540))
         self.occupied_session_break_sec = max(0.0, float(self.runtime_cfg.get("occupied_session_break_sec", 5.0)))
+        self.model_bundles = {}
         self.elevator_vision: dict[str, ElevatorVisionProcessor] = {}
         self.elevator_zone_configs: dict[str, list] = {}
         self._load_elevator_configs()
+        self._preload_elevator_models()
         self.last_export_ts = 0.0
 
         self.workers = [self._build_worker(cfg) for cfg in self.camera_configs]
-        self.model_bundles = {}
         self.runtime_maintenance = RuntimeMaintenance(PROJECT_ROOT, self.runtime_cfg)
         hik_rcs_cfg = load_json_dict(HIK_RCS_CONFIG_PATH)
         self.hik_bridge = HikRcsBridge(hik_rcs_cfg, PROJECT_ROOT)
@@ -146,6 +147,25 @@ class CentralBackendRuntime:
 
     def _elevator_processor(self, camera_id: str) -> ElevatorVisionProcessor:
         return self.elevator_vision[camera_id]
+
+    def _preload_elevator_models(self) -> None:
+        for camera_id, processor in self.elevator_vision.items():
+            floor_bundle = self._get_model_bundle_by_path(processor.floor_model_path)
+            gate_bundle = self._get_model_bundle_by_path(processor.gate_model_path)
+            self._validate_model_labels(camera_id, "floor", floor_bundle.model.names, processor.floor_labels)
+            self._validate_model_labels(camera_id, "gate", gate_bundle.model.names, processor.gate_labels)
+
+    @staticmethod
+    def _validate_model_labels(camera_id: str, classifier_name: str, model_names, expected_labels: set[str]) -> None:
+        if isinstance(model_names, dict):
+            labels = {str(label).strip().lower() for label in model_names.values()}
+        else:
+            labels = {str(label).strip().lower() for label in model_names}
+        if labels != expected_labels:
+            raise ValueError(
+                f"{camera_id} elevator {classifier_name} labels mismatch: "
+                f"expected {sorted(expected_labels)}, got {sorted(labels)}"
+            )
 
     def _decode_fps_for(self, camera_cfg) -> float:
         return float(self.ingest_cfg.reader_output_fps)
