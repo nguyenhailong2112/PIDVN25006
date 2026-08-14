@@ -50,6 +50,10 @@ class ElevatorVisionProcessor:
         return str(resolve_project_path(self.config.gate.model_path))
 
     @property
+    def gate_enabled(self) -> bool:
+        return bool(self.config.gate.enabled)
+
+    @property
     def img_size(self) -> int:
         return int(self.config.img_size)
 
@@ -68,6 +72,8 @@ class ElevatorVisionProcessor:
         return self.roi_xyxy(frame_shape, self.config.gate.roi)
 
     def gate_model_exists(self) -> bool:
+        if not self.gate_enabled:
+            return False
         exists = Path(self.gate_model_path).exists()
         if not exists and not self._gate_model_missing_logged:
             logger.warning("Elevator gate model not found: %s. Elevator gate state will be unknown.", self.gate_model_path)
@@ -117,13 +123,23 @@ class ElevatorVisionProcessor:
 
     def decide(self, detection_result: DetectionResult, conf_threshold: float) -> ElevatorDecision:
         floor_state, floor_conf = self._top_classification(detection_result, self.floor_labels)
+        if floor_state not in self.floor_labels or floor_conf < conf_threshold:
+            return ElevatorDecision(
+                state="unknown",
+                floor_state=floor_state or "unknown",
+                gate_state="disabled" if not self.gate_enabled else "unknown",
+                confidence=0.0,
+            )
+        if not self.gate_enabled:
+            if floor_state == "empty":
+                return ElevatorDecision(state="empty", floor_state=floor_state, gate_state="disabled", confidence=floor_conf)
+            return ElevatorDecision(state="occupied", floor_state=floor_state, gate_state="disabled", confidence=floor_conf)
+
         gate_state, gate_conf = self._top_classification(detection_result, self.prefixed_gate_labels)
         if gate_state.startswith("gate:"):
             gate_state = gate_state.split(":", 1)[1]
         if (
-            floor_state not in self.floor_labels
-            or gate_state not in self.gate_labels
-            or floor_conf < conf_threshold
+            gate_state not in self.gate_labels
             or gate_conf < conf_threshold
         ):
             return ElevatorDecision(state="unknown", floor_state=floor_state or "unknown", gate_state=gate_state or "unknown", confidence=0.0)

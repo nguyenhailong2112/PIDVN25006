@@ -96,6 +96,7 @@ def _load_elevator_classifier_config(name: str, data: dict) -> ElevatorClassifie
         model_path=_expand_env(_coerce_str(data.get("model_path", ""))),
         roi=roi,
         labels=labels,
+        enabled=bool(data.get("enabled", True)),
     )
 
 
@@ -229,7 +230,11 @@ def validate_elevator_vision_config(config: ElevatorVisionConfig) -> None:
     errors = []
     if config.img_size <= 0:
         errors.append("img_size must be > 0")
+    if not config.floor.enabled:
+        errors.append("floor classifier must be enabled for elevator runtime")
     for classifier in (config.floor, config.gate):
+        if not classifier.enabled:
+            continue
         if not classifier.model_path:
             errors.append(f"{classifier.name}: model_path is required")
         if len(classifier.roi) != 4:
@@ -267,7 +272,8 @@ def validate_elevator_runtime_config(camera_configs: list[CameraConfig]) -> None
             if not config.enabled:
                 errors.append(f"{cfg.camera_id}: elevator_vision.enabled must be true")
             ensure_exists(config.floor.model_path, f"{cfg.camera_id} elevator floor model")
-            ensure_exists(config.gate.model_path, f"{cfg.camera_id} elevator gate model")
+            if config.gate.enabled:
+                ensure_exists(config.gate.model_path, f"{cfg.camera_id} elevator gate model")
         except (FileNotFoundError, ValueError, KeyError) as exc:
             errors.append(str(exc))
 

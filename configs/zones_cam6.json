@@ -4,11 +4,13 @@
     "enabled": true,
     "img_size": 224,
     "floor": {
+      "enabled": true,
       "model_path": "weights_elevatorbase/best.pt",
       "labels": ["empty", "occupied"],
-      "roi": [[0.2, 0.35], [0.8, 0.35], [0.8, 1.00], [0.2, 1.00]]
+      "roi": [[0.2, 0.30], [0.8, 0.30], [0.8, 1.00], [0.2, 1.00]]
     },
     "gate": {
+      "enabled": false,
       "model_path": "weights_elevatorgate/best.pt",
       "labels": ["ok", "ng"],
       "roi": [[0.375, 0.00], [0.675, 0.00], [0.675, 0.25], [0.375, 0.25]]

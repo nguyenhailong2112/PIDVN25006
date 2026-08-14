@@ -40,6 +40,7 @@ class ElevatorClassifierConfig:
     model_path: str
     roi: list[tuple[float, float]]
     labels: list[str]
+    enabled: bool = True
 
 
 @dataclass

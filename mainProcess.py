@@ -151,9 +151,10 @@ class CentralBackendRuntime:
     def _preload_elevator_models(self) -> None:
         for camera_id, processor in self.elevator_vision.items():
             floor_bundle = self._get_model_bundle_by_path(processor.floor_model_path)
-            gate_bundle = self._get_model_bundle_by_path(processor.gate_model_path)
             self._validate_model_labels(camera_id, "floor", floor_bundle.model.names, processor.floor_labels)
-            self._validate_model_labels(camera_id, "gate", gate_bundle.model.names, processor.gate_labels)
+            if processor.gate_enabled:
+                gate_bundle = self._get_model_bundle_by_path(processor.gate_model_path)
+                self._validate_model_labels(camera_id, "gate", gate_bundle.model.names, processor.gate_labels)
 
     @staticmethod
     def _validate_model_labels(camera_id: str, classifier_name: str, model_names, expected_labels: set[str]) -> None:
@@ -299,7 +300,7 @@ class CentralBackendRuntime:
                 verbose=False,
                 device=self.inference_device,
             )
-            gate_results = self._run_elevator_gate_inference(live_frames) if is_elevator_group else {}
+            gate_results = self._run_elevator_gate_inference(live_frames) if self._should_run_elevator_gate(live_frames) else {}
             detect_ms = ((time.perf_counter() - t0) * 1000.0) / max(1, len(live_frames))
             for (worker, live_frame), result in zip(live_frames, results):
                 detections = []
@@ -378,6 +379,13 @@ class CentralBackendRuntime:
             )
             output.update({camera_id: result for camera_id, result in zip(camera_ids, results)})
         return output
+
+    def _should_run_elevator_gate(self, live_frames: list[tuple[CameraWorker, object]]) -> bool:
+        return any(
+            worker.camera_cfg.camera_type == "elevator"
+            and self._elevator_processor(worker.camera_cfg.camera_id).gate_enabled
+            for worker, _ in live_frames
+        )
 
     @staticmethod
     def _format_wall_clock(ts: float | None) -> str | None:
