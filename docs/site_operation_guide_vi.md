@@ -63,15 +63,17 @@ Khi bam `auto + PK_CD`, Vision tao task theo thu tu tren. Moi lan Vision chi tao
 Chi bam `auto + 3T_COIL` khi:
 
 - Khu 3T da du 3 trolley.
-- Cac vi tri pick gom: `3T_A1`, `3T_A2`, `3T_A3`.
+- Cac vi tri pick gom: `3T_A3`, `3T_A2`, `3T_A1`.
 - COIL con it nhat 1 vi tri trong.
 - Nguoi van hanh da san sang cho FMR tu dong lay trolley.
 
 Khi bam `auto + 3T_COIL`, Vision tao task theo thu tu:
 
-1. `3T_A1`
+1. `3T_A3`
 2. `3T_A2`
-3. `3T_A3`
+3. `3T_A1`
+
+Luu y quan trong: thu tu nay bam theo thu tu roadway thuc te cua RCS tai site. Camera mapping van giu dung label `A1/A2/A3`, nhung khi tao auto task cho roadway `55${06}`, Vision phai dispatch theo thu tu `A3 -> A2 -> A1` de khop xe thuc te duoc FMR lay.
 
 Destination COIL duoc Vision uu tien theo thu tu:
 

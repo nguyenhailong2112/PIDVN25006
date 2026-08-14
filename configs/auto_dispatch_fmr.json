@@ -24,7 +24,7 @@
       {
         "roadway_id": "3T",
         "call_code": "55${06}",
-        "positions": ["3T_A1", "3T_A2", "3T_A3"]
+        "positions": ["3T_A3", "3T_A2", "3T_A1"]
       }
     ],
     "destination_area": {
@@ -45,7 +45,7 @@
   "dispatch_profiles": {
     "3T_COIL": {
       "description": "3T trolley roadway to COIL area",
-      "source_order": ["3T_A1", "3T_A2", "3T_A3"],
+      "source_order": ["3T_A3", "3T_A2", "3T_A1"],
       "required_occupied_count": 3,
       "minimum_empty_destination_slots": 1,
       "max_tasks": 3

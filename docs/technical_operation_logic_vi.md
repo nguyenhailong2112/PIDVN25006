@@ -471,7 +471,7 @@ FMR la lane doc lap voi AMR. AMR pallet va FMR trolley co the cung chay trong mo
 Source order:
 
 ```text
-3T_A1 -> 3T_A2 -> 3T_A3
+3T_A3 -> 3T_A2 -> 3T_A1
 ```
 
 Dieu kien bat dau batch:
@@ -485,6 +485,8 @@ Source roadway call code:
 ```text
 55${06}
 ```
+
+Thu tu source nay bam theo thu tu roadway thuc te cua RCS tai site. Log van hanh cho thay voi roadway `55${06}`, FMR lay hang theo huong `3T_A3 -> 3T_A2 -> 3T_A1`. Vi vay Vision phai tracking batch theo dung thu tu nay; neu tracking `A1 -> A2 -> A3`, Vision se danh dau sai source da dispatch va dung som khi thay `A3` da empty.
 
 Destination COIL area call code:
 
@@ -511,7 +513,7 @@ Payload Vision gui toi RCS gom cac field chinh:
   "userCallCode": "",
   "interfaceName": "genAgvSchedulingTask",
   "taskTyp": "FMR2",
-  "taskCode": "FMR23TA1COILFF1020260814110000",
+  "taskCode": "FMR23TA3COILFF1020260814110000",
   "userCallCodePath": [
     "55${06}",
     "CO1${04}"
@@ -531,9 +533,9 @@ FMR2<source_without_underscore><dest_without_underscore><YYYYMMDDHHMMSS>
 Vi du:
 
 ```text
-FMR23TA1COILFF1020260814110000
+FMR23TA3COILFF1020260814110000
 FMR23TA2COILFF1120260814110500
-FMR23TA3COILFF1220260814111000
+FMR23TA1COILFF1220260814111000
 ```
 
 ### 6.3 Query task FMR
@@ -542,7 +544,7 @@ Sau khi tao FMR task, Vision chi query dung task vua tao:
 
 ```json
 {
-  "taskCodes": ["FMR23TA1COILFF1020260814110000"]
+  "taskCodes": ["FMR23TA3COILFF1020260814110000"]
 }
 ```
 
