@@ -9,7 +9,7 @@ The production runtime is intentionally small:
 - `tools/run_forever.py`: watchdog supervisor for backend and frontend.
 - `tools/roi_designer.py`: retained commissioning tool for drawing ROI when factory layout changes.
 - `core/`: runtime modules imported by `mainProcess.py` and `mainCCTV.py`.
-- `configs/`: camera, rule, runtime, GUI, HIK RCS, auto-dispatch, and ROI zone configuration.
+- `configs/`: camera, rule, runtime, GUI, HIK RCS, AMR/FMR auto-dispatch, and ROI zone configuration.
 - `weights/best.pt`: production slot detector.
 - `weights_elevatorbase/best.pt`: production elevator floor classifier.
 - `weights_elevatorgate/best.pt`: expected future elevator gate classifier path. The code already supports it; if the file is missing, gate state is reported as `unknown`.
@@ -61,7 +61,8 @@ RTSP cameras
   -> outputs/runtime/cameras/*.json
   -> outputs/runtime/preview/*.jpg
   -> outputs/runtime/debug/*.jpg when selected by frontend
-  -> core.hik_rcs_bridge and core.auto_dispatcher
+  -> core.hik_rcs_bridge
+  -> independent AMR/FMR lanes in core.auto_dispatcher
 ```
 
 `mainCCTV.py` never performs inference. It only reads exported runtime state and images.
@@ -93,6 +94,12 @@ python tools/roi_designer.py --source reference.jpg --output configs/zones_cam5.
 ```
 
 ## Config Reference
+
+Operational documents:
+
+- `docs/technical_operation_logic_vi.md`: full Vision AMR/FMR technical logic.
+- `docs/site_operation_guide_vi.md`: short site operation guide.
+- `docs/vision_auto_dispatch_api_contract_vi.md`: PDA/App Caller API contract.
 
 `configs/ingest.json` controls camera input:
 

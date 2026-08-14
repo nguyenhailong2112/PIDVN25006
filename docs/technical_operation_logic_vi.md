@@ -13,15 +13,18 @@ Khi khoi dong, `CentralBackendRuntime` thuc hien:
 3. Chuyen ket qua detection thanh trang thai zone `occupied`, `empty`, `unknown`.
 4. Export snapshot runtime ra `outputs/runtime`.
 5. Khoi tao `HikRcsBridge` tu `configs/hik_rcs.json`.
-6. Khoi tao `AutoDispatcher` tu `configs/auto_dispatch.json`.
-7. Moi chu ky runtime, dong bo:
+6. Khoi tao AMR `AutoDispatcher` tu `configs/auto_dispatch_amr.json`.
+7. Khoi tao FMR `AutoDispatcher` tu `configs/auto_dispatch_fmr.json`.
+8. Moi chu ky runtime, dong bo:
    - camera payload -> HIK RCS bind/unbind
-   - camera payload + bridge state -> auto dispatch task
+   - camera payload + bridge state -> AMR auto dispatch task
+   - camera payload + bridge state -> FMR auto dispatch task
 
 Luon co 2 lop logic tach rieng:
 
 - `HikRcsBridge`: quan ly bind/unbind, bindNotify, lock/block theo tung diem hang.
-- `AutoDispatcher`: quan ly mode manual/auto, dieu kien PK/FG, tao task AGV, query task status.
+- AMR `AutoDispatcher`: quan ly mode manual/auto cho pallet PK -> FG, tao task `QUANGPRO`, query dung task Vision tao.
+- FMR `AutoDispatcher`: quan ly mode manual/auto cho trolley 3T -> COIL, tao task `FMR2`, query dung task Vision tao.
 
 ## 2. Cau hinh quan trong
 
@@ -42,17 +45,18 @@ Gia tri local hien tai:
 - Mapping `blockArea`: 4
 - Tat ca mapping `bindCtnrAndBin` dang dung `dispatch_policy = hybrid_canonical`
 
-### 2.2 Auto dispatch
+### 2.2 AMR auto dispatch
 
-File: `configs/auto_dispatch.json`
+File: `configs/auto_dispatch_amr.json`
 
 Gia tri local hien tai:
 
 - `enabled = true`
 - `dry_run = false`
+- `dispatcher_id = amr`
 - default `operation_mode = manual`
 - default `profile_id = PK_AB`
-- control file: `outputs/runtime/auto_dispatch/mode_control.json`
+- control file: `outputs/runtime/auto_dispatch_amr/mode_control.json`
 - `require_bind_notify = true`
 - `require_canonical = true`
 - query interval: `5.0` giay
@@ -64,8 +68,35 @@ Gia tri local hien tai:
 Neu PC Vision tai site la `192.168.10.44`, App Caller/PDA goi:
 
 ```text
+http://192.168.10.44:8023/service/rest/visionAutoDispatch/amr
+```
+
+Route AMR cu khong co `/amr` van duoc giu de tuong thich:
+
+```text
 http://192.168.10.44:8023/service/rest/visionAutoDispatch
 ```
+
+### 2.3 FMR auto dispatch
+
+File: `configs/auto_dispatch_fmr.json`
+
+Gia tri local hien tai:
+
+- `enabled = true`
+- `dry_run = false`
+- `dispatcher_id = fmr`
+- default `operation_mode = manual`
+- default `profile_id = 3T_COIL`
+- control file: `outputs/runtime/auto_dispatch_fmr/mode_control.json`
+- `require_bind_notify = true`
+- `require_canonical = true`
+- query interval: `5.0` giay
+- query AGV code: `10476`
+- task type: `FMR2`
+- API namespace: `/service/rest/visionAutoDispatch/fmr`
+
+FMR khong mo port API rieng. FMR duoc dang ky vao cung API server cua AMR tren port `8023`, nhung state, batch, active task va control file hoan toan tach rieng.
 
 ## 3. Phase 1 - Logic mode manual
 
@@ -84,8 +115,8 @@ Vision duoc coi la manual khi `operation_mode` khac `auto` trong control runtime
 
 Nguon control:
 
-1. Mac dinh tu `configs/auto_dispatch.json`.
-2. Neu ton tai, doc tu `outputs/runtime/auto_dispatch/mode_control.json`.
+1. Mac dinh tu file config cua tung lane: `configs/auto_dispatch_amr.json` hoac `configs/auto_dispatch_fmr.json`.
+2. Neu ton tai, doc tu control file rieng cua tung lane: `outputs/runtime/auto_dispatch_amr/mode_control.json` hoac `outputs/runtime/auto_dispatch_fmr/mode_control.json`.
 3. PDA/third-party co the ghi control moi qua API `setMode`.
 
 Payload chuyen ve manual:
@@ -194,7 +225,7 @@ Vision van giu vai tro:
 - Dong bo storage bin/container voi RCS.
 - Ghi log de audit khi co sai lech.
 
-## 5. Phase 2 - Logic mode auto
+## 5. Phase 2 AMR - Logic mode auto
 
 Day la phan quan trong nhat.
 
@@ -361,7 +392,7 @@ Payload:
 
 ```json
 {
-  "taskCode": "QUANGPROPKAA5FGAA120260811080000",
+  "taskCodes": ["QUANGPROPKAA5FGAA120260811080000"],
   "agvCode": "16675"
 }
 ```
@@ -391,7 +422,7 @@ Khi task completed:
 
 Batch dung khi:
 
-- FG het slot empty: `stopped_no_fg_empty`
+- Destination het slot empty: `stopped_no_destination_empty`
 - Source tiep theo khong con occupied: `stopped_source_not_occupied`
 - Tat ca source trong batch da dispatch: `batch_completed`
 - Bind guard khong dat: `blocked_bind_guard:<reason>`
@@ -399,14 +430,104 @@ Batch dung khi:
 
 Theo chuong trinh local hien tai, khi batch dung, `batch` bi xoa khoi state. Tuy nhien `operation_mode` trong `mode_control.json` van giu theo lan PDA/API set gan nhat. Neu muon dung auto hoan toan, PDA/API can goi `manual`.
 
-## 6. Cach van hanh auto cho Vision va AGV
+## 6. Phase 2 FMR - Logic auto 3T_COIL
 
-### 6.1 Chuyen sang auto PK_AB
+FMR la lane doc lap voi AMR. AMR pallet va FMR trolley co the cung chay trong mot runtime Vision:
+
+- Chung camera payload va HIK bridge.
+- Chung RCS client/log HTTP exchange.
+- Khong chung `operation_mode`, `profile_id`, `batch`, `active_task`, state file.
+- PDA goi `/amr/setMode` de dieu khien AMR, goi `/fmr/setMode` de dieu khien FMR.
+
+### 6.1 Profile 3T_COIL
+
+Source order:
+
+```text
+3T_A1 -> 3T_A2 -> 3T_A3
+```
+
+Dieu kien bat dau batch:
+
+- 3/3 vi tri source tren occupied.
+- COIL co it nhat 1 vi tri empty.
+- Bind guard source/destination hop le.
+
+Source roadway call code:
+
+```text
+55${06}
+```
+
+Destination COIL area call code:
+
+```text
+CO1${04}
+```
+
+Destination order:
+
+```text
+COIL_FF10 -> COIL_FF11 -> COIL_FF12 -> COIL_FF13
+```
+
+### 6.2 Payload genAgvSchedulingTask FMR
+
+Payload Vision gui toi RCS gom cac field chinh:
+
+```json
+{
+  "materialLot": "",
+  "robotCode": "10476",
+  "userCallCode": "",
+  "interfaceName": "genAgvSchedulingTask",
+  "taskTyp": "FMR2",
+  "taskCode": "FMR23TA1COILFF1020260814110000",
+  "userCallCodePath": [
+    "55${06}",
+    "CO1${04}"
+  ],
+  "ctnrTyp": "3"
+}
+```
+
+FMR khong gui field `data.from/to`, de payload gan voi task mau da chay tay tai site.
+
+Quy tac `taskCode`:
+
+```text
+FMR2<source_without_underscore><dest_without_underscore><YYYYMMDDHHMMSS>
+```
+
+Vi du:
+
+```text
+FMR23TA1COILFF1020260814110000
+FMR23TA2COILFF1120260814110500
+FMR23TA3COILFF1220260814111000
+```
+
+### 6.3 Query task FMR
+
+Sau khi tao FMR task, Vision chi query dung task vua tao:
+
+```json
+{
+  "taskCodes": ["FMR23TA1COILFF1020260814110000"],
+  "agvCode": "10476"
+}
+```
+
+Khi RCS tra `taskStatus = 9` hoac mot completed status tuong duong, Vision xoa `active_task` va chu ky sau tao task tiep theo neu dieu kien van hop le.
+
+## 7. Cach van hanh auto cho Vision va AGV
+
+### 7.1 Chuyen sang auto PK_AB
 
 Endpoint:
 
 ```http
-POST /service/rest/visionAutoDispatch/setMode
+POST /service/rest/visionAutoDispatch/amr/setMode
 ```
 
 Payload:
@@ -421,7 +542,7 @@ Payload:
 }
 ```
 
-### 6.2 Chuyen sang auto PK_CD
+### 7.2 Chuyen sang auto PK_CD
 
 ```json
 {
@@ -433,7 +554,7 @@ Payload:
 }
 ```
 
-### 6.3 Chuyen ve manual
+### 7.3 Chuyen ve manual AMR
 
 ```json
 {
@@ -445,7 +566,39 @@ Payload:
 }
 ```
 
-### 6.4 Response setMode thanh cong
+### 7.4 Chuyen sang auto FMR 3T_COIL
+
+Endpoint:
+
+```http
+POST /service/rest/visionAutoDispatch/fmr/setMode
+```
+
+Payload:
+
+```json
+{
+  "reqCode": "REQ_AUTO_FMR_001",
+  "operation_mode": "auto",
+  "profile_id": "3T_COIL",
+  "updated_by": "third_party",
+  "note": "start auto FMR 3T_COIL"
+}
+```
+
+### 7.5 Chuyen ve manual FMR
+
+```json
+{
+  "reqCode": "REQ_MANUAL_FMR_001",
+  "operation_mode": "manual",
+  "profile_id": "3T_COIL",
+  "updated_by": "third_party",
+  "note": "stop auto FMR"
+}
+```
+
+### 7.6 Response setMode thanh cong
 
 ```json
 {
@@ -467,7 +620,7 @@ Payload:
 }
 ```
 
-### 6.5 IP allowlist
+### 7.7 IP allowlist
 
 Auto dispatch API chi cho phep IP trong:
 
@@ -475,7 +628,7 @@ Auto dispatch API chi cho phep IP trong:
 "allowlist": ["192.168.10.105"]
 ```
 
-Neu PDA doi IP, cap nhat `configs/auto_dispatch.json`:
+Neu PDA doi IP, cap nhat `configs/auto_dispatch_amr.json`:
 
 ```json
 "allowlist": ["192.168.10.105", "192.168.10.106"]
@@ -490,27 +643,37 @@ Neu request bi chan:
 }
 ```
 
-## 7. API Vision cung cap
+## 8. API Vision cung cap
 
 Base URL site neu PC Vision la `192.168.10.44`:
+
+```text
+http://192.168.10.44:8023/service/rest/visionAutoDispatch/amr
+http://192.168.10.44:8023/service/rest/visionAutoDispatch/fmr
+```
+
+Route legacy AMR van ton tai:
 
 ```text
 http://192.168.10.44:8023/service/rest/visionAutoDispatch
 ```
 
-### 7.1 Health
+### 8.1 Health
 
 ```http
-GET /health
+GET /amr/health
+GET /fmr/health
 ```
 
 Dung de kiem tra API online.
 
-### 7.2 Status
+### 8.2 Status
 
 ```http
-GET /status
-POST /getStatus
+GET /amr/status
+POST /amr/getStatus
+GET /fmr/status
+POST /fmr/getStatus
 ```
 
 Dung de xem:
@@ -523,21 +686,23 @@ Dung de xem:
 - `state.active_task`
 - `state.batch`
 
-### 7.3 Set mode
+### 8.3 Set mode
 
 ```http
-POST /setMode
+POST /amr/setMode
+POST /fmr/setMode
 ```
 
-Dung cho PDA/third-party chuyen `manual`, `auto + PK_AB`, `auto + PK_CD`.
+Dung cho PDA/third-party chuyen `manual`, `auto + PK_AB`, `auto + PK_CD`, `auto + 3T_COIL`.
 
-### 7.4 Query AGV status
+### 8.4 Query AGV status
 
 ```http
-POST /queryAgvStatus
+POST /amr/queryAgvStatus
+POST /fmr/queryAgvStatus
 ```
 
-Payload:
+Payload AMR:
 
 ```json
 {
@@ -546,10 +711,20 @@ Payload:
 }
 ```
 
-### 7.5 Query task status
+Payload FMR:
+
+```json
+{
+  "reqCode": "REQ_QUERY_FMR_001",
+  "agvCode": "10476"
+}
+```
+
+### 8.5 Query task status
 
 ```http
-POST /queryTaskStatus
+POST /amr/queryTaskStatus
+POST /fmr/queryTaskStatus
 ```
 
 Payload:
@@ -562,9 +737,9 @@ Payload:
 }
 ```
 
-Neu thieu `taskCode`, Vision tra `CONFIG_ERROR`.
+API Vision chap nhan `taskCode` de team test goi gon. Khi gui sang RCS, Vision doi thanh `taskCodes: ["<taskCode>"]` theo schema RCS. Neu thieu `taskCode`/`taskCodes`, Vision tra `CONFIG_ERROR`.
 
-## 8. Bind guard truoc khi tao task
+## 9. Bind guard truoc khi tao task
 
 Truoc khi tao task, Vision kiem tra bind guard cho:
 
@@ -596,16 +771,22 @@ Khi bi block, state dang:
 blocked_bind_guard:<position>:<reason>
 ```
 
-## 9. Trang thai va log can audit
+## 10. Trang thai va log can audit
 
-### 9.1 Auto dispatch
+### 10.1 Auto dispatch
 
 ```text
-outputs/runtime/auto_dispatch/state.json
-outputs/runtime/auto_dispatch/events.jsonl
-outputs/runtime/auto_dispatch/mode_control.json
-outputs/runtime/auto_dispatch/control_api_latest.json
-outputs/runtime/auto_dispatch/control_api.jsonl
+outputs/runtime/auto_dispatch_amr/state.json
+outputs/runtime/auto_dispatch_amr/events.jsonl
+outputs/runtime/auto_dispatch_amr/mode_control.json
+outputs/runtime/auto_dispatch_amr/control_api_latest.json
+outputs/runtime/auto_dispatch_amr/control_api.jsonl
+
+outputs/runtime/auto_dispatch_fmr/state.json
+outputs/runtime/auto_dispatch_fmr/events.jsonl
+outputs/runtime/auto_dispatch_fmr/mode_control.json
+outputs/runtime/auto_dispatch_fmr/control_api_latest.json
+outputs/runtime/auto_dispatch_fmr/control_api.jsonl
 ```
 
 Y nghia:
@@ -616,7 +797,7 @@ Y nghia:
 - `control_api_latest.json`: request/response API moi nhat.
 - `control_api.jsonl`: lich su API.
 
-### 9.2 HIK RCS
+### 10.2 HIK RCS
 
 ```text
 outputs/runtime/hik_rcs/bridge_state.json
@@ -631,7 +812,7 @@ Y nghia:
 - `http_exchange.jsonl`: payload Vision gui toi RCS va response RCS.
 - `bindNotify*.json`: callback RCS gui ve Vision.
 
-### 9.3 Runtime camera
+### 10.3 Runtime camera
 
 ```text
 outputs/runtime/process_latest.json
@@ -641,19 +822,20 @@ outputs/runtime/preview/*.jpg
 outputs/runtime/debug/*.jpg
 ```
 
-## 10. Checklist audit khi auto khong tao task
+## 11. Checklist audit khi auto khong tao task
 
 1. Kiem tra `mode_control.json`.
    - `operation_mode` co phai `auto` khong?
-   - `profile_id` co dung `PK_AB` hoac `PK_CD` khong?
+   - `profile_id` co dung `PK_AB`, `PK_CD` hoac `3T_COIL` khong?
 2. Kiem tra `state.json`.
    - `status` dang la gi?
    - Co `active_task` dang chay khong?
    - Co `batch` dang active khong?
-3. Kiem tra PK profile.
-   - PK_AB phai 8/8 occupied.
-   - PK_CD phai 7/7 occupied.
-4. Kiem tra FG.
+3. Kiem tra source profile.
+   - AMR PK_AB phai 8/8 occupied.
+   - AMR PK_CD phai 7/7 occupied.
+   - FMR 3T_COIL phai 3/3 occupied.
+4. Kiem tra destination.
    - Co it nhat 1 vi tri empty khong?
 5. Kiem tra bind guard.
    - Source/dest co trong `bridge_state.json` khong?
@@ -666,7 +848,7 @@ outputs/runtime/debug/*.jpg
    - Vision query dung taskCode chua?
    - RCS tra status completed `9` chua?
 
-## 11. Checklist audit khi bind/unbind sai
+## 12. Checklist audit khi bind/unbind sai
 
 1. Mo `configs/hik_rcs.json`, tim mapping theo `camera_id`, `zone_id`.
 2. Kiem tra:
@@ -693,7 +875,7 @@ outputs/runtime/debug/*.jpg
 5. Mo `http_exchange.jsonl`, tim `ctnrCode` hoac `stgBinCode`.
 6. Doi chieu RCS Storage Bin Management.
 
-## 12. Cac status auto dispatch can hieu
+## 13. Cac status auto dispatch can hieu
 
 ```text
 manual_mode
@@ -703,20 +885,21 @@ task_created:<taskCode>
 waiting_task:<taskCode>
 waiting_task:<taskCode>:<status>
 batch_completed
-stopped_no_fg_empty
+stopped_no_destination_empty
 stopped_source_not_occupied
 blocked_bind_guard:<reason>
 task_create_failed:<taskCode>
 ```
 
-## 13. Gioi han pham vi hien tai
+## 14. Gioi han pham vi hien tai
 
 Theo version local hien tai:
 
-- Vision khong chi dinh diem FG cho RCS theo slot cu the trong route; RCS nhan area FG `2${02}`.
-- Vision khong truyen `agvCode` vao `genAgvSchedulingTask`.
-- Vision co dung `agvCode = 16675` khi query task/AGV status.
-- Vision chi tao 1 task tai 1 thoi diem.
+- AMR khong chi dinh diem FG cho RCS theo slot cu the trong route; RCS nhan area FG `2${02}`.
+- AMR khong truyen `agvCode` vao `genAgvSchedulingTask`.
+- FMR truyen `robotCode = 10476` vao `genAgvSchedulingTask` theo task mau da chay tay tai site.
+- AMR dung `agvCode = 16675` khi query task/AGV status.
+- FMR dung `agvCode = 10476` khi query task/AGV status.
+- Moi lane chi tao 1 task tai 1 thoi diem. AMR va FMR la 2 lane doc lap nen co the cung co task rieng.
 - Vision chi quan tam taskCode do Vision tao.
-- Vision auto hien tai duoc dieu khien bang API `setMode`; neu muon dung auto, PDA/API can set ve `manual`.
-
+- Vision auto hien tai duoc dieu khien bang API `setMode`; neu muon dung auto, PDA/API can set ve `manual` cho dung lane `amr` hoac `fmr`.

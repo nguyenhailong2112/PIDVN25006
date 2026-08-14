@@ -17,14 +17,16 @@ logger = get_logger(__name__)
 
 
 class AutoDispatcher:
-    """Creates one simple PK roadway -> FG area AGV task when Vision gates pass."""
+    """Runs one independently controlled Vision-to-RCS dispatch lane."""
 
     ALLOWED_PROFILES = {"PK_AB", "PK_CD"}
 
     def __init__(self, config: dict[str, Any], hik_config: dict[str, Any], project_root: str | Path) -> None:
         self.config = config or {}
         self.project_root = Path(project_root)
-        self.output_dir = self.project_root / "outputs" / "runtime" / "auto_dispatch"
+        self.dispatcher_id = str(self.config.get("dispatcher_id", "amr")).strip().lower() or "amr"
+        runtime_dir = str(self.config.get("runtime_dir", "outputs/runtime/auto_dispatch")).strip()
+        self.output_dir = self.project_root / runtime_dir
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.state_path = self.output_dir / "state.json"
         self.event_log_path = self.output_dir / "events.jsonl"
@@ -47,6 +49,12 @@ class AutoDispatcher:
             if str(item).strip()
         }
         self.query_status_agv_code = str(self.config.get("query_status_agv_code", "")).strip()
+        configured_profiles = self.config.get("dispatch_profiles", {})
+        self.allowed_profiles = {
+            str(profile_id).strip()
+            for profile_id in configured_profiles
+            if str(profile_id).strip()
+        } or set(self.ALLOWED_PROFILES)
         self.client = HikRcsClient(hik_config, self.project_root / "outputs" / "runtime" / "hik_rcs")
         self.state = self._load_state()
         self.api_server = None
@@ -74,7 +82,7 @@ class AutoDispatcher:
             return
 
         profile_id = str(control.get("profile_id", self.config.get("profile_id", ""))).strip()
-        if profile_id not in self.ALLOWED_PROFILES:
+        if profile_id not in self.allowed_profiles:
             self._set_idle(f"unsupported_profile:{profile_id}", now_ts)
             return
 
@@ -106,11 +114,12 @@ class AutoDispatcher:
             self.state["batch"] = batch
             self._log_event("batch_started", {"profile_id": profile_id, "source_order": source_order}, now_ts)
 
-        fg_empty = self._empty_fg_positions(position_states, batch)
-        if not fg_empty:
-            self._log_event("batch_stopped_no_fg_empty", {"profile_id": profile_id, "batch": batch}, now_ts)
+        destination_empty = self._empty_destination_positions(position_states, batch)
+        minimum_empty = int(profile.get("minimum_empty_destination_slots", profile.get("minimum_empty_fg_slots", 1)) or 1)
+        if len(destination_empty) < minimum_empty:
+            self._log_event("batch_stopped_no_destination_empty", {"profile_id": profile_id, "batch": batch}, now_ts)
             self.state.pop("batch", None)
-            self._set_status("stopped_no_fg_empty", now_ts)
+            self._set_status("stopped_no_destination_empty", now_ts)
             self._save_state()
             return
 
@@ -126,7 +135,7 @@ class AutoDispatcher:
             self._save_state()
             return
 
-        dest = fg_empty[0]
+        dest = destination_empty[0]
         guard_ok, guard_reason = self._bind_guard_ok(source, "occupied", bridge_state)
         if guard_ok:
             guard_ok, guard_reason = self._bind_guard_ok(dest, "empty", bridge_state)
@@ -150,18 +159,25 @@ class AutoDispatcher:
         compact_source = source.replace("_", "")
         compact_dest = dest.replace("_", "")
         compact_stamp = stamp.replace("_", "")
-        task_code = f"QUANGPRO{compact_source}{compact_dest}{compact_stamp}"
-        payload = {
-            "interfaceName": str(task_template.get("interfaceName", "genAgvSchedulingTask")),
-            "taskTyp": str(task_template.get("taskTyp", "QUANGPRO")),
-            "taskCode": task_code,
-            "data": {
+        task_prefix = str(task_template.get("task_code_prefix", task_template.get("taskTyp", "QUANGPRO"))).strip()
+        task_code = f"{task_prefix}{compact_source}{compact_dest}{compact_stamp}"
+        static_fields = task_template.get("static_fields", {})
+        payload = dict(static_fields) if isinstance(static_fields, dict) else {}
+        payload.update(
+            {
+                "interfaceName": str(task_template.get("interfaceName", "genAgvSchedulingTask")),
+                "taskTyp": str(task_template.get("taskTyp", "QUANGPRO")),
+                str(task_template.get("path_field", "userCallCodePath")): [source_call_code, dest_call_code],
+                "ctnrTyp": str(task_template.get("ctnrTyp", "2")),
+            }
+        )
+        if bool(task_template.get("send_task_code", True)):
+            payload["taskCode"] = task_code
+        if bool(task_template.get("include_data", True)):
+            payload["data"] = {
                 "from": source,
                 "to": dest,
-            },
-            str(task_template.get("path_field", "userCallCodePath")): [source_call_code, dest_call_code],
-            "ctnrTyp": str(task_template.get("ctnrTyp", "2")),
-        }
+            }
         req_code = self.client.make_req_code(task_code)
         if self.dry_run:
             response = {"code": "0", "message": "dry_run", "reqCode": req_code, "data": ""}
@@ -220,7 +236,7 @@ class AutoDispatcher:
             self._set_status(f"waiting_task:{task_code}", now_ts)
             return True
 
-        query_payload = {"taskCode": task_code}
+        query_payload = {"taskCodes": [task_code]}
         if self.query_status_agv_code:
             query_payload["agvCode"] = self.query_status_agv_code
         response = self.client.call_rpc("queryTaskStatus", query_payload)
@@ -284,7 +300,7 @@ class AutoDispatcher:
             states[str(position)] = zone_index.get(key, "unknown")
         return states
 
-    def _empty_fg_positions(self, position_states: dict[str, str], batch: dict[str, Any]) -> list[str]:
+    def _empty_destination_positions(self, position_states: dict[str, str], batch: dict[str, Any]) -> list[str]:
         dest_cfg = self.config.get("routing", {}).get("destination_area", {})
         used_dests = {str(item) for item in batch.get("dispatched_dests", [])}
         return [
@@ -402,14 +418,14 @@ class AutoDispatcher:
                 "reason": "operation_mode must be manual or auto",
                 "control": self._load_control(),
             }
-        if operation_mode == "auto" and profile_id not in self.ALLOWED_PROFILES:
+        if operation_mode == "auto" and profile_id not in self.allowed_profiles:
             return {
                 "accepted": False,
-                "reason": f"profile_id must be one of {sorted(self.ALLOWED_PROFILES)}",
+                "reason": f"profile_id must be one of {sorted(self.allowed_profiles)}",
                 "control": self._load_control(),
             }
         if operation_mode == "manual":
-            profile_id = profile_id if profile_id in self.ALLOWED_PROFILES else str(self.config.get("profile_id", "PK_AB"))
+            profile_id = profile_id if profile_id in self.allowed_profiles else str(self.config.get("profile_id", "PK_AB"))
 
         control = {
             "operation_mode": operation_mode,
@@ -448,10 +464,11 @@ class AutoDispatcher:
     def public_status(self) -> dict[str, Any]:
         return {
             "enabled": self.enabled,
+            "dispatcher_id": self.dispatcher_id,
             "dry_run": self.dry_run,
             "control": self._load_control(),
             "state": self.state,
-            "allowed_profiles": sorted(self.ALLOWED_PROFILES),
+            "allowed_profiles": sorted(self.allowed_profiles),
             "require_bind_notify": self.require_bind_notify,
             "require_canonical": self.require_canonical,
             "callback_server_enabled": self.callback_server_enabled,
@@ -467,13 +484,19 @@ class AutoDispatcher:
         payload = dict(payload or {})
         task_code = str(payload.get("taskCode", "")).strip()
         if not task_code:
+            task_codes = payload.get("taskCodes", [])
+            if isinstance(task_codes, list) and task_codes:
+                task_code = str(task_codes[0]).strip()
+        if not task_code:
             return {
                 "code": "CONFIG_ERROR",
-                "message": "taskCode is required",
+                "message": "taskCode or taskCodes[0] is required",
                 "reqCode": str(payload.get("reqCode", "")),
                 "reqTime": HikRcsClient.now_text(),
                 "data": {},
             }
+        payload.pop("taskCode", None)
+        payload["taskCodes"] = [task_code]
         if not payload.get("agvCode") and self.query_status_agv_code:
             payload["agvCode"] = self.query_status_agv_code
         response = self.client.call_rpc("queryTaskStatus", payload, req_code=str(payload.get("reqCode", "")) or None)
@@ -518,6 +541,7 @@ class AutoDispatchControlServer:
     def __init__(self, config: dict[str, Any], dispatcher: AutoDispatcher) -> None:
         self.config = config
         self.dispatcher = dispatcher
+        self.dispatchers: dict[str, AutoDispatcher] = {"amr": dispatcher}
         self.host = str(config.get("host", "0.0.0.0")).strip() or "0.0.0.0"
         self.port = int(config.get("port", 8023))
         self.base_path = str(config.get("base_path", "/service/rest/visionAutoDispatch")).rstrip("/")
@@ -526,6 +550,13 @@ class AutoDispatchControlServer:
         self.log_backup_count = max(0, int(config.get("log_backup_count", 5)))
         self._server: ThreadingHTTPServer | None = None
         self._thread: threading.Thread | None = None
+
+    def register_dispatcher(self, dispatcher_id: str, dispatcher: AutoDispatcher) -> None:
+        """Expose another independent dispatch lane under this API server."""
+        key = str(dispatcher_id).strip().lower()
+        if not key or key == "amr":
+            raise ValueError("dispatcher_id must be a non-default API namespace")
+        self.dispatchers[key] = dispatcher
 
     def start(self) -> None:
         if self._server is not None:
@@ -556,11 +587,12 @@ class AutoDispatchControlServer:
                 if not outer._client_allowed(self.client_address[0]):
                     self._write_json(403, outer._response("403", "forbidden by allowlist", "", {}))
                     return
-                route = self._resolve_route(self.path)
-                if route in {"health", "status"}:
+                resolved_route = self._resolve_route(self.path)
+                if resolved_route is not None and resolved_route[1] in {"health", "status"}:
+                    dispatcher_id, route = resolved_route
                     payload = {"reqCode": "", "path": self.path}
-                    response = outer._handle_route(route, payload)
-                    outer._store_api_event(self.path, payload, response)
+                    response = outer._handle_route(dispatcher_id, route, payload)
+                    outer._store_api_event(dispatcher_id, self.path, payload, response)
                     self._write_json(200, response)
                     return
                 self._write_json(404, outer._response("404", "unsupported auto dispatch endpoint", "", {}))
@@ -573,36 +605,45 @@ class AutoDispatchControlServer:
                     except Exception:
                         req_code = ""
                     response = outer._response("403", "forbidden by allowlist", req_code, {})
-                    outer._store_api_event(self.path, {"client_ip": self.client_address[0]}, response)
+                    outer._store_api_event("amr", self.path, {"client_ip": self.client_address[0]}, response)
                     self._write_json(403, response)
                     return
-                route = self._resolve_route(self.path)
+                resolved_route = self._resolve_route(self.path)
                 body = self._read_json_body()
                 req_code = str(body.get("reqCode", ""))
-                if route is None:
+                if resolved_route is None:
                     response = outer._response("404", "unsupported auto dispatch endpoint", req_code, {})
-                    outer._store_api_event(self.path, body, response)
+                    outer._store_api_event("amr", self.path, body, response)
                     self._write_json(404, response)
                     return
-                response = outer._handle_route(route, body)
-                outer._store_api_event(self.path, body, response)
+                dispatcher_id, route = resolved_route
+                response = outer._handle_route(dispatcher_id, route, body)
+                outer._store_api_event(dispatcher_id, self.path, body, response)
                 status_code = 200 if str(response.get("code", "")) == "0" else 400
                 self._write_json(status_code, response)
 
             def log_message(self, format_: str, *args) -> None:
                 logger.debug("[AUTO-DISPATCH-API] " + format_, *args)
 
-            def _resolve_route(self, path: str) -> str | None:
+            def _resolve_route(self, path: str) -> tuple[str, str] | None:
                 normalized = path.split("?", 1)[0].rstrip("/")
-                routes = {
-                    f"{outer.base_path}/health": "health",
-                    f"{outer.base_path}/status": "status",
-                    f"{outer.base_path}/getStatus": "status",
-                    f"{outer.base_path}/setMode": "set_mode",
-                    f"{outer.base_path}/queryAgvStatus": "query_agv_status",
-                    f"{outer.base_path}/queryTaskStatus": "query_task_status",
+                route_suffixes = {
+                    "health": "health",
+                    "status": "status",
+                    "getStatus": "status",
+                    "setMode": "set_mode",
+                    "queryAgvStatus": "query_agv_status",
+                    "queryTaskStatus": "query_task_status",
                 }
-                return routes.get(normalized)
+                for dispatcher_id in outer.dispatchers:
+                    prefixes = [f"{outer.base_path}/{dispatcher_id}"]
+                    if dispatcher_id == "amr":
+                        prefixes.append(outer.base_path)
+                    for suffix, route in route_suffixes.items():
+                        for prefix in prefixes:
+                            if normalized == f"{prefix}/{suffix}":
+                                return dispatcher_id, route
+                return None
 
             def _read_json_body(self) -> dict[str, Any]:
                 try:
@@ -626,22 +667,23 @@ class AutoDispatchControlServer:
 
         return ControlHandler
 
-    def _handle_route(self, route: str, payload: dict[str, Any]) -> dict[str, Any]:
+    def _handle_route(self, dispatcher_id: str, route: str, payload: dict[str, Any]) -> dict[str, Any]:
+        dispatcher = self.dispatchers[dispatcher_id]
         req_code = str(payload.get("reqCode", ""))
         if route == "health":
-            return self._response("0", "successful", req_code, {"service": "auto_dispatch", "status": "online"})
+            return self._response("0", "successful", req_code, {"service": "auto_dispatch", "dispatcher_id": dispatcher_id, "status": "online"})
         if route == "status":
-            return self._response("0", "successful", req_code, self.dispatcher.public_status())
+            return self._response("0", "successful", req_code, dispatcher.public_status())
         if route == "set_mode":
-            result = self.dispatcher.set_control(payload)
+            result = dispatcher.set_control(payload)
             if result.get("accepted", False):
                 return self._response("0", "successful", req_code, result)
             return self._response("CONFIG_ERROR", str(result.get("reason", "invalid control payload")), req_code, result)
         if route == "query_agv_status":
-            result = self.dispatcher.query_agv_status(payload)
+            result = dispatcher.query_agv_status(payload)
             return self._normalize_rcs_response(req_code=req_code, result=result)
         if route == "query_task_status":
-            result = self.dispatcher.query_task_status(payload)
+            result = dispatcher.query_task_status(payload)
             return self._normalize_rcs_response(req_code=req_code, result=result)
         return self._response("404", "unsupported auto dispatch route", req_code, {})
 
@@ -655,16 +697,18 @@ class AutoDispatchControlServer:
             "data": data,
         }
 
-    def _store_api_event(self, path: str, request_payload: dict[str, Any], response_payload: dict[str, Any]) -> None:
+    def _store_api_event(self, dispatcher_id: str, path: str, request_payload: dict[str, Any], response_payload: dict[str, Any]) -> None:
+        dispatcher = self.dispatchers.get(dispatcher_id, self.dispatcher)
         event = {
             "stored_at_ts": time.time(),
+            "dispatcher_id": dispatcher_id,
             "path": path,
             "request": request_payload,
             "response": response_payload,
         }
-        write_json_atomic(self.dispatcher.control_latest_path, event)
+        write_json_atomic(dispatcher.control_latest_path, event)
         append_jsonl_rotating(
-            self.dispatcher.control_event_log_path,
+            dispatcher.control_event_log_path,
             event,
             max_bytes=self.log_max_bytes,
             backup_count=self.log_backup_count,

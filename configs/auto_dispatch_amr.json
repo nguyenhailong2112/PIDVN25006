@@ -1,9 +1,11 @@
 {
+  "dispatcher_id": "amr",
+  "runtime_dir": "outputs/runtime/auto_dispatch_amr",
   "enabled": true,
   "dry_run": false,
   "operation_mode": "manual",
   "profile_id": "PK_AB",
-  "control_state_path": "outputs/runtime/auto_dispatch/mode_control.json",
+  "control_state_path": "outputs/runtime/auto_dispatch_amr/mode_control.json",
   "require_bind_notify": true,
   "require_canonical": true,
   "query_interval_sec": 5.0,
@@ -23,10 +25,12 @@
     "api": "genAgvSchedulingTask",
     "interfaceName": "genAgvSchedulingTask",
     "taskTyp": "QUANGPRO",
+    "task_code_prefix": "QUANGPRO",
     "path_field": "userCallCodePath",
     "path_sequence": ["{source}", "{dest}"],
     "ctnrTyp": "2",
-    "send_task_code": true
+    "send_task_code": true,
+    "include_data": true
   },
   "routing": {
     "source_roadways": [
@@ -77,15 +81,16 @@
       "description": "Roadway A and B",
       "source_order": ["PK_AA5", "PK_AA3", "PK_AA2", "PK_AA1", "PK_BB4", "PK_BB3", "PK_BB2", "PK_BB1"],
       "required_occupied_count": 8,
-      "minimum_empty_fg_slots": 1,
+      "minimum_empty_destination_slots": 1,
       "max_tasks": 8
     },
     "PK_CD": {
       "description": "Roadway C and D",
       "source_order": ["PK_CC3", "PK_CC2", "PK_CC1", "PK_DD4", "PK_DD3", "PK_DD2", "PK_DD1"],
       "required_occupied_count": 7,
-      "minimum_empty_fg_slots": 1,
-      "max_tasks": 7}
+      "minimum_empty_destination_slots": 1,
+      "max_tasks": 7
+    }
   },
   "unknown_policy": {"pk": "conservative_by_row", "fg": "conservative"}
 }

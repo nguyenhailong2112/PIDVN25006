@@ -52,7 +52,10 @@ RULE_CONFIG_PATH = PROJECT_ROOT / "configs" / "rules.json"
 INGEST_CONFIG_PATH = PROJECT_ROOT / "configs" / "ingest.json"
 RUNTIME_CONFIG_PATH = PROJECT_ROOT / "configs" / "runtime.json"
 HIK_RCS_CONFIG_PATH = PROJECT_ROOT / "configs" / "hik_rcs.json"
-AUTO_DISPATCH_CONFIG_PATH = PROJECT_ROOT / "configs" / "auto_dispatch.json"
+AMR_AUTO_DISPATCH_CONFIG_PATH = PROJECT_ROOT / "configs" / "auto_dispatch_amr.json"
+AMR_AUTO_DISPATCH_LEGACY_CONFIG_PATH = PROJECT_ROOT / "configs" / "auto_dispatch.json"
+FMR_AUTO_DISPATCH_CONFIG_PATH = PROJECT_ROOT / "configs" / "auto_dispatch_fmr.json"
+FMR_AUTO_DISPATCH_LEGACY_CONFIG_PATH = PROJECT_ROOT / "configs" / "fmr_auto_dispatch.json"
 HISTORY_DIR = PROJECT_ROOT / "outputs" / "history"
 logger = get_logger(__name__)
 
@@ -126,7 +129,20 @@ class CentralBackendRuntime:
         self.runtime_maintenance = RuntimeMaintenance(PROJECT_ROOT, self.runtime_cfg)
         hik_rcs_cfg = load_json_dict(HIK_RCS_CONFIG_PATH)
         self.hik_bridge = HikRcsBridge(hik_rcs_cfg, PROJECT_ROOT)
-        self.auto_dispatcher = AutoDispatcher(load_json_dict(AUTO_DISPATCH_CONFIG_PATH), hik_rcs_cfg, PROJECT_ROOT)
+        self.auto_dispatcher = AutoDispatcher(
+            load_json_dict(self._existing_config_path(AMR_AUTO_DISPATCH_CONFIG_PATH, AMR_AUTO_DISPATCH_LEGACY_CONFIG_PATH)),
+            hik_rcs_cfg,
+            PROJECT_ROOT,
+        )
+        self.fmr_auto_dispatcher = AutoDispatcher(
+            load_json_dict(self._existing_config_path(FMR_AUTO_DISPATCH_CONFIG_PATH, FMR_AUTO_DISPATCH_LEGACY_CONFIG_PATH)),
+            hik_rcs_cfg,
+            PROJECT_ROOT,
+        )
+        if self.auto_dispatcher.api_server is not None:
+            self.auto_dispatcher.api_server.register_dispatcher("fmr", self.fmr_auto_dispatcher)
+        else:
+            logger.warning("AMR control API is disabled; FMR control API is not exposed")
         self._hik_sync_lock = Lock()
         self._hik_sync_worker: Thread | None = None
         self._hik_sync_running = False
@@ -136,6 +152,10 @@ class CentralBackendRuntime:
         self.zone_empty_since_ts: dict[str, float] = {}
         self.inference_device = "cuda" if torch.cuda.is_available() else "cpu"
         logger.info("CentralBackendRuntime started with %d cameras", len(self.workers))
+
+    @staticmethod
+    def _existing_config_path(primary_path, fallback_path):
+        return primary_path if primary_path.exists() else fallback_path
 
     def _load_elevator_configs(self) -> None:
         for cfg in self.camera_configs:
@@ -673,6 +693,10 @@ class CentralBackendRuntime:
         except Exception:
             logger.exception("Failed to close AutoDispatcher cleanly")
         try:
+            self.fmr_auto_dispatcher.close()
+        except Exception:
+            logger.exception("Failed to close FMR AutoDispatcher cleanly")
+        try:
             self.hik_bridge.close()
         except Exception:
             logger.exception("Failed to close HIK bridge cleanly")
@@ -704,6 +728,7 @@ class CentralBackendRuntime:
             try:
                 self.hik_bridge.sync(payload, timestamp)
                 self.auto_dispatcher.sync(payload, self.hik_bridge.state, timestamp)
+                self.fmr_auto_dispatcher.sync(payload, self.hik_bridge.state, timestamp)
             except Exception:
                 logger.exception("HIK bridge async sync failed")
 
