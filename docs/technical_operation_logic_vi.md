@@ -70,7 +70,8 @@ Gia tri chung hien tai:
 - `require_bind_notify = true`
 - `require_canonical = true`
 - query interval: `5.0` giay
-- default query task co gui `agvCode`: `query_task_include_agv_code = true`
+- query task chi gui `taskCodes`, khong gui kem `agvCode`
+- destination area khong reserve slot noi bo: `reserve_dispatched_destination_slots = false`
 - completed statuses: `completed`, `complete`, `finish`, `finished`, `ended`, `success`, `9`
 - failed statuses: `failed`, `fail`, `cancel`, `canceled`, `cancelled`, `abort`, `aborted`
 - API server port: `8023`
@@ -327,7 +328,7 @@ FG_AA1, FG_AA2, FG_AA3, FG_AA4, FG_AA5, FG_AA6,
 FG_BB1, FG_BB2, FG_BB3, FG_BB4, FG_BB5, FG_BB6
 ```
 
-Vision chi chon cac vi tri FG dang `empty`. Vi tri FG da duoc dung trong batch hien tai se khong duoc chon lai trong cung batch.
+Vision chi chon cac vi tri FG dang `empty` theo camera state hien tai. Do RCS nhan area FG `2${02}` va tu chon slot trong area, Vision khong khoa/reserve noi bo cac destination label da tung ghi trong batch.
 
 ### 5.5 Cach tao batch
 
@@ -419,8 +420,7 @@ Payload:
 
 ```json
 {
-  "taskCodes": ["QUANGPROPKAA5FGAA120260811080000"],
-  "agvCode": "16675"
+  "taskCodes": ["QUANGPROPKAA5FGAA120260811080000"]
 }
 ```
 
@@ -498,6 +498,8 @@ Destination order:
 COIL_FF10 -> COIL_FF11 -> COIL_FF12 -> COIL_FF13
 ```
 
+Day la thu tu label Vision dung de tao `taskCode` va kiem tra co destination empty. Vi RCS nhan area `CO1${04}`, slot COIL thuc te do RCS quyet dinh trong area; Vision khong reserve destination label noi bo sau moi task.
+
 ### 6.2 Payload genAgvSchedulingTask FMR
 
 Payload Vision gui toi RCS gom cac field chinh:
@@ -544,7 +546,7 @@ Sau khi tao FMR task, Vision chi query dung task vua tao:
 }
 ```
 
-Ly do khong gui `agvCode`: RCS site tra loi loi neu `queryTaskStatus` nhan dong thoi task order va robot code. `robotCode = 10476` chi giu trong `genAgvSchedulingTask` FMR.
+Ly do khong gui `agvCode`: RCS site tra loi loi neu `queryTaskStatus` nhan dong thoi task order va robot code. `robotCode = 10476` chi giu trong `genAgvSchedulingTask` FMR. AMR cung query theo `taskCodes` only de tranh loi tuong tu.
 
 Khi RCS tra `taskStatus = 9` hoac mot completed status tuong duong, Vision xoa `active_task` va chu ky sau tao task tiep theo neu dieu kien van hop le.
 
@@ -760,12 +762,11 @@ Payload:
 ```json
 {
   "reqCode": "REQ_QUERY_TASK_001",
-  "taskCode": "QUANGPROPKAA5FGAA120260811080000",
-  "agvCode": "16675"
+  "taskCode": "QUANGPROPKAA5FGAA120260811080000"
 }
 ```
 
-API Vision chap nhan `taskCode` de team test goi gon. Khi gui sang RCS, Vision doi thanh `taskCodes: ["<taskCode>"]` theo schema RCS. Neu thieu `taskCode`/`taskCodes`, Vision tra `CONFIG_ERROR`.
+API Vision chap nhan `taskCode` de team test goi gon. Khi gui sang RCS, Vision doi thanh `taskCodes: ["<taskCode>"]` theo schema RCS va khong gui kem `agvCode`. Neu client gui nham `agvCode` trong API nay, Vision se loai bo truoc khi goi RCS. Neu thieu `taskCode`/`taskCodes`, Vision tra `CONFIG_ERROR`.
 
 ## 9. Bind guard truoc khi tao task
 
@@ -926,7 +927,7 @@ Theo version local hien tai:
 - AMR khong chi dinh diem FG cho RCS theo slot cu the trong route; RCS nhan area FG `2${02}`.
 - AMR khong truyen `agvCode` vao `genAgvSchedulingTask`.
 - FMR truyen `robotCode = 10476` vao `genAgvSchedulingTask` theo task mau da chay tay tai site.
-- AMR dung `agvCode = 16675` khi query task/AGV status.
+- AMR dung `agvCode = 16675` khi query AGV status, nhung query task chi gui `taskCodes`.
 - FMR dung `agvCode = 10476` khi query AGV status, nhung query task chi gui `taskCodes`.
 - Moi lane chi tao 1 task tai 1 thoi diem. AMR va FMR la 2 lane doc lap nen co the cung co task rieng.
 - Vision chi quan tam taskCode do Vision tao.

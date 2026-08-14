@@ -50,6 +50,7 @@ class AutoDispatcher:
         }
         self.query_status_agv_code = str(self.config.get("query_status_agv_code", "")).strip()
         self.query_task_include_agv_code = bool(self.config.get("query_task_include_agv_code", True))
+        self.reserve_dispatched_destination_slots = bool(self.config.get("reserve_dispatched_destination_slots", False))
         configured_profiles = self.config.get("dispatch_profiles", {})
         self.allowed_profiles = {
             str(profile_id).strip()
@@ -303,7 +304,7 @@ class AutoDispatcher:
 
     def _empty_destination_positions(self, position_states: dict[str, str], batch: dict[str, Any]) -> list[str]:
         dest_cfg = self.config.get("routing", {}).get("destination_area", {})
-        used_dests = {str(item) for item in batch.get("dispatched_dests", [])}
+        used_dests = {str(item) for item in batch.get("dispatched_dests", [])} if self.reserve_dispatched_destination_slots else set()
         return [
             str(position)
             for position in dest_cfg.get("positions", [])
@@ -498,8 +499,11 @@ class AutoDispatcher:
             }
         payload.pop("taskCode", None)
         payload["taskCodes"] = [task_code]
-        if self.query_task_include_agv_code and not payload.get("agvCode") and self.query_status_agv_code:
-            payload["agvCode"] = self.query_status_agv_code
+        if self.query_task_include_agv_code:
+            if not payload.get("agvCode") and self.query_status_agv_code:
+                payload["agvCode"] = self.query_status_agv_code
+        else:
+            payload.pop("agvCode", None)
         response = self.client.call_rpc("queryTaskStatus", payload, req_code=str(payload.get("reqCode", "")) or None)
         return self._extract_own_task_response(response, task_code)
 
