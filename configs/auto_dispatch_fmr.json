@@ -1,28 +1,17 @@
 {
   "dispatcher_id": "fmr",
   "runtime_dir": "outputs/runtime/auto_dispatch_fmr",
-  "enabled": true,
-  "dry_run": false,
-  "operation_mode": "manual",
   "profile_id": "3T_COIL",
   "control_state_path": "outputs/runtime/auto_dispatch_fmr/mode_control.json",
-  "require_bind_notify": true,
-  "require_canonical": true,
-  "query_interval_sec": 5.0,
   "query_status_agv_code": "10476",
-  "completed_statuses": ["completed", "complete", "finish", "finished", "ended", "success", "9"],
-  "failed_statuses": ["failed", "fail", "cancel", "canceled", "cancelled", "abort", "aborted"],
+  "query_task_include_agv_code": false,
   "api_server": {
     "enabled": false
   },
   "task_template": {
-    "api": "genAgvSchedulingTask",
-    "interfaceName": "genAgvSchedulingTask",
     "taskTyp": "FMR2",
     "task_code_prefix": "FMR2",
-    "send_task_code": true,
     "include_data": false,
-    "path_field": "userCallCodePath",
     "ctnrTyp": "3",
     "static_fields": {
       "materialLot": "",

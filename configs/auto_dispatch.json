@@ -1,0 +1,28 @@
+{
+  "enabled": true,
+  "dry_run": false,
+  "operation_mode": "manual",
+  "require_bind_notify": true,
+  "require_canonical": true,
+  "query_interval_sec": 5.0,
+  "query_task_include_agv_code": true,
+  "completed_statuses": ["completed", "complete", "finish", "finished", "ended", "success", "9"],
+  "failed_statuses": ["failed", "fail", "cancel", "canceled", "cancelled", "abort", "aborted"],
+  "api_server": {
+    "enabled": true,
+    "host": "0.0.0.0",
+    "port": 8023,
+    "base_path": "/service/rest/visionAutoDispatch",
+    "allowlist": ["192.168.10.105"],
+    "log_max_mb": 10.0,
+    "log_backup_count": 5
+  },
+  "task_template": {
+    "api": "genAgvSchedulingTask",
+    "interfaceName": "genAgvSchedulingTask",
+    "path_field": "userCallCodePath",
+    "path_sequence": ["{source}", "{dest}"],
+    "send_task_code": true,
+    "include_data": true
+  }
+}

@@ -13,8 +13,8 @@ Khi khoi dong, `CentralBackendRuntime` thuc hien:
 3. Chuyen ket qua detection thanh trang thai zone `occupied`, `empty`, `unknown`.
 4. Export snapshot runtime ra `outputs/runtime`.
 5. Khoi tao `HikRcsBridge` tu `configs/hik_rcs.json`.
-6. Khoi tao AMR `AutoDispatcher` tu `configs/auto_dispatch_amr.json`.
-7. Khoi tao FMR `AutoDispatcher` tu `configs/auto_dispatch_fmr.json`.
+6. Khoi tao AMR `AutoDispatcher` tu config merge `configs/auto_dispatch.json` + `configs/auto_dispatch_amr.json`.
+7. Khoi tao FMR `AutoDispatcher` tu config merge `configs/auto_dispatch.json` + `configs/auto_dispatch_fmr.json`.
 8. Moi chu ky runtime, dong bo:
    - camera payload -> HIK RCS bind/unbind
    - camera payload + bridge state -> AMR auto dispatch task
@@ -45,25 +45,53 @@ Gia tri local hien tai:
 - Mapping `blockArea`: 4
 - Tat ca mapping `bindCtnrAndBin` dang dung `dispatch_policy = hybrid_canonical`
 
-### 2.2 AMR auto dispatch
+### 2.2 Auto dispatch config chung
 
-File: `configs/auto_dispatch_amr.json`
+File: `configs/auto_dispatch.json`
 
-Gia tri local hien tai:
+Day la config nen dung chung cho tat ca lane auto dispatch. Khi runtime khoi dong, Vision doc:
+
+```text
+configs/auto_dispatch.json + configs/auto_dispatch_amr.json -> AMR config hoan chinh
+configs/auto_dispatch.json + configs/auto_dispatch_fmr.json -> FMR config hoan chinh
+```
+
+Quy tac merge:
+
+- Field object/dict duoc merge de lane co the override tung field con.
+- Field list/string/number/bool cua lane se thay the gia tri chung.
+- File lane rieng chi nen chua thong tin dac thu cua lane do.
+
+Gia tri chung hien tai:
 
 - `enabled = true`
 - `dry_run = false`
-- `dispatcher_id = amr`
 - default `operation_mode = manual`
-- default `profile_id = PK_AB`
-- control file: `outputs/runtime/auto_dispatch_amr/mode_control.json`
 - `require_bind_notify = true`
 - `require_canonical = true`
 - query interval: `5.0` giay
-- query AGV code: `16675`
+- default query task co gui `agvCode`: `query_task_include_agv_code = true`
+- completed statuses: `completed`, `complete`, `finish`, `finished`, `ended`, `success`, `9`
+- failed statuses: `failed`, `fail`, `cancel`, `canceled`, `cancelled`, `abort`, `aborted`
 - API server port: `8023`
 - API base path: `/service/rest/visionAutoDispatch`
 - IP allowlist hien tai: `192.168.10.105`
+- task API mac dinh: `genAgvSchedulingTask`
+
+### 2.3 AMR auto dispatch
+
+File rieng: `configs/auto_dispatch_amr.json`
+
+Gia tri local hien tai:
+
+- `dispatcher_id = amr`
+- default `profile_id = PK_AB`
+- control file: `outputs/runtime/auto_dispatch_amr/mode_control.json`
+- query AGV code: `16675`
+- task type: `QUANGPRO`
+- task code prefix: `QUANGPRO`
+- ctnr type: `2`
+- routing/source/destination/positions/profiles cua pallet PK -> FG
 
 Neu PC Vision tai site la `192.168.10.44`, App Caller/PDA goi:
 
@@ -77,23 +105,22 @@ Route AMR cu khong co `/amr` van duoc giu de tuong thich:
 http://192.168.10.44:8023/service/rest/visionAutoDispatch
 ```
 
-### 2.3 FMR auto dispatch
+### 2.4 FMR auto dispatch
 
-File: `configs/auto_dispatch_fmr.json`
+File rieng: `configs/auto_dispatch_fmr.json`
 
 Gia tri local hien tai:
 
-- `enabled = true`
-- `dry_run = false`
 - `dispatcher_id = fmr`
-- default `operation_mode = manual`
 - default `profile_id = 3T_COIL`
 - control file: `outputs/runtime/auto_dispatch_fmr/mode_control.json`
-- `require_bind_notify = true`
-- `require_canonical = true`
-- query interval: `5.0` giay
 - query AGV code: `10476`
+- FMR query task khong gui `agvCode`, chi gui `taskCodes` cua task Vision tao
 - task type: `FMR2`
+- task code prefix: `FMR2`
+- ctnr type: `3`
+- genTask co `robotCode = 10476`
+- routing/source/destination/positions/profiles cua trolley 3T -> COIL
 - API namespace: `/service/rest/visionAutoDispatch/fmr`
 
 FMR khong mo port API rieng. FMR duoc dang ky vao cung API server cua AMR tren port `8023`, nhung state, batch, active task va control file hoan toan tach rieng.
@@ -115,7 +142,7 @@ Vision duoc coi la manual khi `operation_mode` khac `auto` trong control runtime
 
 Nguon control:
 
-1. Mac dinh tu file config cua tung lane: `configs/auto_dispatch_amr.json` hoac `configs/auto_dispatch_fmr.json`.
+1. Mac dinh tu config sau merge cua tung lane: file chung `configs/auto_dispatch.json` + file rieng `configs/auto_dispatch_amr.json` hoac `configs/auto_dispatch_fmr.json`.
 2. Neu ton tai, doc tu control file rieng cua tung lane: `outputs/runtime/auto_dispatch_amr/mode_control.json` hoac `outputs/runtime/auto_dispatch_fmr/mode_control.json`.
 3. PDA/third-party co the ghi control moi qua API `setMode`.
 
@@ -513,10 +540,11 @@ Sau khi tao FMR task, Vision chi query dung task vua tao:
 
 ```json
 {
-  "taskCodes": ["FMR23TA1COILFF1020260814110000"],
-  "agvCode": "10476"
+  "taskCodes": ["FMR23TA1COILFF1020260814110000"]
 }
 ```
+
+Ly do khong gui `agvCode`: RCS site tra loi loi neu `queryTaskStatus` nhan dong thoi task order va robot code. `robotCode = 10476` chi giu trong `genAgvSchedulingTask` FMR.
 
 Khi RCS tra `taskStatus = 9` hoac mot completed status tuong duong, Vision xoa `active_task` va chu ky sau tao task tiep theo neu dieu kien van hop le.
 
@@ -628,7 +656,7 @@ Auto dispatch API chi cho phep IP trong:
 "allowlist": ["192.168.10.105"]
 ```
 
-Neu PDA doi IP, cap nhat `configs/auto_dispatch_amr.json`:
+Neu PDA doi IP, cap nhat allowlist trong `configs/auto_dispatch.json`:
 
 ```json
 "allowlist": ["192.168.10.105", "192.168.10.106"]
@@ -899,7 +927,7 @@ Theo version local hien tai:
 - AMR khong truyen `agvCode` vao `genAgvSchedulingTask`.
 - FMR truyen `robotCode = 10476` vao `genAgvSchedulingTask` theo task mau da chay tay tai site.
 - AMR dung `agvCode = 16675` khi query task/AGV status.
-- FMR dung `agvCode = 10476` khi query task/AGV status.
+- FMR dung `agvCode = 10476` khi query AGV status, nhung query task chi gui `taskCodes`.
 - Moi lane chi tao 1 task tai 1 thoi diem. AMR va FMR la 2 lane doc lap nen co the cung co task rieng.
 - Vision chi quan tam taskCode do Vision tao.
 - Vision auto hien tai duoc dieu khien bang API `setMode`; neu muon dung auto, PDA/API can set ve `manual` cho dung lane `amr` hoac `fmr`.

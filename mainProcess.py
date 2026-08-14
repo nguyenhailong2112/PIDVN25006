@@ -52,10 +52,9 @@ RULE_CONFIG_PATH = PROJECT_ROOT / "configs" / "rules.json"
 INGEST_CONFIG_PATH = PROJECT_ROOT / "configs" / "ingest.json"
 RUNTIME_CONFIG_PATH = PROJECT_ROOT / "configs" / "runtime.json"
 HIK_RCS_CONFIG_PATH = PROJECT_ROOT / "configs" / "hik_rcs.json"
+AUTO_DISPATCH_COMMON_CONFIG_PATH = PROJECT_ROOT / "configs" / "auto_dispatch.json"
 AMR_AUTO_DISPATCH_CONFIG_PATH = PROJECT_ROOT / "configs" / "auto_dispatch_amr.json"
-AMR_AUTO_DISPATCH_LEGACY_CONFIG_PATH = PROJECT_ROOT / "configs" / "auto_dispatch.json"
 FMR_AUTO_DISPATCH_CONFIG_PATH = PROJECT_ROOT / "configs" / "auto_dispatch_fmr.json"
-FMR_AUTO_DISPATCH_LEGACY_CONFIG_PATH = PROJECT_ROOT / "configs" / "fmr_auto_dispatch.json"
 HISTORY_DIR = PROJECT_ROOT / "outputs" / "history"
 logger = get_logger(__name__)
 
@@ -130,12 +129,12 @@ class CentralBackendRuntime:
         hik_rcs_cfg = load_json_dict(HIK_RCS_CONFIG_PATH)
         self.hik_bridge = HikRcsBridge(hik_rcs_cfg, PROJECT_ROOT)
         self.auto_dispatcher = AutoDispatcher(
-            load_json_dict(self._existing_config_path(AMR_AUTO_DISPATCH_CONFIG_PATH, AMR_AUTO_DISPATCH_LEGACY_CONFIG_PATH)),
+            self._load_auto_dispatch_config(AMR_AUTO_DISPATCH_CONFIG_PATH),
             hik_rcs_cfg,
             PROJECT_ROOT,
         )
         self.fmr_auto_dispatcher = AutoDispatcher(
-            load_json_dict(self._existing_config_path(FMR_AUTO_DISPATCH_CONFIG_PATH, FMR_AUTO_DISPATCH_LEGACY_CONFIG_PATH)),
+            self._load_auto_dispatch_config(FMR_AUTO_DISPATCH_CONFIG_PATH),
             hik_rcs_cfg,
             PROJECT_ROOT,
         )
@@ -154,8 +153,19 @@ class CentralBackendRuntime:
         logger.info("CentralBackendRuntime started with %d cameras", len(self.workers))
 
     @staticmethod
-    def _existing_config_path(primary_path, fallback_path):
-        return primary_path if primary_path.exists() else fallback_path
+    def _deep_merge_config(base: dict, override: dict) -> dict:
+        merged = dict(base)
+        for key, value in override.items():
+            if isinstance(value, dict) and isinstance(merged.get(key), dict):
+                merged[key] = CentralBackendRuntime._deep_merge_config(merged[key], value)
+            else:
+                merged[key] = value
+        return merged
+
+    def _load_auto_dispatch_config(self, lane_path) -> dict:
+        common = load_json_dict(AUTO_DISPATCH_COMMON_CONFIG_PATH)
+        lane = load_json_dict(lane_path)
+        return self._deep_merge_config(common, lane)
 
     def _load_elevator_configs(self) -> None:
         for cfg in self.camera_configs:

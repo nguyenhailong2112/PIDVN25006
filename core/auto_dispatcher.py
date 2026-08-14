@@ -49,6 +49,7 @@ class AutoDispatcher:
             if str(item).strip()
         }
         self.query_status_agv_code = str(self.config.get("query_status_agv_code", "")).strip()
+        self.query_task_include_agv_code = bool(self.config.get("query_task_include_agv_code", True))
         configured_profiles = self.config.get("dispatch_profiles", {})
         self.allowed_profiles = {
             str(profile_id).strip()
@@ -237,7 +238,7 @@ class AutoDispatcher:
             return True
 
         query_payload = {"taskCodes": [task_code]}
-        if self.query_status_agv_code:
+        if self.query_task_include_agv_code and self.query_status_agv_code:
             query_payload["agvCode"] = self.query_status_agv_code
         response = self.client.call_rpc("queryTaskStatus", query_payload)
         active["last_query_at"] = round(now_ts, 3)
@@ -497,7 +498,7 @@ class AutoDispatcher:
             }
         payload.pop("taskCode", None)
         payload["taskCodes"] = [task_code]
-        if not payload.get("agvCode") and self.query_status_agv_code:
+        if self.query_task_include_agv_code and not payload.get("agvCode") and self.query_status_agv_code:
             payload["agvCode"] = self.query_status_agv_code
         response = self.client.call_rpc("queryTaskStatus", payload, req_code=str(payload.get("reqCode", "")) or None)
         return self._extract_own_task_response(response, task_code)
