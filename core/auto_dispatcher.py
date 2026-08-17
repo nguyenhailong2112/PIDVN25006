@@ -19,7 +19,7 @@ logger = get_logger(__name__)
 class AutoDispatcher:
     """Runs one independently controlled Vision-to-RCS dispatch lane."""
 
-    ALLOWED_PROFILES = {"PK_AB", "PK_CD", "PK_A", "PK_B", "PK_C", "PK_D"}
+    ALLOWED_PROFILES = {"PK_AB", "PK_CD", "PK_A", "PK_B", "PK_C", "PK_D", "PK_ABCD"}
 
     def __init__(self, config: dict[str, Any], hik_config: dict[str, Any], project_root: str | Path) -> None:
         self.config = config or {}
@@ -103,18 +103,43 @@ class AutoDispatcher:
         batch = self.state.get("batch") if isinstance(self.state.get("batch"), dict) else None
         if not batch or batch.get("profile_id") != profile_id:
             occupied_sources = [position for position in source_order if self._position_state(position_states, position) == "occupied"]
-            if len(occupied_sources) != required_occupied_count:
+            activation_required_sources = [
+                str(item) for item in profile.get("activation_required_sources", []) if str(item).strip()
+            ]
+            if activation_required_sources:
+                activation_occupied = [
+                    position
+                    for position in activation_required_sources
+                    if self._position_state(position_states, position) == "occupied"
+                ]
+                if len(activation_occupied) != len(activation_required_sources):
+                    self._set_idle(
+                        f"waiting_pk_activation:{profile_id}:{len(activation_occupied)}/{len(activation_required_sources)}",
+                        now_ts,
+                    )
+                    return
+            elif len(occupied_sources) != required_occupied_count:
                 self._set_idle(f"waiting_pk_full:{profile_id}:{len(occupied_sources)}/{required_occupied_count}", now_ts)
                 return
             batch = {
                 "profile_id": profile_id,
                 "source_order": source_order,
+                "dispatchable_sources": occupied_sources,
+                "allow_source_gaps": bool(profile.get("allow_source_gaps", False)),
                 "dispatched_sources": [],
                 "dispatched_dests": [],
                 "created_at": round(now_ts, 3),
             }
             self.state["batch"] = batch
-            self._log_event("batch_started", {"profile_id": profile_id, "source_order": source_order}, now_ts)
+            self._log_event(
+                "batch_started",
+                {
+                    "profile_id": profile_id,
+                    "source_order": source_order,
+                    "dispatchable_sources": occupied_sources,
+                },
+                now_ts,
+            )
 
         destination_empty = self._empty_destination_positions(position_states, batch)
         minimum_empty = int(profile.get("minimum_empty_destination_slots", profile.get("minimum_empty_fg_slots", 1)) or 1)
@@ -313,18 +338,21 @@ class AutoDispatcher:
 
     def _next_source(self, batch: dict[str, Any], position_states: dict[str, str]) -> str:
         dispatched = {str(item) for item in batch.get("dispatched_sources", [])}
-        for source in batch.get("source_order", []):
+        source_candidates = batch.get("dispatchable_sources", batch.get("source_order", []))
+        for source in source_candidates:
             source = str(source)
             if source in dispatched:
                 continue
             if position_states.get(source) == "occupied":
                 return source
+            if batch.get("allow_source_gaps", False):
+                continue
             return ""
         return ""
 
     @staticmethod
     def _all_sources_dispatched(batch: dict[str, Any]) -> bool:
-        source_order = [str(item) for item in batch.get("source_order", [])]
+        source_order = [str(item) for item in batch.get("dispatchable_sources", batch.get("source_order", []))]
         dispatched = {str(item) for item in batch.get("dispatched_sources", [])}
         return bool(source_order) and all(source in dispatched for source in source_order)
 
