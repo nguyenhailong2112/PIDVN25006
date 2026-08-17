@@ -257,10 +257,14 @@ Vision van giu vai tro:
 
 Day la phan quan trong nhat.
 
-Mode auto co 2 profile:
+Mode auto AMR co 6 profile:
 
 - `auto + PK_AB`
 - `auto + PK_CD`
+- `auto + PK_A`
+- `auto + PK_B`
+- `auto + PK_C`
+- `auto + PK_D`
 
 PDA/third-party phai goi API `setMode` de chuyen Vision sang auto.
 
@@ -269,7 +273,7 @@ PDA/third-party phai goi API `setMode` de chuyen Vision sang auto.
 Vision chi tao task khi tat ca dieu kien sau dung:
 
 1. `operation_mode = auto`
-2. `profile_id` la `PK_AB` hoac `PK_CD`
+2. `profile_id` la mot trong `PK_AB`, `PK_CD`, `PK_A`, `PK_B`, `PK_C`, `PK_D`
 3. Callback bindNotify dang enabled trong `configs/hik_rcs.json`
 4. PK profile du so luong pallet yeu cau
 5. FG co it nhat 1 vi tri `empty`
@@ -313,7 +317,20 @@ Roadway call code:
 - Hang C: `33${06}`
 - Hang D: `44${06}`
 
-### 5.4 Destination FG
+### 5.4 Profiles theo tung roadway
+
+Bon profile nay dung cung mot co che batch/task/query cua AMR, nhung chi gioi han trong mot roadway:
+
+| Profile | Source order | Required occupied | Max tasks | Call code |
+|---|---|---:|---:|---|
+| `PK_A` | `PK_AA5 -> PK_AA3 -> PK_AA2 -> PK_AA1` | 4 | 4 | `11${06}` |
+| `PK_B` | `PK_BB4 -> PK_BB3 -> PK_BB2 -> PK_BB1` | 4 | 4 | `22${06}` |
+| `PK_C` | `PK_CC3 -> PK_CC2 -> PK_CC1` | 3 | 3 | `33${06}` |
+| `PK_D` | `PK_DD4 -> PK_DD3 -> PK_DD2 -> PK_DD1` | 4 | 4 | `44${06}` |
+
+Vision chi bat dau batch khi toan bo source trong profile dang `occupied` va FG co it nhat mot slot `empty`. Sau moi task completed, Vision tiep tuc phan tu ke tiep trong `source_order` cua profile do.
+
+### 5.5 Destination FG
 
 FG la area, call code:
 
@@ -330,7 +347,7 @@ FG_BB1, FG_BB2, FG_BB3, FG_BB4, FG_BB5, FG_BB6
 
 Vision chi chon cac vi tri FG dang `empty` theo camera state hien tai. Do RCS nhan area FG `2${02}` va tu chon slot trong area, Vision khong khoa/reserve noi bo cac destination label da tung ghi trong batch.
 
-### 5.5 Cach tao batch
+### 5.6 Cach tao batch
 
 Khi mode auto va chua co batch phu hop:
 
@@ -346,7 +363,7 @@ Khi mode auto va chua co batch phu hop:
    - `dispatched_dests = []`
    - log event `batch_started`
 
-### 5.6 Cach tao tung task
+### 5.7 Cach tao tung task
 
 Vision moi lan chi tao 1 task.
 
@@ -366,7 +383,7 @@ Sau khi tao task thanh cong:
 - Task duoc luu vao `state.active_task`
 - Log event `task_created`
 
-### 5.7 Payload genAgvSchedulingTask
+### 5.8 Payload genAgvSchedulingTask
 
 API RCS:
 
@@ -586,7 +603,29 @@ Payload:
 }
 ```
 
-### 7.3 Chuyen ve manual AMR
+### 7.3 Chuyen sang auto theo tung hang
+
+Tat ca deu dung endpoint AMR:
+
+```http
+POST /service/rest/visionAutoDispatch/amr/setMode
+```
+
+Chi thay `profile_id` theo nut PDA:
+
+```json
+{
+  "reqCode": "REQ_AUTO_A_001",
+  "operation_mode": "auto",
+  "profile_id": "PK_A",
+  "updated_by": "third_party",
+  "note": "start auto PK_A"
+}
+```
+
+Gia tri hop le cho bon nut la `PK_A`, `PK_B`, `PK_C`, `PK_D`. Tuong ung, PDA co the dat `reqCode`/`note` thanh `REQ_AUTO_B_001`/`start auto PK_B`, `REQ_AUTO_C_001`/`start auto PK_C`, hoac `REQ_AUTO_D_001`/`start auto PK_D`.
+
+### 7.4 Chuyen ve manual AMR
 
 ```json
 {
@@ -598,7 +637,7 @@ Payload:
 }
 ```
 
-### 7.4 Chuyen sang auto FMR 3T_COIL
+### 7.5 Chuyen sang auto FMR 3T_COIL
 
 Endpoint:
 
@@ -618,7 +657,7 @@ Payload:
 }
 ```
 
-### 7.5 Chuyen ve manual FMR
+### 7.6 Chuyen ve manual FMR
 
 ```json
 {
@@ -630,7 +669,7 @@ Payload:
 }
 ```
 
-### 7.6 Response setMode thanh cong
+### 7.7 Response setMode thanh cong
 
 ```json
 {
@@ -652,7 +691,7 @@ Payload:
 }
 ```
 
-### 7.7 IP allowlist
+### 7.8 IP allowlist
 
 Auto dispatch API chi cho phep IP trong:
 
@@ -725,7 +764,7 @@ POST /amr/setMode
 POST /fmr/setMode
 ```
 
-Dung cho PDA/third-party chuyen `manual`, `auto + PK_AB`, `auto + PK_CD`, `auto + 3T_COIL`.
+Dung cho PDA/third-party chuyen `manual`, `auto + PK_AB`, `auto + PK_CD`, `auto + PK_A`, `auto + PK_B`, `auto + PK_C`, `auto + PK_D`, `auto + 3T_COIL`.
 
 ### 8.4 Query AGV status
 
@@ -857,7 +896,7 @@ outputs/runtime/debug/*.jpg
 
 1. Kiem tra `mode_control.json`.
    - `operation_mode` co phai `auto` khong?
-   - `profile_id` co dung `PK_AB`, `PK_CD` hoac `3T_COIL` khong?
+   - `profile_id` co dung profile da cau hinh cua lane khong: AMR gom `PK_AB`, `PK_CD`, `PK_A`, `PK_B`, `PK_C`, `PK_D`; FMR gom `3T_COIL`?
 2. Kiem tra `state.json`.
    - `status` dang la gi?
    - Co `active_task` dang chay khong?

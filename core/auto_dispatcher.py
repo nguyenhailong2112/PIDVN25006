@@ -19,7 +19,7 @@ logger = get_logger(__name__)
 class AutoDispatcher:
     """Runs one independently controlled Vision-to-RCS dispatch lane."""
 
-    ALLOWED_PROFILES = {"PK_AB", "PK_CD"}
+    ALLOWED_PROFILES = {"PK_AB", "PK_CD", "PK_A", "PK_B", "PK_C", "PK_D"}
 
     def __init__(self, config: dict[str, Any], hik_config: dict[str, Any], project_root: str | Path) -> None:
         self.config = config or {}

@@ -6,7 +6,7 @@ Tai lieu nay danh cho nguoi van hanh tai site. Muc tieu la biet khi nao chay man
 
 He thong Vision co 2 lane van hanh doc lap:
 
-- AMR pallet: `manual`, `auto + PK_AB`, `auto + PK_CD`
+- AMR pallet: `manual`, `auto + PK_AB`, `auto + PK_CD`, `auto + PK_A`, `auto + PK_B`, `auto + PK_C`, `auto + PK_D`
 - FMR trolley: `manual`, `auto + 3T_COIL`
 
 `manual` la trang thai an toan mac dinh cua tung lane. Khi mot lane o `manual`, Vision van nhan dien trang thai hang va dong bo bind/unbind voi RCS, nhung lane do khong tu tao task AGV moi.
@@ -58,7 +58,20 @@ Chi bam `auto + PK_CD` khi:
 
 Khi bam `auto + PK_CD`, Vision tao task theo thu tu tren. Moi lan Vision chi tao 1 task; task hien tai completed tren RCS thi Vision moi tao task tiep theo.
 
-## 6. Van hanh auto FMR 3T_COIL
+## 6. Van hanh auto AMR theo tung hang
+
+Bon mode nay chi lay pallet trong mot roadway, voi dieu kien tat ca pallet cua roadway do dang `occupied` va FG con it nhat 1 vi tri trong:
+
+| Mode | Thu tu pick | So pallet yeu cau |
+|---|---|---:|
+| `auto + PK_A` | `PK_AA5 -> PK_AA3 -> PK_AA2 -> PK_AA1` | 4 |
+| `auto + PK_B` | `PK_BB4 -> PK_BB3 -> PK_BB2 -> PK_BB1` | 4 |
+| `auto + PK_C` | `PK_CC3 -> PK_CC2 -> PK_CC1` | 3 |
+| `auto + PK_D` | `PK_DD4 -> PK_DD3 -> PK_DD2 -> PK_DD1` | 4 |
+
+Vision chi tao mot task moi lan. Task truoc phai completed tren RCS thi Vision moi tao task tiep theo. Neu FG het cho, hoac source tiep theo khong con `occupied`, dot auto dung tai do.
+
+## 7. Van hanh auto FMR 3T_COIL
 
 Chi bam `auto + 3T_COIL` khi:
 
@@ -83,11 +96,11 @@ COIL_FF10 -> COIL_FF11 -> COIL_FF12 -> COIL_FF13
 
 Moi lan Vision chi tao 1 task FMR. Task hien tai completed tren RCS thi Vision moi tao task tiep theo neu `3T` van con trolley va `COIL` van con vi tri trong.
 
-## 7. Khi nao auto dung
+## 8. Khi nao auto dung
 
 Auto co the dung hoac khong tao task moi khi:
 
-- Source chua du so luong yeu cau: PK_AB 8/8, PK_CD 7/7, 3T_COIL 3/3.
+- Source chua du so luong yeu cau: PK_AB 8/8, PK_CD 7/7, PK_A 4/4, PK_B 4/4, PK_C 3/3, PK_D 4/4, 3T_COIL 3/3.
 - Destination khong con vi tri trong.
 - Task dang chay chua completed.
 - Trang thai bind/unbind cua vi tri pick hoac put chua hop le.
@@ -96,7 +109,7 @@ Auto co the dung hoac khong tao task moi khi:
 
 Luu y: Mode cua AMR va FMR la doc lap. Bam `manual` AMR khong lam dung FMR, va nguoc lai.
 
-## 8. API PDA can goi
+## 9. API PDA can goi
 
 PC Vision tai site:
 
@@ -140,6 +153,24 @@ Payload AMR auto PK_CD:
 }
 ```
 
+Payload AMR auto theo tung hang:
+
+```json
+{
+  "reqCode": "REQ_AUTO_A_001",
+  "operation_mode": "auto",
+  "profile_id": "PK_A",
+  "updated_by": "third_party",
+  "note": "start auto PK_A"
+}
+```
+
+Thay `profile_id` bang `PK_B`, `PK_C` hoac `PK_D` khi can chay hang tuong ung. Endpoint van la:
+
+```text
+POST /service/rest/visionAutoDispatch/amr/setMode
+```
+
 Payload FMR auto 3T_COIL:
 
 ```json
@@ -166,14 +197,14 @@ Payload manual:
 
 Voi FMR manual, doi `profile_id` thanh `3T_COIL`.
 
-## 9. Sau khi hoan thanh mot dot van hanh
+## 10. Sau khi hoan thanh mot dot van hanh
 
 1. Kiem tra AGV da hoan thanh task cuoi cung tren RCS.
 2. Kiem tra hang da duoc dua toi dung khu put.
 3. Neu khong muon lane tiep tuc tu dong tao task khi dieu kien lai du, bam `manual` tren PDA cho dung lane.
 4. Neu muon chay dot tiep theo, chuan bi source/destination roi bam lai auto tuong ung.
 
-## 10. Xu ly nhanh khi co bat thuong
+## 11. Xu ly nhanh khi co bat thuong
 
 Neu bam auto nhung Vision khong tao task:
 

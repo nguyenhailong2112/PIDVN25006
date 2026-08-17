@@ -68,6 +68,34 @@
       "required_occupied_count": 7,
       "minimum_empty_destination_slots": 1,
       "max_tasks": 7
+    },
+    "PK_A": {
+      "description": "Roadway A only",
+      "source_order": ["PK_AA5", "PK_AA3", "PK_AA2", "PK_AA1"],
+      "required_occupied_count": 4,
+      "minimum_empty_destination_slots": 1,
+      "max_tasks": 4
+    },
+    "PK_B": {
+      "description": "Roadway B only",
+      "source_order": ["PK_BB4", "PK_BB3", "PK_BB2", "PK_BB1"],
+      "required_occupied_count": 4,
+      "minimum_empty_destination_slots": 1,
+      "max_tasks": 4
+    },
+    "PK_C": {
+      "description": "Roadway C only",
+      "source_order": ["PK_CC3", "PK_CC2", "PK_CC1"],
+      "required_occupied_count": 3,
+      "minimum_empty_destination_slots": 1,
+      "max_tasks": 3
+    },
+    "PK_D": {
+      "description": "Roadway D only",
+      "source_order": ["PK_DD4", "PK_DD3", "PK_DD2", "PK_DD1"],
+      "required_occupied_count": 4,
+      "minimum_empty_destination_slots": 1,
+      "max_tasks": 4
     }
   },
   "unknown_policy": {"pk": "conservative_by_row", "fg": "conservative"}
