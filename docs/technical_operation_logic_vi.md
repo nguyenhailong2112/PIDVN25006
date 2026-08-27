@@ -701,10 +701,37 @@ Payload:
       "updated_by": "third_party",
       "note": "start auto PK_AB"
     },
+    "operator_feedback": {
+      "execution_status": "checking_conditions",
+      "ready_to_create_task": false,
+      "message_vi": "Da chon auto PK_AB. Vision dang kiem tra dieu kien.",
+      "next_action_vi": "Cho Vision kiem tra camera, pallet, vi tri tra va RCS."
+    },
     "state": {}
   }
 }
 ```
+
+`code = 0` va `accepted = true` chi xac nhan Vision da nhan lenh chuyen mode. PDA phai hien thi `operator_feedback` de nguoi van hanh biet task dang cho dieu kien, dang chay, da xong hay bi loi. Cac truong thong diep deu la Tieng Viet khong dau de hien thi truc tiep.
+
+Vision khong push WebSocket/SSE. Sau mot lan `setMode`, PDA phai polling `GET /amr/status` hoac `GET /fmr/status` moi 2-5 giay va cap nhat popup khi `state.updated_at` thay doi. PDA khong can goi lai `setMode` de lay status moi.
+
+Trang thai va log chi tiet duoc luu tai:
+
+- `outputs/runtime/auto_dispatch_amr/state.json`
+- `outputs/runtime/auto_dispatch_amr/events.jsonl`
+- `outputs/runtime/auto_dispatch_fmr/state.json`
+- `outputs/runtime/auto_dispatch_fmr/events.jsonl`
+
+Moi thay doi trang thai co event `operator_status`, gom `execution_status`, `message_vi`, `next_action_vi`, profile va lane. Khi RCS tu choi tao task, feedback co them `rcs_error.code` va `rcs_error.message`.
+
+`operator_feedback.condition_summary` gom cac truong audit chinh:
+
+- `source_occupied_positions`, `source_occupied_count`, `source_required_count`
+- `source_empty_positions`, `source_unknown_positions`
+- `activation_required_positions`, `activation_ready`
+- `destination_empty_positions`, `destination_empty_count`
+- `bind_notify_ready`, `canonical_check_enabled`, `conditions_met_for_batch`
 
 ### 7.8 IP allowlist
 

@@ -100,12 +100,47 @@ class AutoDispatcher:
             self._set_idle(f"invalid_profile:{profile_id}", now_ts)
             return
 
+        occupied_sources = [position for position in source_order if self._position_state(position_states, position) == "occupied"]
+        source_empty_positions = [position for position in source_order if self._position_state(position_states, position) == "empty"]
+        source_unknown_positions = [position for position in source_order if self._position_state(position_states, position) == "unknown"]
+        destination_positions = [
+            str(position)
+            for position in self.config.get("routing", {}).get("destination_area", {}).get("positions", [])
+        ]
+        empty_destinations = [position for position in destination_positions if position_states.get(position) == "empty"]
+        activation_required_sources = [
+            str(item) for item in profile.get("activation_required_sources", []) if str(item).strip()
+        ]
+        activation_ready = bool(activation_required_sources) and all(
+            self._position_state(position_states, position) == "occupied"
+            for position in activation_required_sources
+        )
+        minimum_empty_destination_slots = int(
+            profile.get("minimum_empty_destination_slots", profile.get("minimum_empty_fg_slots", 1)) or 1
+        )
+        source_ready = bool(activation_required_sources and activation_ready) or (
+            not activation_required_sources and len(occupied_sources) == required_occupied_count
+        )
+        self.state["condition_summary"] = {
+            "profile_id": profile_id,
+            "source_order": source_order,
+            "source_occupied_positions": occupied_sources,
+            "source_occupied_count": len(occupied_sources),
+            "source_required_count": required_occupied_count,
+            "source_empty_positions": source_empty_positions,
+            "source_unknown_positions": source_unknown_positions,
+            "activation_required_positions": activation_required_sources,
+            "activation_ready": activation_ready,
+            "destination_empty_positions": empty_destinations,
+            "destination_empty_count": len(empty_destinations),
+            "minimum_empty_destination_slots": minimum_empty_destination_slots,
+            "bind_notify_ready": self.callback_server_enabled,
+            "canonical_check_enabled": self.require_canonical,
+            "conditions_met_for_batch": bool(source_ready and len(empty_destinations) >= minimum_empty_destination_slots),
+        }
+
         batch = self.state.get("batch") if isinstance(self.state.get("batch"), dict) else None
         if not batch or batch.get("profile_id") != profile_id:
-            occupied_sources = [position for position in source_order if self._position_state(position_states, position) == "occupied"]
-            activation_required_sources = [
-                str(item) for item in profile.get("activation_required_sources", []) if str(item).strip()
-            ]
             if activation_required_sources:
                 activation_occupied = [
                     position
@@ -255,6 +290,7 @@ class AutoDispatcher:
             active["completed_at"] = round(now_ts, 3)
             self.state["last_completed_task"] = active
             self.state.pop("active_task", None)
+            self._set_status(f"task_completed:{task_code}", now_ts)
             self._log_event("task_completed", active, now_ts)
             return True
 
@@ -277,13 +313,26 @@ class AutoDispatcher:
             active["completed_at"] = round(now_ts, 3)
             self.state["last_completed_task"] = active
             self.state.pop("active_task", None)
+            self._set_status(f"task_completed:{task_code}", now_ts)
             self._log_event("task_completed", active, now_ts)
             return True
         if normalized in self.failed_statuses:
             active["failed_at"] = round(now_ts, 3)
             self.state["last_failed_task"] = active
             self.state.pop("active_task", None)
+            self._set_status(f"task_failed:{task_code}:{active['status']}", now_ts)
             self._log_event("task_failed", active, now_ts)
+            return True
+        if not self.client.is_success(response):
+            active["status"] = f"query_failed:{response.get('code', '')}:{response.get('message', '')}".strip(":")
+            self.state["last_failed_task"] = active
+            self._set_status(f"task_query_failed:{task_code}", now_ts)
+            self._log_event("task_query_failed", active, now_ts)
+            return True
+        if not task_status:
+            active["status"] = "task_not_found_or_status_empty"
+            self._set_status(f"task_query_pending:{task_code}", now_ts)
+            self._log_event("task_query_pending", active, now_ts)
             return True
         self._set_status(f"waiting_task:{task_code}:{active['status']}", now_ts)
         return True
@@ -488,6 +537,7 @@ class AutoDispatcher:
             "accepted": True,
             "reason": "ok",
             "control": control,
+            "operator_feedback": self._operator_feedback(),
             "state": self.public_status(),
         }
 
@@ -502,6 +552,194 @@ class AutoDispatcher:
             "require_bind_notify": self.require_bind_notify,
             "require_canonical": self.require_canonical,
             "callback_server_enabled": self.callback_server_enabled,
+            "operator_feedback": self._operator_feedback(),
+        }
+
+    def _operator_feedback(self) -> dict[str, Any]:
+        """Return a compact, accent-free status contract for the PDA operator."""
+        status = str(self.state.get("status", "unknown")).strip()
+        feedback = self._operator_feedback_for_status(status)
+        if feedback.get("execution_status") in {"failed", "blocked"}:
+            failed_task = self.state.get("last_failed_task", {})
+            if isinstance(failed_task, dict):
+                rcs_response = failed_task.get("last_query_response", failed_task.get("response", {}))
+                if isinstance(rcs_response, dict):
+                    rcs_message = str(rcs_response.get("message", "")).strip()
+                    rcs_code = str(rcs_response.get("code", "")).strip()
+                    if rcs_message or rcs_code:
+                        feedback["rcs_error"] = {
+                            "code": rcs_code,
+                            "message": rcs_message,
+                        }
+                        if feedback.get("execution_status") == "failed":
+                            feedback["message_vi"] = "Tao task that bai. RCS da tu choi yeu cau."
+        condition_summary = self.state.get("condition_summary", {})
+        if (
+            feedback.get("execution_status") == "waiting_conditions"
+            and isinstance(condition_summary, dict)
+            and condition_summary.get("source_unknown_positions")
+        ):
+            unknown_positions = ", ".join(str(item) for item in condition_summary["source_unknown_positions"])
+            feedback["message_vi"] = f"Chua du dieu kien: khong xac dinh trang thai {unknown_positions}."
+            feedback["next_action_vi"] = "Kiem tra camera va zone tren PDA; cho trang thai ro rang roi chon lai mode auto."
+        feedback["status_code"] = status
+        feedback["dispatcher_id"] = self.dispatcher_id
+        feedback["profile_id"] = str(self._load_control().get("profile_id", "")).strip()
+        feedback["active_task"] = self.state.get("active_task", {}) if isinstance(self.state.get("active_task"), dict) else {}
+        feedback["condition_summary"] = self.state.get("condition_summary", {}) if isinstance(self.state.get("condition_summary"), dict) else {}
+        return feedback
+
+    @staticmethod
+    def _operator_feedback_for_status(status: str) -> dict[str, Any]:
+        normalized = str(status).strip()
+        if normalized == "manual_mode":
+            return {
+                "execution_status": "manual",
+                "ready_to_create_task": False,
+                "message_vi": "Vision dang o mode manual. Khong tu tao task auto.",
+                "next_action_vi": "Neu muon chay auto, chon dung nut auto tren PDA.",
+            }
+        if normalized.startswith("auto_mode_requested:"):
+            profile = normalized.split(":", 1)[1]
+            return {
+                "execution_status": "checking_conditions",
+                "ready_to_create_task": False,
+                "message_vi": f"Da chon auto {profile}. Vision dang kiem tra dieu kien.",
+                "next_action_vi": "Cho Vision kiem tra camera, pallet, vi tri tra va RCS.",
+            }
+        if normalized.startswith("waiting_pk_full:"):
+            parts = normalized.split(":")
+            profile = parts[1] if len(parts) > 1 else ""
+            count = parts[2] if len(parts) > 2 else ""
+            return {
+                "execution_status": "waiting_conditions",
+                "ready_to_create_task": False,
+                "message_vi": f"Chua du pallet cho {profile}: hien co {count}.",
+                "next_action_vi": "Kiem tra va bo sung pallet dung cac vi tri cua profile, sau do bam lai nut auto.",
+            }
+        if normalized.startswith("waiting_pk_activation:"):
+            parts = normalized.split(":")
+            profile = parts[1] if len(parts) > 1 else "PK_ABCD"
+            count = parts[2] if len(parts) > 2 else ""
+            return {
+                "execution_status": "waiting_conditions",
+                "ready_to_create_task": False,
+                "message_vi": f"{profile} chua du 4 vi tri dau roadway: hien co {count}.",
+                "next_action_vi": "Kiem tra PK_AA1, PK_BB1, PK_CC1, PK_DD1 deu co pallet va camera dang online.",
+            }
+        if normalized == "stopped_no_destination_empty":
+            return {
+                "execution_status": "stopped",
+                "ready_to_create_task": False,
+                "message_vi": "FG khong con vi tri trong de tra pallet.",
+                "next_action_vi": "Cho don vi van hanh tao them vi tri trong, sau do chon lai mode auto.",
+            }
+        if normalized == "stopped_source_not_occupied":
+            return {
+                "execution_status": "stopped",
+                "ready_to_create_task": False,
+                "message_vi": "Vi tri pallet tiep theo khong con hang hoac trang thai camera chua ro.",
+                "next_action_vi": "Kiem tra dung vi tri pick va camera; khong tu y chuyen pallet khi task dang chay.",
+            }
+        if normalized.startswith("blocked_bind_guard:"):
+            reason = normalized.split(":", 1)[1]
+            return {
+                "execution_status": "blocked",
+                "ready_to_create_task": False,
+                "message_vi": f"Chua the tao task vi bind/unbind chua hop le: {reason}.",
+                "next_action_vi": "Kiem tra bindNotify, container/bin va trang thai RCS; sau khi da dong bo hay chon lai auto.",
+            }
+        if normalized == "bind_notify_callback_disabled":
+            return {
+                "execution_status": "blocked",
+                "ready_to_create_task": False,
+                "message_vi": "Kenh bindNotify dang khong san sang.",
+                "next_action_vi": "Bao ky thuat kiem tra callback RCS va khong tiep tuc chay auto.",
+            }
+        if normalized.startswith("waiting_task:"):
+            task_code = normalized.split(":", 2)[1] if len(normalized.split(":", 2)) > 1 else ""
+            return {
+                "execution_status": "running",
+                "ready_to_create_task": False,
+                "message_vi": f"AGV dang thuc hien task {task_code}.",
+                "next_action_vi": "Khong bam lai nut auto; cho task hien tai hoan thanh.",
+            }
+        if normalized.startswith("task_created:"):
+            task_code = normalized.split(":", 1)[1]
+            return {
+                "execution_status": "task_created",
+                "ready_to_create_task": False,
+                "message_vi": f"Da tao task {task_code} va gui sang RCS.",
+                "next_action_vi": "Theo doi AGV; Vision se tu query task va tao task tiep theo khi hoan thanh.",
+            }
+        if normalized.startswith("task_create_failed:"):
+            task_code = normalized.split(":", 1)[1]
+            return {
+                "execution_status": "failed",
+                "ready_to_create_task": False,
+                "message_vi": f"Tao task {task_code} that bai.",
+                "next_action_vi": "Mo chi tiet loi RCS trong log, xu ly nguyen nhan roi chon lai mode auto.",
+            }
+        if normalized.startswith("task_completed:"):
+            task_code = normalized.split(":", 1)[1]
+            return {
+                "execution_status": "task_completed",
+                "ready_to_create_task": False,
+                "message_vi": f"Task {task_code} da hoan thanh.",
+                "next_action_vi": "Vision dang kiem tra dieu kien de tao task tiep theo.",
+            }
+        if normalized.startswith("task_failed:"):
+            parts = normalized.split(":", 2)
+            task_code = parts[1] if len(parts) > 1 else ""
+            reason = parts[2] if len(parts) > 2 else ""
+            return {
+                "execution_status": "failed",
+                "ready_to_create_task": False,
+                "message_vi": f"Task {task_code} da loi.",
+                "next_action_vi": f"Kiem tra nguyen nhan task tren RCS: {reason}. Xu ly loi roi chon lai mode auto.",
+            }
+        if normalized.startswith("task_query_failed:"):
+            task_code = normalized.split(":", 1)[1]
+            return {
+                "execution_status": "blocked",
+                "ready_to_create_task": False,
+                "message_vi": f"Vision khong query duoc trang thai task {task_code}.",
+                "next_action_vi": "Kiem tra ket noi RCS va log queryTaskStatus; khong tao lai task khi chua xac dinh task cu.",
+            }
+        if normalized.startswith("task_query_pending:"):
+            task_code = normalized.split(":", 1)[1]
+            return {
+                "execution_status": "checking_task",
+                "ready_to_create_task": False,
+                "message_vi": f"RCS chua tra trang thai ro rang cho task {task_code}.",
+                "next_action_vi": "Cho Vision query lai; khong bam lai nut auto.",
+            }
+        if normalized == "batch_completed":
+            return {
+                "execution_status": "completed",
+                "ready_to_create_task": False,
+                "message_vi": "Dot auto da hoan thanh.",
+                "next_action_vi": "Neu muon chay dot moi, kiem tra hang va vi tri tra roi chon lai mode auto.",
+            }
+        if normalized.startswith("invalid_profile:") or normalized.startswith("unsupported_profile:"):
+            return {
+                "execution_status": "blocked",
+                "ready_to_create_task": False,
+                "message_vi": "Profile auto khong hop le hoac chua duoc cau hinh.",
+                "next_action_vi": "Bao dev kiem tra profile_id trong file config, khong bam lai nut.",
+            }
+        if normalized == "blocked_missing_call_code":
+            return {
+                "execution_status": "blocked",
+                "ready_to_create_task": False,
+                "message_vi": "Thieu call code roadway hoac khu vuc tra.",
+                "next_action_vi": "Bao dev kiem tra routing trong file config truoc khi chay lai.",
+            }
+        return {
+            "execution_status": "unknown",
+            "ready_to_create_task": False,
+            "message_vi": "Vision dang khoi dong hoac chua co trang thai moi.",
+            "next_action_vi": "Cho Vision cap nhat trang thai, neu van khong thay doi hay bao ky thuat.",
         }
 
     def query_agv_status(self, payload: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -545,6 +783,15 @@ class AutoDispatcher:
     def _set_status(self, status: str, now_ts: float) -> None:
         self.state["status"] = status
         self.state["updated_at"] = round(now_ts, 3)
+        feedback = self._operator_feedback_for_status(status)
+        feedback["status_code"] = status
+        feedback["dispatcher_id"] = self.dispatcher_id
+        feedback["profile_id"] = str(self._load_control().get("profile_id", "")).strip()
+        feedback["condition_summary"] = self.state.get("condition_summary", {}) if isinstance(self.state.get("condition_summary"), dict) else {}
+        self.state["operator_feedback"] = feedback
+        if self.state.get("last_operator_status") != status:
+            self.state["last_operator_status"] = status
+            self._log_event("operator_status", feedback, now_ts)
 
     def _log_event(self, event: str, payload: dict[str, Any], now_ts: float) -> None:
         append_jsonl_rotating(

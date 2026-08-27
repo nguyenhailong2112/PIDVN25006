@@ -17,6 +17,7 @@ from core.config import (
     load_json_dict,
     load_rule_config,
     validate_camera_configs,
+    validate_auto_dispatch_config,
     validate_elevator_runtime_config,
     validate_ingest_config,
     validate_rule_config,
@@ -128,13 +129,17 @@ class CentralBackendRuntime:
         self.runtime_maintenance = RuntimeMaintenance(PROJECT_ROOT, self.runtime_cfg)
         hik_rcs_cfg = load_json_dict(HIK_RCS_CONFIG_PATH)
         self.hik_bridge = HikRcsBridge(hik_rcs_cfg, PROJECT_ROOT)
+        amr_auto_config = self._load_auto_dispatch_config(AMR_AUTO_DISPATCH_CONFIG_PATH)
+        validate_auto_dispatch_config(amr_auto_config, label="AMR auto dispatch")
         self.auto_dispatcher = AutoDispatcher(
-            self._load_auto_dispatch_config(AMR_AUTO_DISPATCH_CONFIG_PATH),
+            amr_auto_config,
             hik_rcs_cfg,
             PROJECT_ROOT,
         )
+        fmr_auto_config = self._load_auto_dispatch_config(FMR_AUTO_DISPATCH_CONFIG_PATH)
+        validate_auto_dispatch_config(fmr_auto_config, label="FMR auto dispatch")
         self.fmr_auto_dispatcher = AutoDispatcher(
-            self._load_auto_dispatch_config(FMR_AUTO_DISPATCH_CONFIG_PATH),
+            fmr_auto_config,
             hik_rcs_cfg,
             PROJECT_ROOT,
         )

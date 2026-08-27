@@ -304,3 +304,125 @@ def validate_gui_config(gui_cfg: dict) -> None:
             errors.append(f"gui.json missing {key}")
     if errors:
         raise ValueError("GUI config validation failed:\n- " + "\n- ".join(errors))
+
+
+def validate_auto_dispatch_config(config: dict, *, label: str = "auto dispatch") -> None:
+    """Validate mutable lane configuration without changing dispatch behavior."""
+    errors: list[str] = []
+    dispatcher_id = str(config.get("dispatcher_id", "")).strip()
+    if not dispatcher_id:
+        errors.append("dispatcher_id is required")
+
+    routing = config.get("routing", {})
+    roadways = routing.get("source_roadways", []) if isinstance(routing, dict) else []
+    destination = routing.get("destination_area", {}) if isinstance(routing, dict) else {}
+    positions = config.get("positions", {})
+    if not isinstance(positions, dict):
+        positions = {}
+        errors.append("positions must be an object")
+
+    configured_source_positions: set[str] = set()
+    if not isinstance(roadways, list) or not roadways:
+        errors.append("routing.source_roadways must be a non-empty list")
+        roadways = []
+    for index, roadway in enumerate(roadways):
+        if not isinstance(roadway, dict):
+            errors.append(f"source_roadways[{index}] must be an object")
+            continue
+        roadway_id = str(roadway.get("roadway_id", "")).strip()
+        call_code = str(roadway.get("call_code", "")).strip()
+        roadway_positions = roadway.get("positions", [])
+        if not roadway_id:
+            errors.append(f"source_roadways[{index}].roadway_id is required")
+        if not call_code:
+            errors.append(f"source_roadways[{index}].call_code is required")
+        if not isinstance(roadway_positions, list) or not roadway_positions:
+            errors.append(f"source_roadways[{index}].positions must be a non-empty list")
+            continue
+        for position in roadway_positions:
+            position_id = str(position).strip()
+            if not position_id:
+                errors.append(f"source_roadways[{index}] contains an empty position")
+                continue
+            if position_id in configured_source_positions:
+                errors.append(f"duplicate source position: {position_id}")
+            configured_source_positions.add(position_id)
+            if position_id not in positions:
+                errors.append(f"missing positions config for source: {position_id}")
+
+    if not isinstance(destination, dict):
+        errors.append("routing.destination_area must be an object")
+        destination = {}
+    if not str(destination.get("call_code", "")).strip():
+        errors.append("routing.destination_area.call_code is required")
+    destination_positions = destination.get("positions", [])
+    if not isinstance(destination_positions, list) or not destination_positions:
+        errors.append("routing.destination_area.positions must be a non-empty list")
+    else:
+        for position in destination_positions:
+            position_id = str(position).strip()
+            if position_id not in positions:
+                errors.append(f"missing positions config for destination: {position_id}")
+
+    profiles = config.get("dispatch_profiles", {})
+    if not isinstance(profiles, dict) or not profiles:
+        errors.append("dispatch_profiles must be a non-empty object")
+        profiles = {}
+    for profile_id, profile in profiles.items():
+        profile_name = str(profile_id).strip()
+        if not isinstance(profile, dict):
+            errors.append(f"dispatch_profiles.{profile_name} must be an object")
+            continue
+        source_order = profile.get("source_order", [])
+        if not isinstance(source_order, list) or not source_order:
+            errors.append(f"dispatch_profiles.{profile_name}.source_order must be a non-empty list")
+            continue
+        if len({str(item).strip() for item in source_order}) != len(source_order):
+            errors.append(f"dispatch_profiles.{profile_name}.source_order contains duplicates")
+        for source in source_order:
+            source_id = str(source).strip()
+            if source_id not in configured_source_positions:
+                errors.append(f"dispatch_profiles.{profile_name} references unknown source: {source_id}")
+        try:
+            required_count = int(profile.get("required_occupied_count", len(source_order)))
+            max_tasks = int(profile.get("max_tasks", len(source_order)))
+            minimum_empty = int(profile.get("minimum_empty_destination_slots", 1))
+            if required_count <= 0 or max_tasks <= 0 or minimum_empty <= 0:
+                raise ValueError
+            if not profile.get("activation_required_sources") and required_count > len(source_order):
+                raise ValueError
+        except (TypeError, ValueError):
+            errors.append(f"dispatch_profiles.{profile_name} has invalid count settings")
+        activation_sources = profile.get("activation_required_sources", [])
+        if activation_sources is not None:
+            if not isinstance(activation_sources, list):
+                errors.append(f"dispatch_profiles.{profile_name}.activation_required_sources must be a list")
+            else:
+                source_ids = {str(item).strip() for item in source_order}
+                for source in activation_sources:
+                    if str(source).strip() not in source_ids:
+                        errors.append(
+                            f"dispatch_profiles.{profile_name}.activation_required_sources references source outside source_order"
+                        )
+
+    task_template = config.get("task_template", {})
+    if not isinstance(task_template, dict):
+        errors.append("task_template must be an object")
+    else:
+        for key in ("taskTyp", "task_code_prefix", "ctnrTyp"):
+            if not str(task_template.get(key, "")).strip():
+                errors.append(f"task_template.{key} is required")
+
+    api_cfg = config.get("api_server", {})
+    if isinstance(api_cfg, dict) and api_cfg.get("enabled", False):
+        try:
+            port = int(api_cfg.get("port", 0))
+            if not 1 <= port <= 65535:
+                raise ValueError
+        except (TypeError, ValueError):
+            errors.append("api_server.port must be between 1 and 65535")
+        if not str(api_cfg.get("base_path", "")).strip():
+            errors.append("api_server.base_path is required when API is enabled")
+
+    if errors:
+        raise ValueError(f"{label} config validation failed:\n- " + "\n- ".join(errors))

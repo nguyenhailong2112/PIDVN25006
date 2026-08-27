@@ -247,6 +247,77 @@ Neu bam auto nhung Vision khong tao task:
 - Kiem tra AGV/RCS co dang ban task khac khong.
 - Bao dev Vision kiem tra log `outputs/runtime/auto_dispatch_amr/state.json` hoac `outputs/runtime/auto_dispatch_fmr/state.json`.
 
+## 13. Noi dung popup tren PDA
+
+Sau khi bam nut, PDA can hien thi `data.operator_feedback.message_vi` va `data.operator_feedback.next_action_vi`. PDA co the dung them `data.operator_feedback.condition_summary` de hien thi so pallet da co, so vi tri FG con trong va dieu kien dang thieu.
+
+Luu y: response `code = 0` va `accepted = true` chi co nghia Vision da nhan thao tac chuyen mode. Task co duoc tao hay khong phai xem them `execution_status`:
+
+- `checking_conditions`: Vision dang kiem tra dieu kien.
+- `waiting_conditions`: chua du dieu kien, lam theo `next_action_vi`.
+- `task_created` hoac `running`: task da duoc gui RCS, cho AGV xu ly.
+- `completed`: dot auto da xong.
+- `blocked` hoac `failed`: khong the tiep tuc, lam theo huong dan va bao ky thuat neu can.
+
+PDA khong nen hien thi chu `successful` don doc sau khi bam nut, vi do chi la ket qua API nhan lenh, khong phai ket qua AGV da van chuyen xong.
+
+### 13.1 Cach PDA cap nhat lien tuc
+
+Vision hien tai khong push WebSocket/SSE truc tiep sang PDA. PDA chi can bam nut chuyen mode mot lan, sau do tu dong goi API status dinh ky 2-5 giay:
+
+```http
+GET /service/rest/visionAutoDispatch/amr/status
+GET /service/rest/visionAutoDispatch/fmr/status
+```
+
+PDA doc `data.operator_feedback` trong response status va cap nhat popup khi `state.updated_at` thay doi. PDA khong goi lai `setMode` de lay log moi.
+
+### 13.2 Vi du auto PK_AB tai site
+
+Khi bam `auto + PK_AB` lan dau, Vision nhan mode va tra:
+
+```text
+execution_status = checking_conditions
+message_vi = Da chon auto PK_AB. Vision dang kiem tra dieu kien.
+```
+
+Neu PK chi co `PK_AA1`, `PK_AA2`, `PK_BB4`, status tiep theo la:
+
+```text
+execution_status = waiting_conditions
+message_vi = Chua du pallet cho PK_AB: hien co 3/8.
+next_action_vi = Kiem tra va bo sung pallet dung cac vi tri cua profile, sau do bam lai nut auto.
+source_occupied_positions = PK_AA1, PK_AA2, PK_BB4
+source_empty_positions = cac vi tri con lai neu camera thay empty
+```
+
+Khi nguoi van hanh bo sung thanh 7/8 va con thieu `PK_BB1`, PDA nhan status moi:
+
+```text
+execution_status = waiting_conditions
+message_vi = Chua du pallet cho PK_AB: hien co 7/8.
+source_empty_positions = PK_BB1
+next_action_vi = Kiem tra va bo sung pallet dung cac vi tri cua profile, sau do bam lai nut auto.
+```
+
+Khi du 8/8, Vision bat dau batch va tao task dau tien. PDA nhan:
+
+```text
+execution_status = task_created
+message_vi = Da tao task ... va gui sang RCS.
+next_action_vi = Theo doi AGV; Vision se tu query task va tao task tiep theo khi hoan thanh.
+```
+
+Sau moi task, PDA se thay lan luot `running`, `task_completed`, roi `task_created` cho task ke tiep. Khi FG het slot truoc khi lay het PK_AB:
+
+```text
+execution_status = stopped
+message_vi = FG khong con vi tri trong de tra pallet.
+next_action_vi = Cho don vi van hanh tao them vi tri trong, sau do chon lai mode auto.
+```
+
+Log nay duoc cap nhat trong `state.json` va `events.jsonl`; PDA khong can bam lai nut.
+
 Neu AGV dang chay ma muon dung tao task moi:
 
 - Bam `manual` tren PDA cho dung lane.
