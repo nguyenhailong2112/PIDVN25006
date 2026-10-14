@@ -7,8 +7,10 @@ Wants=network-online.target
 Type=simple
 User=ubuntu
 WorkingDirectory=/opt/PIDVN25006
+Environment=PIDVN_CONDA_ENV=pidvn25006
+Environment=PIDVN_CONDA_SH=/home/ubuntu/miniconda3/etc/profile.d/conda.sh
 ExecStartPre=/usr/bin/mkdir -p /opt/PIDVN25006/outputs/runtime/supervisor
-ExecStart=/opt/PIDVN25006/run_forever.sh
+ExecStart=/opt/PIDVN25006/run_forever_conda.sh
 Restart=always
 RestartSec=5
 KillSignal=SIGINT

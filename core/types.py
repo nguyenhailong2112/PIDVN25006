@@ -66,6 +66,9 @@ class RuleConfig:
     enter_confirm_sec: float = 0.0
     exit_confirm_sec: float = 0.0
     occupied_hold_sec: float = 0.0
+    elv_enter_confirm_sec: float = 0.0
+    elv_exit_confirm_sec: float = 0.0
+    elv_occupied_hold_sec: float = 0.0
 
 
 @dataclass

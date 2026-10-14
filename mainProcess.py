@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from threading import Lock, Thread
 from datetime import datetime
 
@@ -89,6 +89,12 @@ class CentralBackendRuntime:
         ensure_runtime_dirs()
         self.camera_configs = [cfg for cfg in load_camera_configs(CAMERA_CONFIG_PATH) if cfg.enabled]
         self.rule_cfg = load_rule_config(RULE_CONFIG_PATH)
+        self.elevator_rule_cfg = replace(
+            self.rule_cfg,
+            enter_confirm_sec=self.rule_cfg.elv_enter_confirm_sec,
+            exit_confirm_sec=self.rule_cfg.elv_exit_confirm_sec,
+            occupied_hold_sec=self.rule_cfg.elv_occupied_hold_sec,
+        )
         self.ingest_cfg = load_ingest_config(INGEST_CONFIG_PATH)
         self.runtime_cfg = load_json_dict(RUNTIME_CONFIG_PATH)
         validate_camera_configs(self.camera_configs)
@@ -234,8 +240,9 @@ class CentralBackendRuntime:
             else:
                 zone_config_path = ensure_exists(camera_cfg.zone_config, "Zone config")
                 zone_configs = load_zone_configs(zone_config_path)
-            reasoner = ZoneReasoner(zone_configs, self.rule_cfg)
-            tracker = StateTracker(self.rule_cfg)
+            tracker_rules = self.elevator_rule_cfg if camera_cfg.camera_type == "elevator" else self.rule_cfg
+            reasoner = ZoneReasoner(zone_configs, tracker_rules)
+            tracker = StateTracker(tracker_rules)
         return CameraWorker(camera_cfg, reader, frame_store, reasoner, tracker, zone_configs)
 
     def _get_model_bundle(self, camera_cfg):

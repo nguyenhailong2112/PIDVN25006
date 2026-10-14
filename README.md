@@ -28,6 +28,12 @@ Linux:
 ./run_forever.sh
 ```
 
+Linux with Miniconda:
+
+```bash
+PIDVN_CONDA_ENV=pidvn25006 ./run_forever_conda.sh
+```
+
 The supervisor starts both:
 
 - backend: `mainProcess.py`
@@ -41,13 +47,42 @@ For backend-only maintenance:
 
 ## Systemd
 
-The production service is:
+The production service template is:
 
 ```text
 deploy/systemd/pidvn25006.service
 ```
 
-It starts `run_forever.sh` without `--no-frontend`, so the intended factory runtime includes both backend and CCTV frontend. On Linux, the supervisor still checks `DISPLAY` or `WAYLAND_DISPLAY`; if no graphical session is available, it keeps backend running and skips the frontend.
+For an Ubuntu factory PC, install the service from the project directory:
+
+```bash
+chmod +x run_forever_conda.sh deploy/systemd/install_pidvn25006_service.sh
+PIDVN_CONDA_ENV=pidvn25006 ./deploy/systemd/install_pidvn25006_service.sh
+```
+
+The installer writes `/etc/systemd/system/pidvn25006.service`, enables it, and starts it. The service starts `run_forever_conda.sh`, which activates Miniconda before launching `tools/run_forever.py`. If no graphical session is available, the supervisor keeps the backend running and skips the frontend.
+
+Useful service commands:
+
+```bash
+sudo systemctl status pidvn25006.service
+sudo systemctl restart pidvn25006.service
+journalctl -u pidvn25006.service -f
+```
+
+To create a one-click desktop launcher:
+
+```bash
+chmod +x deploy/linux/create_desktop_launcher.sh
+PIDVN_CONDA_ENV=pidvn25006 ./deploy/linux/create_desktop_launcher.sh
+```
+
+To start the full backend/frontend automatically after the Ubuntu desktop user logs in:
+
+```bash
+chmod +x deploy/linux/create_login_autostart.sh
+PIDVN_CONDA_ENV=pidvn25006 ./deploy/linux/create_login_autostart.sh
+```
 
 ## Runtime Data Flow
 
@@ -79,8 +114,12 @@ mainCCTV.py
 requirements.txt
 run_forever.cmd
 run_forever.sh
+run_forever_conda.sh
 tools/run_forever.py
 tools/roi_designer.py
+deploy/systemd/install_pidvn25006_service.sh
+deploy/linux/create_desktop_launcher.sh
+deploy/linux/create_login_autostart.sh
 weights/best.pt
 weights_elevatorbase/best.pt
 ```
