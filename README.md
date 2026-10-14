@@ -12,7 +12,7 @@ The production runtime is intentionally small:
 - `configs/`: camera, rule, runtime, GUI, HIK RCS, AMR/FMR auto-dispatch, and ROI zone configuration.
 - `weights/best.pt`: production slot detector.
 - `weights_elevatorbase/best.pt`: production elevator floor classifier.
-- `weights_elevatorgate/best.pt`: expected future elevator gate classifier path. The code already supports it; if the file is missing, gate state is reported as `unknown`.
+- `weights_elevatorgate/best.pt`: retained gate-classifier artifact. Elevator gate classification is disabled in the current cam6/cam7 configuration and is not used by the site operating process. The floor classifier alone determines the elevator slot state.
 
 ## Run
 
@@ -138,7 +138,9 @@ Operational documents:
 
 - `docs/technical_operation_logic_vi.md`: full Vision AMR/FMR technical logic.
 - `docs/site_operation_guide_vi.md`: short site operation guide.
-- `docs/vision_auto_dispatch_api_contract_vi.md`: PDA/App Caller API contract.
+- `docs/Training_Dev_PIDVN25006.md`: system architecture, code/module map, data flows, and developer handover guide.
+
+The API routes, request fields, and response behavior for PDA/App Caller are documented in `docs/technical_operation_logic_vi.md` and summarized for operators in `docs/site_operation_guide_vi.md`.
 
 `configs/ingest.json` controls camera input:
 

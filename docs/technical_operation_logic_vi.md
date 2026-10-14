@@ -76,7 +76,7 @@ Gia tri chung hien tai:
 - failed statuses: `failed`, `fail`, `cancel`, `canceled`, `cancelled`, `abort`, `aborted`
 - API server port: `8023`
 - API base path: `/service/rest/visionAutoDispatch`
-- IP allowlist hien tai: `192.168.10.105`
+- IP allowlist hien tai: `192.168.10.44`, `192.168.11.28`, `192.168.11.29`, `192.168.11.30`, `192.168.11.31`
 - task API mac dinh: `genAgvSchedulingTask`
 
 ### 2.3 AMR auto dispatch
@@ -329,6 +329,8 @@ Bon profile nay dung cung mot co che batch/task/query cua AMR, nhung chi gioi ha
 | `PK_C` | `PK_CC3 -> PK_CC2 -> PK_CC1` | 3 | 3 | `33${06}` |
 | `PK_D` | `PK_DD4 -> PK_DD3 -> PK_DD2 -> PK_DD1` | 4 | 4 | `44${06}` |
 
+Cam5 co them zone `CO` (ky hieu site C0). Day khong phai vi tri hang va khong tham gia auto dispatch PK_C hay mapping bind/unbind RCS. Zone duoc giu trong zone config de the hien day du bo cuc 4 o PK_C tren CCTV; cac vi tri PK_C can nghiep vu xu ly van la C1, C2, C3.
+
 Vision chi bat dau batch khi toan bo source trong profile dang `occupied` va FG co it nhat mot slot `empty`. Sau moi task completed, Vision tiep tuc phan tu ke tiep trong `source_order` cua profile do.
 
 Rieng `PK_ABCD` la profile linh hoat: khong doi du 15 source. Vision bat buoc kiem tra 4 source kich hoat `PK_AA1`, `PK_BB1`, `PK_CC1`, `PK_DD1` deu `occupied`. Khi batch bat dau, `dispatchable_sources` duoc chup tu cac source dang `occupied`; source rong duoc bo qua. Co che nay cho phep chay cac batch khong day du, vi du 3/2/3/1 pallet tren A/B/C/D, ma van giu thu tu roadway va khong tao task vao slot rong.
@@ -475,7 +477,9 @@ Batch dung khi:
 - Bind guard khong dat: `blocked_bind_guard:<reason>`
 - Task create failed: `task_create_failed:<taskCode>`
 
-Theo chuong trinh local hien tai, khi batch dung, `batch` bi xoa khoi state. Tuy nhien `operation_mode` trong `mode_control.json` van giu theo lan PDA/API set gan nhat. Neu muon dung auto hoan toan, PDA/API can goi `manual`.
+`auto` la mode duoc duy tri, khong phai lenh chi chay mot batch. Khi batch dung hoac hoan tat, `batch` bi xoa nhung `operation_mode` va `profile_id` trong `mode_control.json` van duoc giu. Dispatcher tiep tuc danh gia dieu kien o cac chu ky sau. Vi du, sau khi profile `PK_A` hoan tat 4 pallet, neu nguoi van hanh khong chuyen lane sang `manual`, khi PK_A duoc nap lai du 4/4 pallet va cac dieu kien con lai dat, Vision tu bat dau batch moi ma khong can goi lai `setMode`. Chi goi `manual` khi nguoi van hanh muon dung co chu dich viec tu dong lap lai cua lane do.
+
+Luu y ve payload UI: mot so chuoi `operator_feedback.next_action_vi` cho status waiting/stopped co the khuyen nghi chon lai auto. Day la huong dan hien thi; ve hanh vi dispatcher, `operation_mode=auto` van con hieu luc va viec chon lai cung profile khong phai dieu kien ky thuat de batch tu dong tiep theo bat dau.
 
 ## 6. Phase 2 FMR - Logic auto 3T_COIL
 
@@ -738,14 +742,16 @@ Moi thay doi trang thai co event `operator_status`, gom `execution_status`, `mes
 Auto dispatch API chi cho phep IP trong:
 
 ```json
-"allowlist": ["192.168.10.105"]
+"allowlist": [
+  "192.168.10.44",
+  "192.168.11.28",
+  "192.168.11.29",
+  "192.168.11.30",
+  "192.168.11.31"
+]
 ```
 
-Neu PDA doi IP, cap nhat allowlist trong `configs/auto_dispatch.json`:
-
-```json
-"allowlist": ["192.168.10.105", "192.168.10.106"]
-```
+Neu danh sach IP site thay doi, cap nhat `configs/auto_dispatch.json` va dong bo tai lieu nay.
 
 Neu request bi chan:
 
@@ -755,6 +761,8 @@ Neu request bi chan:
   "message": "forbidden by allowlist"
 }
 ```
+
+Danh sach allowlist tren la danh sach dang cau hinh trong repository. Neu thay doi IP PDA/caller, cap nhat file config va tai lieu nay dong thoi.
 
 ## 8. API Vision cung cap
 
@@ -770,6 +778,18 @@ Route legacy AMR van ton tai:
 ```text
 http://192.168.10.44:8023/service/rest/visionAutoDispatch
 ```
+
+### 8.0 Bang route theo HTTP handler
+
+Base path la `/service/rest/visionAutoDispatch`. Cac duong dan trong cac bang ben duoi la suffix tuong doi voi base path. Namespace `/amr` va `/fmr` la chuan; route legacy khong co `/amr` van duoc map vao AMR.
+
+| HTTP method | AMR | FMR | Chuc nang |
+|---|---|---|---|
+| GET | `/amr/health`, `/health` | `/fmr/health` | Kiem tra API handler online; khong kiem tra RCS/camera readiness. |
+| GET | `/amr/status`, `/amr/getStatus`, `/status`, `/getStatus` | `/fmr/status`, `/fmr/getStatus` | Doc public lane status. |
+| POST | `/amr/health`, `/amr/status`, `/amr/getStatus`, `/amr/setMode`, `/amr/queryAgvStatus`, `/amr/queryTaskStatus` (legacy AMR suffix khong co `/amr` cung duoc ho tro) | `/fmr/health`, `/fmr/status`, `/fmr/getStatus`, `/fmr/setMode`, `/fmr/queryAgvStatus`, `/fmr/queryTaskStatus` | Handler cho phep POST voi cac route nay; PDA nen dung GET cho health/status va POST cho control/query. |
+
+Route matching phan biet chu hoa/chua thuong theo ten suffix trong code. Request duoc dispatch vao lane duoc ghi vao `control_api_latest.json` va `control_api.jsonl` cua lane. IP ngoai allowlist nhan HTTP 403; path khong ho tro nhan HTTP 404.
 
 ### 8.1 Health
 
@@ -850,6 +870,14 @@ Payload:
 ```
 
 API Vision chap nhan `taskCode` de team test goi gon. Khi gui sang RCS, Vision doi thanh `taskCodes: ["<taskCode>"]` theo schema RCS va khong gui kem `agvCode`. Neu client gui nham `agvCode` trong API nay, Vision se loai bo truoc khi goi RCS. Neu thieu `taskCode`/`taskCodes`, Vision tra `CONFIG_ERROR`.
+
+Chi tiet input/output theo handler:
+
+- `setMode` doc `operation_mode` (hoac alias `mode`), `profile_id`, `updated_by` (hoac alias `source`), `note`, va tuy chon `reqCode`. `operation_mode` chi nhan `manual|auto`; profile auto phai duoc khai bao trong config lane. Thanh cong tra `code=0`, `data.accepted=true`, `data.control`, `data.operator_feedback`, `data.state`. Invalid control tra `CONFIG_ERROR` va HTTP 400.
+- `queryAgvStatus` nhan JSON payload RCS; neu bo `agvCode`, Vision dung `query_status_agv_code` cau hinh cua lane.
+- `queryTaskStatus` nhan `taskCode` hoac `taskCodes[0]`; neu thieu ca hai tra `CONFIG_ERROR` va HTTP 400. Lane hien tai loai `agvCode` truoc khi query RCS.
+- `status` tra `enabled`, `dry_run`, `control`, `state`, `allowed_profiles`, cac co callback/canonical va `operator_feedback`.
+- `health` chi tra trang thai HTTP API `online`; khong phai xac nhan camera, callback listener hay RCS dang san sang.
 
 ## 9. Bind guard truoc khi tao task
 

@@ -9,9 +9,13 @@ He thong Vision co 2 lane van hanh doc lap:
 - AMR pallet: `manual`, `auto + PK_AB`, `auto + PK_CD`, `auto + PK_A`, `auto + PK_B`, `auto + PK_C`, `auto + PK_D`, `auto + PK_ABCD`
 - FMR trolley: `manual`, `auto + 3T_COIL`
 
-`manual` la trang thai an toan mac dinh cua tung lane. Khi mot lane o `manual`, Vision van nhan dien trang thai hang va dong bo bind/unbind voi RCS, nhung lane do khong tu tao task AGV moi.
+`manual` la mode mac dinh trong config neu lane chua co control da luu. Mode/profile duoc PDA/API ghi vao `mode_control.json` va duoc duy tri sau do; khi vao ca van hanh, hay kiem tra status cua tung lane de biet mode thuc te. Khi mot lane o `manual`, Vision van nhan dien trang thai hang va dong bo bind/unbind voi RCS, nhung lane do khong tu tao task AGV moi.
+
+`auto + profile` la mode duoc duy tri cho lane do, khong phai nut chi chay mot dot. Khi batch hoan tat/dung, neu nguoi van hanh khong chuyen lane ve `manual`, Vision tiep tuc theo doi dieu kien va tu tao batch moi khi profile duoc nap lai du hang va cac dieu kien khac dat. Muon dung viec tu dong lap lai, chuyen lane do ve `manual`.
 
 AMR va FMR co the van hanh song song. Vi du AMR dang `auto + PK_AB` thi FMR van co the `auto + 3T_COIL`, vi moi lane co mode, batch va task dang chay rieng.
+
+Elevator hien van dung classifier floor de cap nhat trang thai. Elevator gate la nhanh code/model duoc giu lai nhung khong su dung trong quy trinh site; khong dua gate state vao thao tac van hanh.
 
 ## 2. Chuan bi truoc khi van hanh
 
@@ -71,6 +75,8 @@ Bon mode nay chi lay pallet trong mot roadway, voi dieu kien tat ca pallet cua r
 
 Vision chi tao mot task moi lan. Task truoc phai completed tren RCS thi Vision moi tao task tiep theo. Neu FG het cho, hoac source tiep theo khong con `occupied`, dot auto dung tai do.
 
+Cam5 con zone `CO` (o C0 theo cach goi tai site) de giao dien PK_C hien du bo cuc 4 o. Day khong phai vi tri hang, khong tham gia bind/unbind voi RCS va khong duoc tinh vao profile auto. PK_C chi xu ly ba vi tri C1, C2, C3.
+
 ## 7. Van hanh auto AMR PK_ABCD
 
 `auto + PK_ABCD` lay pallet lan luot qua hang A, B, C, D. Dieu kien kich hoat khong yeu cau du 15 pallet. Bat buoc toi thieu 4 vi tri dau roadway phai `occupied`:
@@ -117,9 +123,9 @@ COIL_FF10 -> COIL_FF11 -> COIL_FF12 -> COIL_FF13
 
 Moi lan Vision chi tao 1 task FMR. Task hien tai completed tren RCS thi Vision moi tao task tiep theo neu `3T` van con trolley va `COIL` van con vi tri trong.
 
-## 9. Khi nao auto dung
+## 9. Khi nao batch auto dung va mode tiep tuc
 
-Auto co the dung hoac khong tao task moi khi:
+Batch hien tai co the dung hoac khong tao task moi khi:
 
 - Source chua du so luong yeu cau: PK_AB 8/8, PK_CD 7/7, PK_A 4/4, PK_B 4/4, PK_C 3/3, PK_D 4/4, 3T_COIL 3/3. Rieng PK_ABCD chi can 4 head-slot `PK_AA1/PK_BB1/PK_CC1/PK_DD1` occupied.
 - Destination khong con vi tri trong.
@@ -128,7 +134,9 @@ Auto co the dung hoac khong tao task moi khi:
 - Camera/zone bi unknown hoac offline.
 - PDA/API chuyen lane do ve `manual`.
 
-Luu y: Mode cua AMR va FMR la doc lap. Bam `manual` AMR khong lam dung FMR, va nguoc lai.
+Neu ly do dung la source chua du hoac destination chua trong, nhung lane van o `auto`, dispatcher van tiep tuc danh gia dieu kien. Khi dieu kien duoc phuc hoi, batch moi co the tu bat dau. Vi du `auto + PK_A` da lay xong 4 pallet; khi PK_A duoc nap lai 4/4, Vision tu tao batch tiep theo neu destination va bind guard deu dat. Khong can goi lai `setMode`.
+
+Luu y: Mode cua AMR va FMR la doc lap. Bam `manual` AMR khong lam dung FMR, va nguoc lai. `manual` la thao tac dung mode auto co chu dich cho lane do.
 
 ## 10. API PDA can goi
 
@@ -260,6 +268,8 @@ Luu y: response `code = 0` va `accepted = true` chi co nghia Vision da nhan thao
 - `blocked` hoac `failed`: khong the tiep tuc, lam theo huong dan va bao ky thuat neu can.
 
 PDA khong nen hien thi chu `successful` don doc sau khi bam nut, vi do chi la ket qua API nhan lenh, khong phai ket qua AGV da van chuyen xong.
+
+Hanh vi controller: status waiting/stopped va batch ket thuc khong tu chuyen `operation_mode` ve manual. Trong khi lane van `auto`, controller se tu kiem tra lai dieu kien. Mot so chuoi `next_action_vi` hien co the khuyen nghi bam/chon auto lai; thao tac do khong bat buoc de controller tiep tuc. Neu nguoi van hanh muon chan batch tu dong tiep theo, phai set lane ve `manual`.
 
 ### 13.1 Cach PDA cap nhat lien tuc
 
