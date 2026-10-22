@@ -138,6 +138,9 @@ class CentralBackendRuntime:
             hik_rcs_cfg,
             PROJECT_ROOT,
         )
+        # After a canceled/failed AGV task, dispatchers ask the bridge to re-check source bindings with RCS.
+        self.auto_dispatcher.set_binding_rebinder(self.hik_bridge.request_rebind)
+        self.fmr_auto_dispatcher.set_binding_rebinder(self.hik_bridge.request_rebind)
         if self.auto_dispatcher.api_server is not None:
             self.auto_dispatcher.api_server.register_dispatcher("fmr", self.fmr_auto_dispatcher)
         else:

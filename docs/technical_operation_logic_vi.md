@@ -899,6 +899,25 @@ Guard dat khi:
 3. `hybrid_session.needs_reconcile = false`.
 4. Neu `require_canonical = true`, policy phai la `hybrid_canonical` hoac `hybrid_fg_canonical`.
 5. Neu source occupied co `actual_ctnr_code`, code nay phai trung voi position code.
+6. O do khong `rebind_pending` (Vision dang cho RCS xac nhan lai binding).
+7. Cac o khac cung roadway voi source ma camera thay `occupied` cung khong duoc `rebind_pending` hoac `needs_reconcile`. Ly do: RCS lay hang theo ca roadway (vi du `11${06}`), neu RCS nghi mot o co hang la trong thi se chon o phia sau va robot gap vat can.
+
+### 9.1 Doi chieu lai binding voi RCS
+
+Bridge chi biet binding qua lenh do chinh Vision gui. RCS co the tu thay doi binding ma Vision khong biet, vi du su co 22/10: task PK_AA5 bi huy khi robot da nhac pallet, RCS go `PK_AA5` khoi o `A0000403501013` trong khi pallet van nam o A4; Vision van tin o da bind nen khong bind lai, cac lenh auto sau do robot bao vat can.
+
+Vision bat Bridge bind lai (gui `bindCtnrAndBin` ma chuan) trong 2 truong hop:
+
+- Task bi huy/loi/clear: tat ca o cua roadway nguon (`rebind_source_roadway_on_failure = true`).
+- Moi lan `setMode` auto: tat ca source cua profile (`recheck_bindings_on_auto = true`), truoc khi tao task dau tien.
+
+Ket qua:
+
+- RCS tra `has bind container code <ma chuan>` hoac bind thanh cong: o khop, bo co `rebind_pending`, log event `rebind_confirmed`.
+- O camera thay trong: Bridge unbind, RCS tra "not bound" cung coi la khop.
+- RCS tu choi (bin locked, incomplete task, container khac...): o giu `rebind_pending`, auto bi chan voi status `blocked_bind_guard:<position>:rebind_pending`. Van hanh kiem tra RCS Storage Bin Management, sua binding, roi bam Auto lai de Vision doi chieu lai.
+
+Trong `outputs/runtime/hik_rcs/bridge_state.json`, xem `hybrid_session.rebind_pending`, `rebind_reason`, `rebind_result`. Trong `events.jsonl` cua dispatcher xem `rebind_requested`, `rebind_confirmed`.
 
 Ly do block thuong gap:
 
@@ -907,6 +926,7 @@ missing_bridge_state
 bridge_state_not_occupied
 bridge_state_not_empty
 needs_reconcile
+rebind_pending
 not_hybrid_canonical
 noncanonical_ctnr:<code>
 ```

@@ -14,6 +14,8 @@
   "abnormal_status_release_sec": 300,
   "task_overdue_warn_sec": 3600,
   "stop_auto_on_task_failure": true,
+  "rebind_source_roadway_on_failure": true,
+  "recheck_bindings_on_auto": true,
   "failed_task_cooldown_sec": 60,
   "max_consecutive_failed_tasks": 3,
   "api_server": {

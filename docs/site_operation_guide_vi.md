@@ -254,6 +254,8 @@ Neu bam auto nhung Vision khong tao task:
   - `stopped_task_failed:<taskCode>:<status>`: task loi/bat thuong, dot auto da dung han. Kiem tra RCS/AGV roi bam Auto lai.
 - Task da bi huy tren RCS (`taskStatus = 5`): Vision tu nhan biet, giai phong lane va dung han dot auto; khong bao gio bi treo nhu su co 20/10.
 - RCS van bao task dang chay nhung AGV tren RCS dang Standby, Task ID `--`: goi API `clearActiveTask` voi dung `taskCode` (tai lieu ky thuat muc 8.6).
+- `blocked_bind_guard:<vi tri>:rebind_pending`: RCS chua xac nhan pallet o vi tri do (vi du RCS ghi o trong nhung that ra co hang). Vao RCS > Rack Settings > Storage Bin Management, kiem tra o do co dung container (vi du `A0000403501013` phai la `PK_AA5`), sua neu sai, roi bam Auto lai.
+- Moi lan bam Auto, Vision doi chieu lai binding cac o PK voi RCS truoc khi gui lenh; neu thay lech se khong gui robot vao.
 - Khong sua tay `state.json` khi chuong trinh dang chay (file se bi ghi de). Bao dev Vision kiem tra `outputs/runtime/auto_dispatch_amr/state.json` hoac `outputs/runtime/auto_dispatch_fmr/state.json` neu van khong ro.
 
 Neu AGV dang chay ma muon dung tao task moi:

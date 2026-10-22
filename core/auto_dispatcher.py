@@ -74,6 +74,12 @@ class AutoDispatcher:
         self.failed_task_cooldown_sec = max(0.0, float(self.config.get("failed_task_cooldown_sec", 60.0)))
         # Stop the batch after this many failed tasks in a row (0 = never); it resumes on the next setMode.
         self.max_consecutive_failed_tasks = max(0, int(self.config.get("max_consecutive_failed_tasks", 3)))
+        # After a canceled/failed task, have the bridge re-assert RCS bindings of the whole source roadway:
+        # RCS may drop the container from its bin while the pallet is physically back in the slot.
+        self.rebind_source_roadway_on_failure = bool(self.config.get("rebind_source_roadway_on_failure", True))
+        # Each Auto press re-checks every source slot of the profile with RCS before the first task.
+        self.recheck_bindings_on_auto = bool(self.config.get("recheck_bindings_on_auto", True))
+        self._binding_rebinder = None
         self.query_status_agv_code = str(self.config.get("query_status_agv_code", "")).strip()
         self.query_task_include_agv_code = bool(self.config.get("query_task_include_agv_code", True))
         self.reserve_dispatched_destination_slots = bool(self.config.get("reserve_dispatched_destination_slots", False))
@@ -103,6 +109,10 @@ class AutoDispatcher:
             self.api_server = AutoDispatchControlServer(api_cfg, self)
             self.api_server.start()
 
+    def set_binding_rebinder(self, rebinder) -> None:
+        """rebinder(camera_id, zone_id, reason=..., now_ts=...) -> bool; called on the HIK sync thread."""
+        self._binding_rebinder = rebinder
+
     def close(self) -> None:
         with self._lock:
             self._save_state()
@@ -118,6 +128,7 @@ class AutoDispatcher:
             self._sync_locked(cameras_payload, bridge_state, now_ts)
 
     def _sync_locked(self, cameras_payload: list[dict[str, Any]], bridge_state: dict[str, Any], now_ts: float) -> None:
+        self._process_rebinds(bridge_state, now_ts)
         control = self._load_control()
         profile_id = str(control.get("profile_id", self.config.get("profile_id", ""))).strip()
         idle_reason = ""
@@ -212,6 +223,8 @@ class AutoDispatcher:
 
         dest = destination_empty[0]
         guard_ok, guard_reason = self._bind_guard_ok(source, "occupied", bridge_state)
+        if guard_ok:
+            guard_ok, guard_reason = self._roadway_guard_ok(source, bridge_state)
         if guard_ok:
             guard_ok, guard_reason = self._bind_guard_ok(dest, "empty", bridge_state)
         if not guard_ok:
@@ -423,6 +436,7 @@ class AutoDispatcher:
         active["failure_reason"] = reason
         self.state["last_failed_task"] = active
         self.state.pop("active_task", None)
+        self._queue_source_rebind(active, reason)
         self._log_event("task_failed", active, now_ts)
         logger.warning(
             "[AUTO-DISPATCH] %s released task=%s source=%s RCS status=%s (%s) reason=%s",
@@ -517,15 +531,113 @@ class AutoDispatcher:
             "created_at": active.get("created_at", 0.0),
         }
 
-    def _bind_guard_ok(self, position: str, required_state: str, bridge_state: dict[str, Any]) -> tuple[bool, str]:
+    def _bridge_entry(self, position: str, bridge_state: dict[str, Any]) -> dict[str, Any]:
         pos_cfg = self.config.get("positions", {}).get(position, {})
         key = f"{pos_cfg.get('camera_id', '')}:{pos_cfg.get('zone_id', '')}:bindCtnrAndBin"
         entry = bridge_state.get("zones", {}).get(key, {}) if isinstance(bridge_state, dict) else {}
+        return entry if isinstance(entry, dict) else {}
+
+    def _roadway_positions(self, position: str) -> list[str]:
+        for roadway in self.config.get("routing", {}).get("source_roadways", []):
+            positions = [str(item) for item in roadway.get("positions", [])]
+            if position in positions:
+                return positions
+        return []
+
+    def _roadway_guard_ok(self, source: str, bridge_state: dict[str, Any]) -> tuple[bool, str]:
+        """RCS picks by roadway, so every loaded slot of the source roadway must agree with RCS."""
+        for position in self._roadway_positions(source):
+            if position == source:
+                continue
+            entry = self._bridge_entry(position, bridge_state)
+            if str(entry.get("last_seen_state", "")).strip() != "occupied":
+                continue
+            session = entry.get("hybrid_session", {}) if isinstance(entry.get("hybrid_session", {}), dict) else {}
+            if session.get("rebind_pending"):
+                return False, f"{position}:rebind_pending"
+            if session.get("needs_reconcile"):
+                return False, f"{position}:needs_reconcile"
+        return True, "ok"
+
+    def _queue_source_rebind(self, active: dict[str, Any], reason: str) -> None:
+        if not self.rebind_source_roadway_on_failure:
+            return
+        positions = self._roadway_positions(str(active.get("source", "")))
+        if not positions:
+            return
+        pending = self.state.setdefault("pending_rebind", [])
+        watch = self.state.setdefault("rebind_watch", [])
+        for position in positions:
+            if position not in pending:
+                pending.append(position)
+            if position not in watch:
+                watch.append(position)
+        self.state["rebind_reason"] = f"{reason}:{active.get('task_code', '')}"
+
+    def _process_rebinds(self, bridge_state: dict[str, Any], now_ts: float) -> None:
+        """Send queued rebind requests to the bridge and drop watched slots RCS has confirmed."""
+        changed = False
+        pending = self.state.get("pending_rebind")
+        if pending:
+            if self._binding_rebinder is None:
+                logger.warning("[AUTO-DISPATCH] %s no binding rebinder; skip rebind of %s", self.dispatcher_id, pending)
+                self.state.pop("pending_rebind", None)
+                self.state.pop("rebind_watch", None)
+                changed = True
+            else:
+                remaining = []
+                for position in pending:
+                    pos_cfg = self.config.get("positions", {}).get(position, {})
+                    try:
+                        accepted = bool(
+                            self._binding_rebinder(
+                                str(pos_cfg.get("camera_id", "")),
+                                str(pos_cfg.get("zone_id", "")),
+                                reason=str(self.state.get("rebind_reason", "")),
+                                now_ts=now_ts,
+                            )
+                        )
+                    except Exception:
+                        logger.exception("[AUTO-DISPATCH] %s rebind request failed for %s", self.dispatcher_id, position)
+                        remaining.append(position)
+                        continue
+                    self._log_event("rebind_requested", {"position": position, "accepted": accepted}, now_ts)
+                    if not accepted:
+                        watch = self.state.get("rebind_watch", [])
+                        if position in watch:
+                            watch.remove(position)
+                if remaining:
+                    self.state["pending_rebind"] = remaining
+                else:
+                    self.state.pop("pending_rebind", None)
+                changed = True
+        watch = self.state.get("rebind_watch")
+        if watch and "pending_rebind" not in self.state:
+            still_pending = [
+                position for position in watch
+                if (self._bridge_entry(position, bridge_state).get("hybrid_session") or {}).get("rebind_pending")
+            ]
+            if still_pending != watch:
+                confirmed = [position for position in watch if position not in still_pending]
+                self._log_event("rebind_confirmed", {"positions": confirmed}, now_ts)
+                if still_pending:
+                    self.state["rebind_watch"] = still_pending
+                else:
+                    self.state.pop("rebind_watch", None)
+                    self.state.pop("rebind_reason", None)
+                changed = True
+        if changed:
+            self._save_state()
+
+    def _bind_guard_ok(self, position: str, required_state: str, bridge_state: dict[str, Any]) -> tuple[bool, str]:
+        entry = self._bridge_entry(position, bridge_state)
         if not entry:
             return False, f"{position}:missing_bridge_state"
         if str(entry.get("last_seen_state", "")).strip() != required_state:
             return False, f"{position}:bridge_state_not_{required_state}"
         session = entry.get("hybrid_session", {}) if isinstance(entry.get("hybrid_session", {}), dict) else {}
+        if session.get("rebind_pending"):
+            return False, f"{position}:rebind_pending"
         if session.get("needs_reconcile", False):
             return False, f"{position}:needs_reconcile"
         if self.require_canonical and str(session.get("policy", "")).strip() not in {"hybrid_canonical", "hybrid_fg_canonical"}:
@@ -704,6 +816,21 @@ class AutoDispatcher:
         # A new setMode is the operator's go-ahead after failed tasks.
         self.state.pop("halted", None)
         self.state.pop("cooldown_until", None)
+        # Slots RCS has not confirmed yet get asked again (the operator may have fixed RCS by hand).
+        recheck = list(self.state.get("rebind_watch", []) or [])
+        if operation_mode == "auto" and self.recheck_bindings_on_auto:
+            # Before the first task, re-check every source slot of the profile with RCS.
+            profile = self.config.get("dispatch_profiles", {}).get(profile_id, {})
+            recheck += [str(item) for item in profile.get("source_order", [])]
+            self.state["rebind_reason"] = f"set_mode_auto:{profile_id}"
+        if recheck:
+            pending = self.state.setdefault("pending_rebind", [])
+            watch = self.state.setdefault("rebind_watch", [])
+            for position in recheck:
+                if position not in pending:
+                    pending.append(position)
+                if position not in watch:
+                    watch.append(position)
         active = self.state.get("active_task")
         if isinstance(active, dict):
             # Ask RCS about the remembered task on the next cycle instead of trusting old state.
@@ -753,6 +880,7 @@ class AutoDispatcher:
             active["clear_note"] = str(payload.get("note", "")).strip()
             self.state["last_failed_task"] = active
             self.state.pop("active_task", None)
+            self._queue_source_rebind(active, "cleared_by_operator")
             self._set_status(f"task_cleared:{active_code}", now_ts)
             self._log_event("task_cleared_by_operator", active, now_ts)
             self._save_state()
@@ -786,6 +914,8 @@ class AutoDispatcher:
                 "abnormal_status_release_sec": self.abnormal_status_release_sec,
                 "task_overdue_warn_sec": self.task_overdue_warn_sec,
                 "stop_auto_on_task_failure": self.stop_auto_on_task_failure,
+                "rebind_source_roadway_on_failure": self.rebind_source_roadway_on_failure,
+                "recheck_bindings_on_auto": self.recheck_bindings_on_auto,
                 "failed_task_cooldown_sec": self.failed_task_cooldown_sec,
                 "max_consecutive_failed_tasks": self.max_consecutive_failed_tasks,
             },

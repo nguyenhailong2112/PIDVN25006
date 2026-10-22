@@ -90,6 +90,57 @@ class HikRcsBridge:
         if dirty:
             self._save_state()
 
+    def request_rebind(self, camera_id: str, zone_id: str, *, reason: str = "", now_ts: float | None = None) -> bool:
+        """Forget the remembered RCS binding of one canonical slot so the next sync re-asserts it with RCS.
+
+        Used after an AGV task is canceled or fails: RCS may have dropped the container from the
+        bin (e.g. it was on the robot) while the pallet is back in the slot. Until RCS confirms the
+        binding again, the slot is marked rebind_pending and auto dispatch treats it as unsafe.
+        """
+        now_ts = float(now_ts if now_ts is not None else time.time())
+        for mapping in self.config.get("mappings", []):
+            if not mapping.get("enabled", False):
+                continue
+            if str(mapping.get("camera_id", "")).strip() != camera_id or str(mapping.get("zone_id", "")).strip() != zone_id:
+                continue
+            if str(mapping.get("method", "")).strip() != "bindCtnrAndBin":
+                continue
+            if self._dispatch_policy(mapping) not in self.HYBRID_CANONICAL_POLICIES:
+                continue
+            entry = self._entry_for(mapping)
+            session = entry.setdefault("hybrid_session", {})
+            session["actual_ctnr_code"] = ""
+            session["owner"] = ""
+            session.pop("canonical_step", None)
+            session.pop("canonical_source_ctnr_code", None)
+            session.pop("canonical_target_ctnr_code", None)
+            session["rebind_pending"] = True
+            session["rebind_requested_at"] = round(now_ts, 3)
+            session["rebind_reason"] = reason
+            session["needs_reconcile"] = True
+            session["action"] = "rebind_requested"
+            entry["bind_dispatch"] = {}
+            self._save_state()
+            logger.info("[HIK-RCS] %s rebind requested (%s)", self._mapping_key(mapping), reason)
+            return True
+        return False
+
+    @staticmethod
+    def _settle_rebind(session: dict[str, Any], now_ts: float) -> bool:
+        """Clear rebind_pending once RCS has confirmed the canonical state after the request."""
+        requested_at = float(session.get("rebind_requested_at", 0.0) or 0.0)
+        if float(session.get("last_dispatch_at", 0.0) or 0.0) < requested_at:
+            return False
+        if str(session.get("last_response_code", "")) != "0" or session.get("needs_reconcile"):
+            return False
+        if str(session.get("owner", "")).strip() in {"rcs_record", "rcs_record_pending"}:
+            # RCS holds another container or a running task here: still a mismatch.
+            return False
+        session.pop("rebind_pending", None)
+        session["rebind_result"] = "confirmed"
+        session["rebind_confirmed_at"] = round(now_ts, 3)
+        return True
+
     def dispatch_zone_state(
         self,
         camera_payload: dict,
@@ -304,6 +355,8 @@ class HikRcsBridge:
             changed |= self._handle_hybrid_occupied(mapping, context, entry, session, now_ts)
         elif vision_state == "empty":
             changed |= self._handle_hybrid_empty(mapping, context, entry, session, now_ts)
+        if session.get("rebind_pending"):
+            changed |= self._settle_rebind(session, now_ts)
         return changed
 
     def _handle_hybrid_canonical_occupied(
