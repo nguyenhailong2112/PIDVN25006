@@ -245,10 +245,20 @@ Neu bam auto nhung Vision khong tao task:
 - Kiem tra destination co slot empty khong.
 - Kiem tra Vision dang o dung profile.
 - Kiem tra AGV/RCS co dang ban task khac khong.
-- Bao dev Vision kiem tra log `outputs/runtime/auto_dispatch_amr/state.json` hoac `outputs/runtime/auto_dispatch_fmr/state.json`.
+- Xem `state.status` (API `getStatus` hoac response cua `setMode`):
+  - `waiting_task:<taskCode>:<status>`: Vision dang cho task truoc. `1/2/3/6` la RCS bao task con chay.
+  - `task_abnormal:<taskCode>:<status>`: RCS bao task bat thuong (`0` loi gui lenh, `4` dang huy, `10` bi gian doan) hoac khong con task. Vision tu giai phong sau 5 phut.
+  - `task_overdue:<taskCode>:<status>`: task chay qua 1 gio. Kiem tra AGV tren RCS.
+  - `task_query_error:<taskCode>`: Vision khong ket noi duoc RCS.
+  - `cooldown_after_failed_task:<taskCode>`: vua co task bi huy/loi, Vision cho 60 s roi chay tiep.
+  - `halted_task_failures:<profile>:<n>`: 3 task lien tiep bi huy/loi, Vision dung batch. Kiem tra RCS/AGV roi bam lai auto.
+- Task da bi huy tren RCS (`taskStatus = 5`): Vision tu nhan biet va giai phong lane, khong can thao tac them.
+- RCS van bao task dang chay nhung AGV tren RCS dang Standby, Task ID `--`: goi API `clearActiveTask` voi dung `taskCode` (tai lieu ky thuat muc 8.6).
+- Khong sua tay `state.json` khi chuong trinh dang chay (file se bi ghi de). Bao dev Vision kiem tra `outputs/runtime/auto_dispatch_amr/state.json` hoac `outputs/runtime/auto_dispatch_fmr/state.json` neu van khong ro.
 
 Neu AGV dang chay ma muon dung tao task moi:
 
-- Bam `manual` tren PDA cho dung lane.
-- Vision se khong tao batch/task moi cho lane do.
+- Bam `manual` tren PDA cho dung lane TRUOC khi huy task tren RCS.
+- Vision se khong tao batch/task moi cho lane do, nhung van theo doi task cu den khi RCS bao xong hoac huy.
 - Task da tao tren RCS can xu ly theo quy trinh RCS/AGV tai site.
+- Neu huy task tren RCS ma lane van de `auto`, sau 60 s Vision se tao task cho source tiep theo trong batch.

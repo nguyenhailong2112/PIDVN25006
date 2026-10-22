@@ -446,17 +446,41 @@ Payload:
 
 Vision chi quan tam dung `taskCode` ma Vision vua tao. Neu RCS tra ve danh sach nhieu task, Vision loc dung item co `taskCode` trung khop.
 
-Completed statuses hien tai:
+Bang `taskStatus` cua RCS-2000 (API Developer Guide V3.3, muc 5.2.15) va cach Vision xu ly:
+
+| taskStatus RCS | Y nghia | Nhom Vision | Vision xu ly |
+|---|---|---|---|
+| `1` | created | running | Cho |
+| `2` | executing | running | Cho |
+| `3` | sending | running | Cho |
+| `6` | resending | running | Cho |
+| `9` | completed | completed | Xoa `active_task`, chay task tiep theo |
+| `5` | canceled | failed | Giai phong ngay, cho cooldown roi chay task tiep theo |
+| `0` | sending exception | abnormal | Bao `task_abnormal`, qua `abnormal_status_release_sec` ma van bat thuong thi giai phong |
+| `4` | canceling | abnormal | Nhu `0` (binh thuong RCS se chuyen sang `5` rat nhanh) |
+| `10` | interrupted | abnormal | Nhu `0` |
+| RCS tra `code = 0` nhung khong co task / RCS tra `code = 1` | missing / query_rejected | unknown | Nhu `0` |
+| Khong ket noi duoc RCS / RCS tra `code = 99` | - | query_error | Giu task, cho tiep, status `task_query_error:<taskCode>` |
+
+Ma `9` va `5` duoc co dinh trong code: du config thieu, Vision van coi `9` la hoan thanh va `5` la da huy. Ly do: task o 2 trang thai nay khong bao gio doi nua, neu khong nhan ra thi lane bi treo vinh vien (su co 20/10: task `QUANGPROPKDD4FGAA420261020164145` bi huy, RCS tra `5`, Vision cho suot dem).
+
+Danh sach status trong `configs/auto_dispatch.json` (dung chung AMR va FMR):
 
 ```text
-completed, complete, finish, finished, ended, success, 9
+completed_statuses: 9, completed, complete, finish, finished, ended, success
+failed_statuses:    5, failed, fail, cancel, canceled, cancelled, abort, aborted
+running_statuses:   1, 2, 3, 6, created, executing, sending, resending, running
+abnormal_statuses:  0, 4, 10, sending_exception, canceling, cancelling, interrupted
 ```
 
-Failed statuses hien tai:
+Status khong nam trong danh sach nao duoc xu ly nhu abnormal.
 
-```text
-failed, fail, cancel, canceled, cancelled, abort, aborted
-```
+Tham so watchdog:
+
+- `abnormal_status_release_sec = 300`: task abnormal/unknown qua 300 s thi Vision giai phong, `failure_reason = abnormal_status_timeout`. Neu trong luc do RCS tra lai `1/2/3/6` thi dong ho dem lai tu dau. `0` = khong tu giai phong.
+- `task_overdue_warn_sec = 3600`: task dang chay (`1/2/3/6`) qua 1 gio thi status thanh `task_overdue:<taskCode>:<status>` va log event `task_overdue`. Vision KHONG tu giai phong task ma RCS con bao dang chay (task binh thuong mat khoang 17 phut).
+- `failed_task_cooldown_sec = 60`: sau khi giai phong task loi/huy, Vision cho 60 s moi tao task tiep theo, status `cooldown_after_failed_task:<taskCode>`. Thoi gian nay de van hanh kip bam manual neu muon dung han.
+- `max_consecutive_failed_tasks = 3`: 3 task lien tiep trong cung batch bi loi/huy thi Vision dung batch, status `halted_task_failures:<profile>:<n>`. Lane chi chay lai khi PDA/API goi `setMode`.
 
 Khi task completed:
 
@@ -464,6 +488,18 @@ Khi task completed:
 - task duoc luu vao `last_completed_task`
 - log event `task_completed`
 - chu ky sync sau do Vision co the tao task tiep theo trong batch
+
+Khi task failed/canceled (hoac abnormal qua thoi gian cho):
+
+- `active_task` duoc xoa
+- task duoc luu vao `last_failed_task`, kem `failure_reason` (`rcs_task_failed`, `abnormal_status_timeout`, `cleared_by_operator`) va `status_label`
+- log event `task_failed`
+- source cua task do KHONG duoc Vision goi lai trong batch hien tai; neu pallet con o PK thi xu ly tay hoac de batch sau
+- sau cooldown, batch tiep tuc voi source ke tiep
+
+Moi lan RCS doi status, Vision log event `task_status_changed` (vi du `1 -> 2 -> 9`) de audit.
+
+Vision van theo doi `active_task` khi lane dang `manual`: neu RCS hoan thanh hoac huy task trong luc manual, `active_task` duoc xoa ngay, khong con ton sang lan bam auto sau. Moi lan `setMode` hoac khoi dong lai chuong trinh, Vision hoi lai RCS ngay ve task dang nho.
 
 ### 5.9 Khi batch dung
 
@@ -474,6 +510,7 @@ Batch dung khi:
 - Tat ca source trong batch da dispatch: `batch_completed`
 - Bind guard khong dat: `blocked_bind_guard:<reason>`
 - Task create failed: `task_create_failed:<taskCode>`
+- Nhieu task lien tiep bi loi/huy: `halted_task_failures:<profile>:<n>` (cho `setMode` moi chay lai)
 
 Theo chuong trinh local hien tai, khi batch dung, `batch` bi xoa khoi state. Tuy nhien `operation_mode` trong `mode_control.json` van giu theo lan PDA/API set gan nhat. Neu muon dung auto hoan toan, PDA/API can goi `manual`.
 
@@ -824,6 +861,30 @@ Payload:
 
 API Vision chap nhan `taskCode` de team test goi gon. Khi gui sang RCS, Vision doi thanh `taskCodes: ["<taskCode>"]` theo schema RCS va khong gui kem `agvCode`. Neu client gui nham `agvCode` trong API nay, Vision se loai bo truoc khi goi RCS. Neu thieu `taskCode`/`taskCodes`, Vision tra `CONFIG_ERROR`.
 
+### 8.6 Clear active task (go ket thu cong)
+
+```http
+POST /amr/clearActiveTask
+POST /fmr/clearActiveTask
+```
+
+Payload:
+
+```json
+{
+  "reqCode": "REQ_CLEAR_001",
+  "taskCode": "QUANGPROPKDD4FGAA420261020164145",
+  "updated_by": "pda",
+  "note": "AGV standby tren RCS, task khong con chay"
+}
+```
+
+- Chi dung khi da kiem tra tren RCS la task khong con chay (AGV Standby, Task ID `--`) ma Vision van cho, vi du `task_overdue` voi RCS van tra `2`. Task bi huy (`5`) thi Vision tu giai phong, khong can goi API nay.
+- `taskCode` phai trung voi `state.active_task.task_code`; sai hoac khong co active task thi tra `CONFIG_ERROR` va khong xoa gi.
+- Task bi xoa luu vao `last_failed_task` voi `failure_reason = cleared_by_operator`, log event `task_cleared_by_operator`.
+- Neu lane dang auto, chu ky sau Vision tao task tiep theo neu dieu kien du (khong co cooldown).
+- KHONG sua tay `state.json` khi chuong trinh dang chay: dispatcher giu state trong RAM va se ghi de file o lan luu tiep theo. Neu bat buoc sua file, phai dung `mainProcess.py` truoc.
+
 ## 9. Bind guard truoc khi tao task
 
 Truoc khi tao task, Vision kiem tra bind guard cho:
@@ -931,7 +992,11 @@ outputs/runtime/debug/*.jpg
    - Response RCS code la `0` hay loi?
 7. Kiem tra task status.
    - Vision query dung taskCode chua?
-   - RCS tra status completed `9` chua?
+   - RCS tra status gi? `9` hoan thanh; `5` da huy (Vision tu giai phong); `0/4/10` bat thuong (Vision tu giai phong sau 300 s); `1/2/3/6` dang chay (Vision cho).
+   - `task_overdue`: RCS van bao dang chay qua 1 gio. Kiem tra AGV tren RCS; neu AGV ranh that thi goi `clearActiveTask` (muc 8.6).
+   - `task_query_error`: Vision khong hoi duoc RCS, kiem tra mang/RCS.
+   - `cooldown_after_failed_task`: vua giai phong task loi/huy, cho 60 s.
+   - `halted_task_failures`: nhieu task lien tiep bi loi/huy, kiem tra RCS/AGV roi bam lai auto.
 
 ## 12. Checklist audit khi bind/unbind sai
 
@@ -969,12 +1034,22 @@ waiting_pk_full:<profile>:<count>/<required>
 task_created:<taskCode>
 waiting_task:<taskCode>
 waiting_task:<taskCode>:<status>
+task_overdue:<taskCode>:<status>
+task_abnormal:<taskCode>:<status>
+task_query_error:<taskCode>
+task_completed:<taskCode>
+task_failed:<taskCode>:<status>
+task_cleared:<taskCode>
+cooldown_after_failed_task:<taskCode>
+halted_task_failures:<profile>:<count>
 batch_completed
 stopped_no_destination_empty
 stopped_source_not_occupied
 blocked_bind_guard:<reason>
 task_create_failed:<taskCode>
 ```
+
+`waiting_task:<taskCode>:<status>` giu status RCS gan nhat ca giua 2 lan query. `<status>` la ma `taskStatus` RCS; ten de doc nam o `state.active_task.status_label`.
 
 ## 14. Gioi han pham vi hien tai
 

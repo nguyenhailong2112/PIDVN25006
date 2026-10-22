@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import json
 import threading
 import time
@@ -21,6 +22,27 @@ class AutoDispatcher:
 
     ALLOWED_PROFILES = {"PK_AB", "PK_CD", "PK_A", "PK_B", "PK_C", "PK_D", "PK_ABCD"}
 
+    # queryTaskStatus "taskStatus" values, RCS-2000 API Developer Guide V3.3, section 5.2.15.
+    RCS_TASK_STATUS_LABELS = {
+        "0": "sending_exception",
+        "1": "created",
+        "2": "executing",
+        "3": "sending",
+        "4": "canceling",
+        "5": "canceled",
+        "6": "resending",
+        "9": "completed",
+        "10": "interrupted",
+    }
+    # Terminal RCS states are always applied, whatever the config says: a task in one of
+    # these states never changes again, so waiting on it would block the lane forever.
+    RCS_TERMINAL_COMPLETED = {"9"}
+    RCS_TERMINAL_FAILED = {"5"}
+    DEFAULT_COMPLETED_STATUSES = ("9", "completed", "complete", "finish", "finished", "ended", "success")
+    DEFAULT_FAILED_STATUSES = ("5", "failed", "fail", "cancel", "canceled", "cancelled", "abort", "aborted")
+    DEFAULT_RUNNING_STATUSES = ("1", "2", "3", "6", "created", "executing", "sending", "resending", "running")
+    DEFAULT_ABNORMAL_STATUSES = ("0", "4", "10", "sending_exception", "canceling", "cancelling", "interrupted")
+
     def __init__(self, config: dict[str, Any], hik_config: dict[str, Any], project_root: str | Path) -> None:
         self.config = config or {}
         self.project_root = Path(project_root)
@@ -38,16 +60,18 @@ class AutoDispatcher:
         self.require_canonical = bool(self.config.get("require_canonical", True))
         self.callback_server_enabled = bool(hik_config.get("callback_server", {}).get("enabled", False))
         self.query_interval_sec = max(1.0, float(self.config.get("query_interval_sec", 5.0)))
-        self.completed_statuses = {
-            str(item).strip().lower()
-            for item in self.config.get("completed_statuses", ["completed", "complete", "finish", "finished", "ended", "success"])
-            if str(item).strip()
-        }
-        self.failed_statuses = {
-            str(item).strip().lower()
-            for item in self.config.get("failed_statuses", ["failed", "fail", "cancel", "canceled", "cancelled", "abort", "aborted"])
-            if str(item).strip()
-        }
+        self.completed_statuses = self._status_set("completed_statuses", self.DEFAULT_COMPLETED_STATUSES) | self.RCS_TERMINAL_COMPLETED
+        self.failed_statuses = self._status_set("failed_statuses", self.DEFAULT_FAILED_STATUSES) | self.RCS_TERMINAL_FAILED
+        self.running_statuses = self._status_set("running_statuses", self.DEFAULT_RUNNING_STATUSES)
+        self.abnormal_statuses = self._status_set("abnormal_statuses", self.DEFAULT_ABNORMAL_STATUSES)
+        # An abnormal or unknown RCS status is released as failed after this many seconds (0 = never).
+        self.abnormal_status_release_sec = max(0.0, float(self.config.get("abnormal_status_release_sec", 300.0)))
+        # A task RCS still reports as running is never released, only flagged as overdue (0 = off).
+        self.task_overdue_warn_sec = max(0.0, float(self.config.get("task_overdue_warn_sec", 3600.0)))
+        # Pause before the next auto task after a failed/canceled one, so the operator can still press manual.
+        self.failed_task_cooldown_sec = max(0.0, float(self.config.get("failed_task_cooldown_sec", 60.0)))
+        # Stop the batch after this many failed tasks in a row (0 = never); it resumes on the next setMode.
+        self.max_consecutive_failed_tasks = max(0, int(self.config.get("max_consecutive_failed_tasks", 3)))
         self.query_status_agv_code = str(self.config.get("query_status_agv_code", "")).strip()
         self.query_task_include_agv_code = bool(self.config.get("query_task_include_agv_code", True))
         self.reserve_dispatched_destination_slots = bool(self.config.get("reserve_dispatched_destination_slots", False))
@@ -58,7 +82,19 @@ class AutoDispatcher:
             if str(profile_id).strip()
         } or set(self.ALLOWED_PROFILES)
         self.client = HikRcsClient(hik_config, self.project_root / "outputs" / "runtime" / "hik_rcs")
+        # sync() runs on the HIK worker thread while the control API runs on HTTP threads.
+        self._lock = threading.RLock()
         self.state = self._load_state()
+        active = self.state.get("active_task")
+        if isinstance(active, dict) and str(active.get("task_code", "")).strip():
+            # Re-check the remembered task with RCS on the first cycle after a restart.
+            active["last_query_at"] = 0.0
+            logger.info(
+                "[AUTO-DISPATCH] %s resumes tracking task=%s last_status=%s",
+                self.dispatcher_id,
+                active.get("task_code", ""),
+                active.get("status", ""),
+            )
         self.api_server = None
         api_cfg = self.config.get("api_server", {})
         if isinstance(api_cfg, dict) and api_cfg.get("enabled", False):
@@ -66,7 +102,9 @@ class AutoDispatcher:
             self.api_server.start()
 
     def close(self) -> None:
-        self._save_state()
+        with self._lock:
+            self._save_state()
+        # Stop the API outside the lock: server_close() waits for handler threads that may need it.
         if self.api_server is not None:
             self.api_server.stop()
 
@@ -74,22 +112,30 @@ class AutoDispatcher:
         now_ts = float(now_ts if now_ts is not None else time.time())
         if not self.enabled:
             return
+        with self._lock:
+            self._sync_locked(cameras_payload, bridge_state, now_ts)
 
+    def _sync_locked(self, cameras_payload: list[dict[str, Any]], bridge_state: dict[str, Any], now_ts: float) -> None:
         control = self._load_control()
-        if str(control.get("operation_mode", self.config.get("operation_mode", "manual"))).strip().lower() != "auto":
-            self._set_idle("manual_mode", now_ts)
-            return
-        if self.require_bind_notify and not self.callback_server_enabled:
-            self._set_idle("bind_notify_callback_disabled", now_ts)
-            return
-
         profile_id = str(control.get("profile_id", self.config.get("profile_id", ""))).strip()
-        if profile_id not in self.allowed_profiles:
-            self._set_idle(f"unsupported_profile:{profile_id}", now_ts)
+        idle_reason = ""
+        if str(control.get("operation_mode", self.config.get("operation_mode", "manual"))).strip().lower() != "auto":
+            idle_reason = "manual_mode"
+        elif self.require_bind_notify and not self.callback_server_enabled:
+            idle_reason = "bind_notify_callback_disabled"
+        elif profile_id not in self.allowed_profiles:
+            idle_reason = f"unsupported_profile:{profile_id}"
+        if idle_reason:
+            # No new task here, but keep following the task Vision already sent to RCS,
+            # so a task that ended or was canceled meanwhile cannot block the next auto run.
+            self._refresh_active_task(now_ts, report_status=False)
+            self._set_idle(idle_reason, now_ts)
             return
 
         if self._refresh_active_task(now_ts):
             self._save_state()
+            return
+        if self._failure_pause_active(now_ts):
             return
 
         position_states = self._collect_position_states(cameras_payload)
@@ -241,7 +287,8 @@ class AutoDispatcher:
             self._set_status(f"task_create_failed:{task_code}", now_ts)
             self._log_event("task_create_failed", active_task, now_ts)
 
-    def _refresh_active_task(self, now_ts: float) -> bool:
+    def _refresh_active_task(self, now_ts: float, *, report_status: bool = True) -> bool:
+        """Follow the RCS task Vision created. True means no new task may be created this cycle."""
         active = self.state.get("active_task")
         if not isinstance(active, dict):
             return False
@@ -252,15 +299,13 @@ class AutoDispatcher:
 
         if self.dry_run:
             active["status"] = "completed"
-            active["completed_at"] = round(now_ts, 3)
-            self.state["last_completed_task"] = active
-            self.state.pop("active_task", None)
-            self._log_event("task_completed", active, now_ts)
+            self._complete_active_task(active, now_ts, report_status=report_status)
             return True
 
         last_query_at = float(active.get("last_query_at", 0.0) or 0.0)
         if now_ts - last_query_at < self.query_interval_sec:
-            self._set_status(f"waiting_task:{task_code}", now_ts)
+            if report_status:
+                self._set_status(self._active_task_status_text(active), now_ts)
             return True
 
         query_payload = {"taskCodes": [task_code]}
@@ -270,23 +315,190 @@ class AutoDispatcher:
         active["last_query_at"] = round(now_ts, 3)
         own_response = self._extract_own_task_response(response, task_code)
         active["last_query_response"] = own_response
-        task_status = self._extract_task_status(own_response)
-        active["status"] = task_status or str(response.get("message", "")).strip() or str(response.get("code", ""))
-        normalized = active["status"].strip().lower()
-        if self.client.is_success(response) and normalized in self.completed_statuses:
-            active["completed_at"] = round(now_ts, 3)
-            self.state["last_completed_task"] = active
-            self.state.pop("active_task", None)
-            self._log_event("task_completed", active, now_ts)
+        category, task_status = self._classify_query_result(response, own_response)
+        active["status_category"] = category
+        if category == "query_error":
+            # RCS gave no answer about the task: keep the last known status and keep waiting.
+            active["last_query_error"] = f"{response.get('code', '')}: {response.get('message', '')}"[:200]
+        else:
+            active.pop("last_query_error", None)
+            self._record_task_status(active, task_status, now_ts)
+
+        if category == "completed":
+            self._complete_active_task(active, now_ts, report_status=report_status)
             return True
-        if normalized in self.failed_statuses:
-            active["failed_at"] = round(now_ts, 3)
-            self.state["last_failed_task"] = active
-            self.state.pop("active_task", None)
-            self._log_event("task_failed", active, now_ts)
+        if category == "failed":
+            self._release_failed_task(active, now_ts, reason="rcs_task_failed", report_status=report_status)
             return True
-        self._set_status(f"waiting_task:{task_code}:{active['status']}", now_ts)
+        if category in {"abnormal", "unknown"}:
+            if not active.get("abnormal_since"):
+                active["abnormal_since"] = round(now_ts, 3)
+                self._log_event("task_status_abnormal", self._task_brief(active), now_ts)
+                logger.warning(
+                    "[AUTO-DISPATCH] %s task=%s abnormal RCS status=%s (%s); auto release after %.0fs",
+                    self.dispatcher_id,
+                    task_code,
+                    active.get("status", ""),
+                    active.get("status_label", ""),
+                    self.abnormal_status_release_sec,
+                )
+            abnormal_for = now_ts - float(active.get("abnormal_since", now_ts) or now_ts)
+            if self.abnormal_status_release_sec > 0 and abnormal_for >= self.abnormal_status_release_sec:
+                self._release_failed_task(active, now_ts, reason="abnormal_status_timeout", report_status=report_status)
+                return True
+        elif category == "running":
+            active.pop("abnormal_since", None)
+            age = now_ts - float(active.get("created_at", now_ts) or now_ts)
+            if self.task_overdue_warn_sec > 0 and age >= self.task_overdue_warn_sec and not active.get("overdue_since"):
+                active["overdue_since"] = round(now_ts, 3)
+                self._log_event("task_overdue", self._task_brief(active), now_ts)
+                logger.warning(
+                    "[AUTO-DISPATCH] %s task=%s still %s after %.0fs; check the AGV on RCS",
+                    self.dispatcher_id,
+                    task_code,
+                    active.get("status_label", ""),
+                    age,
+                )
+        if report_status:
+            self._set_status(self._active_task_status_text(active), now_ts)
+        self._save_state()
         return True
+
+    def _classify_query_result(self, response: dict[str, Any], own_response: dict[str, Any]) -> tuple[str, str]:
+        """Return (category, task_status) for one queryTaskStatus answer."""
+        code = str(response.get("code", "")).strip()
+        if code == "0":
+            task_status = self._extract_task_status(own_response)
+            if not task_status:
+                # RCS answered but does not report this task (deleted, purged, unknown).
+                return "unknown", "missing"
+            return self._classify_task_status(task_status), task_status
+        if code == "1":
+            # RCS refused the query (Appendix A "1": failed, see message), e.g. task not found.
+            return "unknown", "query_rejected"
+        # No answer at all: network/HTTP error or RCS "99 unknown error, try again".
+        return "query_error", ""
+
+    def _classify_task_status(self, status: str) -> str:
+        normalized = str(status).strip().lower()
+        if normalized in self.completed_statuses:
+            return "completed"
+        if normalized in self.failed_statuses:
+            return "failed"
+        if normalized in self.abnormal_statuses:
+            return "abnormal"
+        if normalized in self.running_statuses:
+            return "running"
+        return "unknown"
+
+    def _record_task_status(self, active: dict[str, Any], status: str, now_ts: float) -> None:
+        previous = str(active.get("status", "")).strip()
+        active["status"] = status
+        active["status_label"] = self.RCS_TASK_STATUS_LABELS.get(status, status)
+        if status != previous:
+            active["status_changed_at"] = round(now_ts, 3)
+            self._log_event("task_status_changed", {**self._task_brief(active), "previous_status": previous}, now_ts)
+
+    def _complete_active_task(self, active: dict[str, Any], now_ts: float, *, report_status: bool) -> None:
+        active["completed_at"] = round(now_ts, 3)
+        self.state["last_completed_task"] = active
+        self.state.pop("active_task", None)
+        batch = self.state.get("batch")
+        if isinstance(batch, dict):
+            batch["consecutive_failures"] = 0
+        self._log_event("task_completed", active, now_ts)
+        if report_status:
+            self._set_status(f"task_completed:{active.get('task_code', '')}", now_ts)
+        self._save_state()
+
+    def _release_failed_task(self, active: dict[str, Any], now_ts: float, *, reason: str, report_status: bool) -> None:
+        """Stop waiting on a task that RCS canceled, failed, or left in an abnormal state."""
+        task_code = str(active.get("task_code", "")).strip()
+        status = str(active.get("status", "")).strip()
+        active["failed_at"] = round(now_ts, 3)
+        active["failure_reason"] = reason
+        self.state["last_failed_task"] = active
+        self.state.pop("active_task", None)
+        self._log_event("task_failed", active, now_ts)
+        logger.warning(
+            "[AUTO-DISPATCH] %s released task=%s source=%s RCS status=%s (%s) reason=%s",
+            self.dispatcher_id,
+            task_code,
+            active.get("source", ""),
+            status,
+            active.get("status_label", ""),
+            reason,
+        )
+        if self.failed_task_cooldown_sec > 0:
+            self.state["cooldown_until"] = round(now_ts + self.failed_task_cooldown_sec, 3)
+        batch = self.state.get("batch")
+        if isinstance(batch, dict):
+            failures = int(batch.get("consecutive_failures", 0) or 0) + 1
+            batch["consecutive_failures"] = failures
+            if self.max_consecutive_failed_tasks > 0 and failures >= self.max_consecutive_failed_tasks:
+                self.state.pop("batch", None)
+                self.state["halted"] = {
+                    "reason": "consecutive_failed_tasks",
+                    "profile_id": batch.get("profile_id", ""),
+                    "count": failures,
+                    "last_task_code": task_code,
+                    "at": round(now_ts, 3),
+                }
+                self._log_event("auto_halted_task_failures", self.state["halted"], now_ts)
+                logger.warning(
+                    "[AUTO-DISPATCH] %s stopped batch %s after %d failed tasks in a row; waiting for setMode",
+                    self.dispatcher_id,
+                    batch.get("profile_id", ""),
+                    failures,
+                )
+        if report_status:
+            self._set_status(f"task_failed:{task_code}:{status}", now_ts)
+        self._save_state()
+
+    def _failure_pause_active(self, now_ts: float) -> bool:
+        """True while the lane waits after failed tasks (cooldown, or halted until the next setMode)."""
+        halted = self.state.get("halted")
+        if isinstance(halted, dict):
+            self._set_status_if_changed(
+                f"halted_task_failures:{halted.get('profile_id', '')}:{halted.get('count', '')}",
+                now_ts,
+            )
+            return True
+        cooldown_until = float(self.state.get("cooldown_until", 0.0) or 0.0)
+        if cooldown_until > now_ts:
+            failed = self.state.get("last_failed_task") if isinstance(self.state.get("last_failed_task"), dict) else {}
+            self._set_status_if_changed(f"cooldown_after_failed_task:{failed.get('task_code', '')}", now_ts)
+            return True
+        self.state.pop("cooldown_until", None)
+        return False
+
+    def _active_task_status_text(self, active: dict[str, Any]) -> str:
+        task_code = str(active.get("task_code", "")).strip()
+        status = str(active.get("status", "")).strip()
+        category = str(active.get("status_category", "")).strip()
+        if category == "query_error":
+            return f"task_query_error:{task_code}"
+        if category in {"abnormal", "unknown"}:
+            return f"task_abnormal:{task_code}:{status or 'missing'}"
+        if active.get("overdue_since"):
+            return f"task_overdue:{task_code}:{status}"
+        if category == "running" and status:
+            return f"waiting_task:{task_code}:{status}"
+        return f"waiting_task:{task_code}"
+
+    @classmethod
+    def _task_brief(cls, active: dict[str, Any]) -> dict[str, Any]:
+        status = str(active.get("status", "")).strip()
+        return {
+            "task_code": active.get("task_code", ""),
+            "profile_id": active.get("profile_id", ""),
+            "source": active.get("source", ""),
+            "dest": active.get("dest", ""),
+            "status": status,
+            "status_label": cls.RCS_TASK_STATUS_LABELS.get(status, status),
+            "status_category": active.get("status_category", ""),
+            "created_at": active.get("created_at", 0.0),
+        }
 
     def _bind_guard_ok(self, position: str, required_state: str, bridge_state: dict[str, Any]) -> tuple[bool, str]:
         pos_cfg = self.config.get("positions", {}).get(position, {})
@@ -411,7 +623,8 @@ class AutoDispatcher:
                     payload["data"] = item
                     return payload
 
-        if len(items) == 1:
+        # Fallback for answers that omit taskCode; an item that names another task is never ours.
+        if len(items) == 1 and not str(items[0].get("taskCode", "")).strip():
             payload["data"] = items[0]
             return payload
 
@@ -438,6 +651,10 @@ class AutoDispatcher:
         return control
 
     def set_control(self, payload: dict[str, Any], now_ts: float | None = None) -> dict[str, Any]:
+        with self._lock:
+            return self._set_control_locked(payload, now_ts)
+
+    def _set_control_locked(self, payload: dict[str, Any], now_ts: float | None = None) -> dict[str, Any]:
         now_ts = float(now_ts if now_ts is not None else time.time())
         previous_control = self._load_control()
         operation_mode = str(payload.get("operation_mode", payload.get("mode", ""))).strip().lower()
@@ -467,6 +684,13 @@ class AutoDispatcher:
         raw_path = str(self.config.get("control_state_path", "")).strip()
         if raw_path:
             write_json_atomic(self.project_root / raw_path, control)
+        # A new setMode is the operator's go-ahead after failed tasks.
+        self.state.pop("halted", None)
+        self.state.pop("cooldown_until", None)
+        active = self.state.get("active_task")
+        if isinstance(active, dict):
+            # Ask RCS about the remembered task on the next cycle instead of trusting old state.
+            active["last_query_at"] = 0.0
         if operation_mode == "manual":
             self.state.pop("batch", None)
             self._set_status("manual_mode", now_ts)
@@ -491,17 +715,62 @@ class AutoDispatcher:
             "state": self.public_status(),
         }
 
+    def clear_active_task(self, payload: dict[str, Any], now_ts: float | None = None) -> dict[str, Any]:
+        """Operator escape hatch: stop waiting on a task known to be finished or dead on RCS."""
+        now_ts = float(now_ts if now_ts is not None else time.time())
+        with self._lock:
+            active = self.state.get("active_task")
+            active_code = str(active.get("task_code", "")).strip() if isinstance(active, dict) else ""
+            requested_code = str(payload.get("taskCode", payload.get("task_code", ""))).strip()
+            if not active_code:
+                return {"accepted": False, "reason": "no active task to clear", "state": self.public_status()}
+            if requested_code != active_code:
+                return {
+                    "accepted": False,
+                    "reason": f"taskCode must match the active task {active_code}",
+                    "state": self.public_status(),
+                }
+            active["failed_at"] = round(now_ts, 3)
+            active["failure_reason"] = "cleared_by_operator"
+            active["cleared_by"] = str(payload.get("updated_by", payload.get("source", "third_party_api"))).strip() or "third_party_api"
+            active["clear_note"] = str(payload.get("note", "")).strip()
+            self.state["last_failed_task"] = active
+            self.state.pop("active_task", None)
+            self._set_status(f"task_cleared:{active_code}", now_ts)
+            self._log_event("task_cleared_by_operator", active, now_ts)
+            self._save_state()
+            logger.warning(
+                "[AUTO-DISPATCH] %s active task=%s cleared by %s note=%s",
+                self.dispatcher_id,
+                active_code,
+                active["cleared_by"],
+                active["clear_note"],
+            )
+            return {"accepted": True, "reason": "ok", "cleared_task_code": active_code, "state": self.public_status()}
+
     def public_status(self) -> dict[str, Any]:
+        with self._lock:
+            state = copy.deepcopy(self.state)
         return {
             "enabled": self.enabled,
             "dispatcher_id": self.dispatcher_id,
             "dry_run": self.dry_run,
             "control": self._load_control(),
-            "state": self.state,
+            "state": state,
             "allowed_profiles": sorted(self.allowed_profiles),
             "require_bind_notify": self.require_bind_notify,
             "require_canonical": self.require_canonical,
             "callback_server_enabled": self.callback_server_enabled,
+            "task_status_policy": {
+                "completed_statuses": sorted(self.completed_statuses),
+                "failed_statuses": sorted(self.failed_statuses),
+                "running_statuses": sorted(self.running_statuses),
+                "abnormal_statuses": sorted(self.abnormal_statuses),
+                "abnormal_status_release_sec": self.abnormal_status_release_sec,
+                "task_overdue_warn_sec": self.task_overdue_warn_sec,
+                "failed_task_cooldown_sec": self.failed_task_cooldown_sec,
+                "max_consecutive_failed_tasks": self.max_consecutive_failed_tasks,
+            },
         }
 
     def query_agv_status(self, payload: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -545,6 +814,18 @@ class AutoDispatcher:
     def _set_status(self, status: str, now_ts: float) -> None:
         self.state["status"] = status
         self.state["updated_at"] = round(now_ts, 3)
+
+    def _set_status_if_changed(self, status: str, now_ts: float) -> None:
+        if self.state.get("status") == status:
+            return
+        self._set_status(status, now_ts)
+        self._save_state()
+
+    def _status_set(self, key: str, default: tuple[str, ...]) -> set[str]:
+        raw = self.config.get(key, default)
+        if not isinstance(raw, (list, tuple, set)):
+            raw = default
+        return {str(item).strip().lower() for item in raw if str(item).strip()}
 
     def _log_event(self, event: str, payload: dict[str, Any], now_ts: float) -> None:
         append_jsonl_rotating(
@@ -667,6 +948,7 @@ class AutoDispatchControlServer:
                     "setMode": "set_mode",
                     "queryAgvStatus": "query_agv_status",
                     "queryTaskStatus": "query_task_status",
+                    "clearActiveTask": "clear_active_task",
                 }
                 for dispatcher_id in outer.dispatchers:
                     prefixes = [f"{outer.base_path}/{dispatcher_id}"]
@@ -718,6 +1000,11 @@ class AutoDispatchControlServer:
         if route == "query_task_status":
             result = dispatcher.query_task_status(payload)
             return self._normalize_rcs_response(req_code=req_code, result=result)
+        if route == "clear_active_task":
+            result = dispatcher.clear_active_task(payload)
+            if result.get("accepted", False):
+                return self._response("0", "successful", req_code, result)
+            return self._response("CONFIG_ERROR", str(result.get("reason", "invalid clear payload")), req_code, result)
         return self._response("404", "unsupported auto dispatch route", req_code, {})
 
     @staticmethod
