@@ -70,6 +70,7 @@ class FakeRcs:
         self.task_status: dict[str, str | None] = {}
         self.query_override: dict | None = None
         self.created: list[dict] = []
+        self.query_req_codes: list[str | None] = []
 
     def call_rpc(self, api_name: str, payload: dict, req_code: str | None = None) -> dict:
         if api_name == "genAgvSchedulingTask":
@@ -77,6 +78,11 @@ class FakeRcs:
             self.task_status.setdefault(payload["taskCode"], "1")
             return {"code": "0", "message": "successful", "reqCode": req_code or "", "data": payload["taskCode"]}
         if api_name == "queryTaskStatus":
+            if req_code is not None and req_code in self.query_req_codes:
+                # Real RCS on site (22/10): a reused reqCode is refused.
+                self.query_req_codes.append(req_code)
+                return {"code": "1", "message": f"The request number has already existed:{req_code}", "data": ""}
+            self.query_req_codes.append(req_code)
             if self.query_override is not None:
                 return dict(self.query_override)
             task_code = payload["taskCodes"][0]
@@ -192,23 +198,55 @@ class IncidentReplayTests(DispatcherTestCase):
         self.assertEqual(len(self.fake.created), 1)
         self.assertEqual(self.fake.created[0]["userCallCodePath"], ["33${06}", "2${02}"])
 
-    def test_stuck_task_in_auto_is_released_and_next_task_follows_cooldown(self) -> None:
+    def test_stuck_task_in_auto_is_released_and_auto_stops_until_operator(self) -> None:
         self.fake.task_status[STUCK_TASK] = "5"
         self.make_dispatcher(state=INCIDENT_STATE, mode="auto", profile="PK_CD")
 
         state = self.sync(T0)
-        self.assertEqual(state["status"], f"task_failed:{STUCK_TASK}:5")
+        self.assertEqual(state["status"], f"stopped_task_canceled:{STUCK_TASK}")
         self.assertNotIn("active_task", state)
+        for offset in (1, 61, 3600):
+            state = self.sync(T0 + offset)
+            self.assertEqual(state["status"], f"stopped_task_canceled:{STUCK_TASK}")
         self.assertEqual(self.fake.created, [])
+        self.assertIn("task_failed", [event["event"] for event in self.events()])
 
-        state = self.sync(T0 + 1)
-        self.assertEqual(state["status"], f"cooldown_after_failed_task:{STUCK_TASK}")
-        self.assertEqual(self.fake.created, [])
-
-        state = self.sync(T0 + 61)
+        self.dispatcher.set_control({"operation_mode": "auto", "profile_id": "PK_CD"}, now_ts=T0 + 3700)
+        state = self.sync(T0 + 3701)
         self.assertTrue(state["status"].startswith("task_created:"), state["status"])
         self.assertEqual(len(self.fake.created), 1)
-        self.assertIn("task_failed", [event["event"] for event in self.events()])
+
+    def test_cancel_on_pda_mid_batch_stops_auto(self) -> None:
+        """Site test 22/10: canceling a task on the PDA must not let auto send the next pallet."""
+        self.make_dispatcher()
+        first = self.start_first_task()
+        self.fake.task_status[first] = "5"
+        state = self.sync(T0 + 6)
+        self.assertEqual(state["status"], f"stopped_task_canceled:{first}")
+        self.assertNotIn("batch", state)
+        for offset in (66, 120, 1800):
+            state = self.sync(T0 + offset)
+        self.assertEqual(len(self.fake.created), 1)
+
+        # Auto again: conditions are checked from scratch. PK is no longer full -> wait.
+        self.occupied.discard("PK_CC3")
+        self.dispatcher.set_control({"operation_mode": "auto", "profile_id": "PK_CD"}, now_ts=T0 + 1900)
+        state = self.sync(T0 + 1901)
+        self.assertEqual(state["status"], "waiting_pk_full:PK_CD:6/7")
+        self.occupied.add("PK_CC3")
+        state = self.sync(T0 + 1902)
+        self.assertTrue(state["status"].startswith("task_created:QUANGPROPKCC3"), state["status"])
+
+    def test_each_status_query_uses_a_new_req_code(self) -> None:
+        self.make_dispatcher()
+        task_code = self.start_first_task()
+        self.fake.task_status[task_code] = "2"
+        self.sync(T0 + 1)
+        # setMode forces an immediate re-query; RCS must not refuse it as a duplicate.
+        self.dispatcher.set_control({"operation_mode": "auto", "profile_id": "PK_CD"}, now_ts=T0 + 2)
+        state = self.sync(T0 + 3)
+        self.assertEqual(len(self.fake.query_req_codes), len(set(self.fake.query_req_codes)))
+        self.assertNotEqual(state.get("active_task", {}).get("status"), "query_rejected")
 
 
 class TaskWatchdogTests(DispatcherTestCase):
@@ -296,7 +334,8 @@ class TaskWatchdogTests(DispatcherTestCase):
         self.assertEqual(state["status"], f"task_abnormal:{task_code}:missing")
 
     def test_consecutive_failures_halt_until_next_set_mode(self) -> None:
-        self.make_dispatcher()
+        """Optional mode stop_auto_on_task_failure=false: skip failed pallets, stop after 3 in a row."""
+        self.make_dispatcher(stop_auto_on_task_failure=False)
         now = T0
         for _ in range(3):
             task_code = self.start_first_task(now)

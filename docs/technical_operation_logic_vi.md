@@ -455,7 +455,7 @@ Bang `taskStatus` cua RCS-2000 (API Developer Guide V3.3, muc 5.2.15) va cach Vi
 | `3` | sending | running | Cho |
 | `6` | resending | running | Cho |
 | `9` | completed | completed | Xoa `active_task`, chay task tiep theo |
-| `5` | canceled | failed | Giai phong ngay, cho cooldown roi chay task tiep theo |
+| `5` | canceled | failed | Giai phong ngay va DUNG HAN dot auto, cho van hanh bam Auto lai |
 | `0` | sending exception | abnormal | Bao `task_abnormal`, qua `abnormal_status_release_sec` ma van bat thuong thi giai phong |
 | `4` | canceling | abnormal | Nhu `0` (binh thuong RCS se chuyen sang `5` rat nhanh) |
 | `10` | interrupted | abnormal | Nhu `0` |
@@ -479,8 +479,8 @@ Tham so watchdog:
 
 - `abnormal_status_release_sec = 300`: task abnormal/unknown qua 300 s thi Vision giai phong, `failure_reason = abnormal_status_timeout`. Neu trong luc do RCS tra lai `1/2/3/6` thi dong ho dem lai tu dau. `0` = khong tu giai phong.
 - `task_overdue_warn_sec = 3600`: task dang chay (`1/2/3/6`) qua 1 gio thi status thanh `task_overdue:<taskCode>:<status>` va log event `task_overdue`. Vision KHONG tu giai phong task ma RCS con bao dang chay (task binh thuong mat khoang 17 phut).
-- `failed_task_cooldown_sec = 60`: sau khi giai phong task loi/huy, Vision cho 60 s moi tao task tiep theo, status `cooldown_after_failed_task:<taskCode>`. Thoi gian nay de van hanh kip bam manual neu muon dung han.
-- `max_consecutive_failed_tasks = 3`: 3 task lien tiep trong cung batch bi loi/huy thi Vision dung batch, status `halted_task_failures:<profile>:<n>`. Lane chi chay lai khi PDA/API goi `setMode`.
+- `stop_auto_on_task_failure = true` (mac dinh): task bi huy/loi thi Vision dung han dot auto, status `stopped_task_canceled:<taskCode>` (RCS `5`) hoac `stopped_task_failed:<taskCode>:<status>`. Vision khong tao them task nao cho toi khi PDA/API goi `setMode`. Khi bam Auto lai, Vision kiem tra lai dieu kien tu dau (PK du hang, FG con trong, bind guard).
+- Chi khi `stop_auto_on_task_failure = false`: Vision bo qua pallet bi huy, cho `failed_task_cooldown_sec = 60` s (status `cooldown_after_failed_task:<taskCode>`) roi chay source ke tiep; `max_consecutive_failed_tasks = 3` task lien tiep loi thi dung batch, status `halted_task_failures:<profile>:<n>`.
 
 Khi task completed:
 
@@ -495,7 +495,7 @@ Khi task failed/canceled (hoac abnormal qua thoi gian cho):
 - task duoc luu vao `last_failed_task`, kem `failure_reason` (`rcs_task_failed`, `abnormal_status_timeout`, `cleared_by_operator`) va `status_label`
 - log event `task_failed`
 - source cua task do KHONG duoc Vision goi lai trong batch hien tai; neu pallet con o PK thi xu ly tay hoac de batch sau
-- sau cooldown, batch tiep tuc voi source ke tiep
+- dot auto dung han (`batch` bi xoa), log event `auto_halted`; chi chay lai khi van hanh bam Auto
 
 Moi lan RCS doi status, Vision log event `task_status_changed` (vi du `1 -> 2 -> 9`) de audit.
 
@@ -510,7 +510,7 @@ Batch dung khi:
 - Tat ca source trong batch da dispatch: `batch_completed`
 - Bind guard khong dat: `blocked_bind_guard:<reason>`
 - Task create failed: `task_create_failed:<taskCode>`
-- Nhieu task lien tiep bi loi/huy: `halted_task_failures:<profile>:<n>` (cho `setMode` moi chay lai)
+- Task bi huy/loi: `stopped_task_canceled:<taskCode>` / `stopped_task_failed:<taskCode>:<status>` (cho `setMode` moi chay lai)
 
 Theo chuong trinh local hien tai, khi batch dung, `batch` bi xoa khoi state. Tuy nhien `operation_mode` trong `mode_control.json` van giu theo lan PDA/API set gan nhat. Neu muon dung auto hoan toan, PDA/API can goi `manual`.
 
@@ -995,8 +995,7 @@ outputs/runtime/debug/*.jpg
    - RCS tra status gi? `9` hoan thanh; `5` da huy (Vision tu giai phong); `0/4/10` bat thuong (Vision tu giai phong sau 300 s); `1/2/3/6` dang chay (Vision cho).
    - `task_overdue`: RCS van bao dang chay qua 1 gio. Kiem tra AGV tren RCS; neu AGV ranh that thi goi `clearActiveTask` (muc 8.6).
    - `task_query_error`: Vision khong hoi duoc RCS, kiem tra mang/RCS.
-   - `cooldown_after_failed_task`: vua giai phong task loi/huy, cho 60 s.
-   - `halted_task_failures`: nhieu task lien tiep bi loi/huy, kiem tra RCS/AGV roi bam lai auto.
+   - `stopped_task_canceled` / `stopped_task_failed`: task bi huy/loi, dot auto da dung han. Kiem tra RCS/AGV roi bam lai Auto.
 
 ## 12. Checklist audit khi bind/unbind sai
 
@@ -1040,8 +1039,10 @@ task_query_error:<taskCode>
 task_completed:<taskCode>
 task_failed:<taskCode>:<status>
 task_cleared:<taskCode>
-cooldown_after_failed_task:<taskCode>
-halted_task_failures:<profile>:<count>
+stopped_task_canceled:<taskCode>
+stopped_task_failed:<taskCode>:<status>
+cooldown_after_failed_task:<taskCode>      (chi khi stop_auto_on_task_failure = false)
+halted_task_failures:<profile>:<count>     (chi khi stop_auto_on_task_failure = false)
 batch_completed
 stopped_no_destination_empty
 stopped_source_not_occupied

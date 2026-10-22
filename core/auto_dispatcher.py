@@ -68,7 +68,9 @@ class AutoDispatcher:
         self.abnormal_status_release_sec = max(0.0, float(self.config.get("abnormal_status_release_sec", 300.0)))
         # A task RCS still reports as running is never released, only flagged as overdue (0 = off).
         self.task_overdue_warn_sec = max(0.0, float(self.config.get("task_overdue_warn_sec", 3600.0)))
-        # Pause before the next auto task after a failed/canceled one, so the operator can still press manual.
+        # A canceled/failed task stops the auto run; nothing new is sent until the operator presses Auto again.
+        self.stop_auto_on_task_failure = bool(self.config.get("stop_auto_on_task_failure", True))
+        # Only used when stop_auto_on_task_failure is off: pause before the next task of the batch.
         self.failed_task_cooldown_sec = max(0.0, float(self.config.get("failed_task_cooldown_sec", 60.0)))
         # Stop the batch after this many failed tasks in a row (0 = never); it resumes on the next setMode.
         self.max_consecutive_failed_tasks = max(0, int(self.config.get("max_consecutive_failed_tasks", 3)))
@@ -311,7 +313,9 @@ class AutoDispatcher:
         query_payload = {"taskCodes": [task_code]}
         if self.query_task_include_agv_code and self.query_status_agv_code:
             query_payload["agvCode"] = self.query_status_agv_code
-        response = self.client.call_rpc("queryTaskStatus", query_payload)
+        # Fresh reqCode per query: RCS rejects a reqCode it saw moments ago ("request number has already existed").
+        req_code = self.client.make_req_code(f"queryTaskStatus:{task_code}:{time.time_ns()}")
+        response = self.client.call_rpc("queryTaskStatus", query_payload, req_code=req_code)
         active["last_query_at"] = round(now_ts, 3)
         own_response = self._extract_own_task_response(response, task_code)
         active["last_query_response"] = own_response
@@ -429,38 +433,51 @@ class AutoDispatcher:
             active.get("status_label", ""),
             reason,
         )
-        if self.failed_task_cooldown_sec > 0:
-            self.state["cooldown_until"] = round(now_ts + self.failed_task_cooldown_sec, 3)
         batch = self.state.get("batch")
-        if isinstance(batch, dict):
-            failures = int(batch.get("consecutive_failures", 0) or 0) + 1
+        batch = batch if isinstance(batch, dict) else {}
+        failures = int(batch.get("consecutive_failures", 0) or 0) + 1
+        if batch:
             batch["consecutive_failures"] = failures
-            if self.max_consecutive_failed_tasks > 0 and failures >= self.max_consecutive_failed_tasks:
-                self.state.pop("batch", None)
-                self.state["halted"] = {
-                    "reason": "consecutive_failed_tasks",
-                    "profile_id": batch.get("profile_id", ""),
-                    "count": failures,
-                    "last_task_code": task_code,
-                    "at": round(now_ts, 3),
-                }
-                self._log_event("auto_halted_task_failures", self.state["halted"], now_ts)
-                logger.warning(
-                    "[AUTO-DISPATCH] %s stopped batch %s after %d failed tasks in a row; waiting for setMode",
-                    self.dispatcher_id,
-                    batch.get("profile_id", ""),
-                    failures,
-                )
+        if self.stop_auto_on_task_failure:
+            # The operator canceled (or RCS failed) the task: end this auto run for good.
+            halt_status = (
+                f"stopped_task_canceled:{task_code}"
+                if status in self.RCS_TERMINAL_FAILED
+                else f"stopped_task_failed:{task_code}:{status}"
+            )
+            self._halt_auto(halt_status, "task_failed", batch, failures, task_code, now_ts)
+        else:
+            if self.failed_task_cooldown_sec > 0:
+                self.state["cooldown_until"] = round(now_ts + self.failed_task_cooldown_sec, 3)
+            if batch and self.max_consecutive_failed_tasks > 0 and failures >= self.max_consecutive_failed_tasks:
+                halt_status = f"halted_task_failures:{batch.get('profile_id', '')}:{failures}"
+                self._halt_auto(halt_status, "consecutive_failed_tasks", batch, failures, task_code, now_ts)
         if report_status:
-            self._set_status(f"task_failed:{task_code}:{status}", now_ts)
+            halted = self.state.get("halted")
+            self._set_status(halted["status"] if isinstance(halted, dict) else f"task_failed:{task_code}:{status}", now_ts)
         self._save_state()
+
+    def _halt_auto(self, status: str, reason: str, batch: dict[str, Any], failures: int, task_code: str, now_ts: float) -> None:
+        """End the current auto run; only the next setMode (operator) starts a new one."""
+        self.state.pop("batch", None)
+        self.state.pop("cooldown_until", None)
+        self.state["halted"] = {
+            "status": status,
+            "reason": reason,
+            "profile_id": batch.get("profile_id", ""),
+            "count": failures,
+            "last_task_code": task_code,
+            "at": round(now_ts, 3),
+        }
+        self._log_event("auto_halted", self.state["halted"], now_ts)
+        logger.warning("[AUTO-DISPATCH] %s auto stopped (%s); waiting for the operator to press Auto", self.dispatcher_id, status)
 
     def _failure_pause_active(self, now_ts: float) -> bool:
         """True while the lane waits after failed tasks (cooldown, or halted until the next setMode)."""
         halted = self.state.get("halted")
         if isinstance(halted, dict):
             self._set_status_if_changed(
-                f"halted_task_failures:{halted.get('profile_id', '')}:{halted.get('count', '')}",
+                str(halted.get("status") or f"halted_task_failures:{halted.get('profile_id', '')}:{halted.get('count', '')}"),
                 now_ts,
             )
             return True
@@ -768,6 +785,7 @@ class AutoDispatcher:
                 "abnormal_statuses": sorted(self.abnormal_statuses),
                 "abnormal_status_release_sec": self.abnormal_status_release_sec,
                 "task_overdue_warn_sec": self.task_overdue_warn_sec,
+                "stop_auto_on_task_failure": self.stop_auto_on_task_failure,
                 "failed_task_cooldown_sec": self.failed_task_cooldown_sec,
                 "max_consecutive_failed_tasks": self.max_consecutive_failed_tasks,
             },

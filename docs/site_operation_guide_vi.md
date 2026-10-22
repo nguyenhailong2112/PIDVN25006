@@ -250,15 +250,16 @@ Neu bam auto nhung Vision khong tao task:
   - `task_abnormal:<taskCode>:<status>`: RCS bao task bat thuong (`0` loi gui lenh, `4` dang huy, `10` bi gian doan) hoac khong con task. Vision tu giai phong sau 5 phut.
   - `task_overdue:<taskCode>:<status>`: task chay qua 1 gio. Kiem tra AGV tren RCS.
   - `task_query_error:<taskCode>`: Vision khong ket noi duoc RCS.
-  - `cooldown_after_failed_task:<taskCode>`: vua co task bi huy/loi, Vision cho 60 s roi chay tiep.
-  - `halted_task_failures:<profile>:<n>`: 3 task lien tiep bi huy/loi, Vision dung batch. Kiem tra RCS/AGV roi bam lai auto.
-- Task da bi huy tren RCS (`taskStatus = 5`): Vision tu nhan biet va giai phong lane, khong can thao tac them.
+  - `stopped_task_canceled:<taskCode>`: task da bi huy tren PDA/RCS, dot auto da dung han. Muon chay tiep thi bam Auto lai (Vision kiem tra lai dieu kien tu dau).
+  - `stopped_task_failed:<taskCode>:<status>`: task loi/bat thuong, dot auto da dung han. Kiem tra RCS/AGV roi bam Auto lai.
+- Task da bi huy tren RCS (`taskStatus = 5`): Vision tu nhan biet, giai phong lane va dung han dot auto; khong bao gio bi treo nhu su co 20/10.
 - RCS van bao task dang chay nhung AGV tren RCS dang Standby, Task ID `--`: goi API `clearActiveTask` voi dung `taskCode` (tai lieu ky thuat muc 8.6).
 - Khong sua tay `state.json` khi chuong trinh dang chay (file se bi ghi de). Bao dev Vision kiem tra `outputs/runtime/auto_dispatch_amr/state.json` hoac `outputs/runtime/auto_dispatch_fmr/state.json` neu van khong ro.
 
 Neu AGV dang chay ma muon dung tao task moi:
 
-- Bam `manual` tren PDA cho dung lane TRUOC khi huy task tren RCS.
+- Huy task tren PDA/RCS la du: Vision dung han dot auto, khong tu chay task tiep theo.
+- Co the bam `manual` truoc hoac sau khi huy, ket qua nhu nhau.
 - Vision se khong tao batch/task moi cho lane do, nhung van theo doi task cu den khi RCS bao xong hoac huy.
 - Task da tao tren RCS can xu ly theo quy trinh RCS/AGV tai site.
-- Neu huy task tren RCS ma lane van de `auto`, sau 60 s Vision se tao task cho source tiep theo trong batch.
+- Muon chay lai: bam Auto. Dot moi chi bat dau khi khu PK du hang theo profile; pallet con lai cua dot cu thi goi tay hoac xep du hang.
