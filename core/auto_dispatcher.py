@@ -40,12 +40,18 @@ class AutoDispatcher:
         self.query_interval_sec = max(1.0, float(self.config.get("query_interval_sec", 5.0)))
         self.completed_statuses = {
             str(item).strip().lower()
-            for item in self.config.get("completed_statuses", ["completed", "complete", "finish", "finished", "ended", "success"])
+            for item in self.config.get(
+                "completed_statuses",
+                ["completed", "complete", "finish", "finished", "ended", "success", "9"],
+            )
             if str(item).strip()
         }
         self.failed_statuses = {
             str(item).strip().lower()
-            for item in self.config.get("failed_statuses", ["failed", "fail", "cancel", "canceled", "cancelled", "abort", "aborted"])
+            for item in self.config.get(
+                "failed_statuses",
+                ["failed", "fail", "cancel", "canceled", "cancelled", "abort", "aborted", "0", "5", "10"],
+            )
             if str(item).strip()
         }
         self.query_status_agv_code = str(self.config.get("query_status_agv_code", "")).strip()
@@ -308,18 +314,19 @@ class AutoDispatcher:
         active["last_query_response"] = own_response
         task_status = self._extract_task_status(own_response)
         active["status"] = task_status or str(response.get("message", "")).strip() or str(response.get("code", ""))
-        normalized = active["status"].strip().lower()
-        if self.client.is_success(response) and normalized in self.completed_statuses:
+        normalized_task_status = task_status.strip().lower()
+        if self.client.is_success(response) and normalized_task_status in self.completed_statuses:
             active["completed_at"] = round(now_ts, 3)
             self.state["last_completed_task"] = active
             self.state.pop("active_task", None)
             self._set_status(f"task_completed:{task_code}", now_ts)
             self._log_event("task_completed", active, now_ts)
             return True
-        if normalized in self.failed_statuses:
+        if self.client.is_success(response) and normalized_task_status in self.failed_statuses:
             active["failed_at"] = round(now_ts, 3)
             self.state["last_failed_task"] = active
             self.state.pop("active_task", None)
+            self.state.pop("batch", None)
             self._set_status(f"task_failed:{task_code}:{active['status']}", now_ts)
             self._log_event("task_failed", active, now_ts)
             return True
@@ -566,12 +573,12 @@ class AutoDispatcher:
                 if isinstance(rcs_response, dict):
                     rcs_message = str(rcs_response.get("message", "")).strip()
                     rcs_code = str(rcs_response.get("code", "")).strip()
-                    if rcs_message or rcs_code:
+                    if rcs_code and rcs_code != "0":
                         feedback["rcs_error"] = {
                             "code": rcs_code,
                             "message": rcs_message,
                         }
-                        if feedback.get("execution_status") == "failed":
+                        if status.startswith("task_create_failed:"):
                             feedback["message_vi"] = "Tao task that bai. RCS da tu choi yeu cau."
         condition_summary = self.state.get("condition_summary", {})
         if (
@@ -692,11 +699,16 @@ class AutoDispatcher:
             parts = normalized.split(":", 2)
             task_code = parts[1] if len(parts) > 1 else ""
             reason = parts[2] if len(parts) > 2 else ""
+            reason_messages = {
+                "0": "RCS bao loi gui task.",
+                "5": "Task da bi huy tren RCS.",
+                "10": "Task da bi gian doan tren RCS.",
+            }
             return {
                 "execution_status": "failed",
                 "ready_to_create_task": False,
-                "message_vi": f"Task {task_code} da loi.",
-                "next_action_vi": f"Kiem tra nguyen nhan task tren RCS: {reason}. Xu ly loi roi chon lai mode auto.",
+                "message_vi": f"Task {task_code} da loi. {reason_messages.get(reason, '')}".strip(),
+                "next_action_vi": f"Kiem tra task tren RCS (status {reason}) va dieu kien hang truoc khi tiep tuc auto.",
             }
         if normalized.startswith("task_query_failed:"):
             task_code = normalized.split(":", 1)[1]

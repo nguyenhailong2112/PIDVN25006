@@ -8,7 +8,7 @@
   "query_task_include_agv_code": false,
   "reserve_dispatched_destination_slots": false,
   "completed_statuses": ["completed", "complete", "finish", "finished", "ended", "success", "9"],
-  "failed_statuses": ["failed", "fail", "cancel", "canceled", "cancelled", "abort", "aborted"],
+  "failed_statuses": ["failed", "fail", "cancel", "canceled", "cancelled", "abort", "aborted", "0", "5", "10"],
   "api_server": {
     "enabled": true,
     "host": "0.0.0.0",

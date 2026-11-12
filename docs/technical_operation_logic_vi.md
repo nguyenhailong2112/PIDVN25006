@@ -457,8 +457,16 @@ completed, complete, finish, finished, ended, success, 9
 Failed statuses hien tai:
 
 ```text
-failed, fail, cancel, canceled, cancelled, abort, aborted
+failed, fail, cancel, canceled, cancelled, abort, aborted, 0, 5, 10
 ```
+
+Theo `queryTaskStatus` cua RCS, cac ma terminal failure duoc Vision xu ly gom:
+
+- `0`: sending exception
+- `5`: canceled
+- `10`: interrupted
+
+Vision chi phan loai completed/failed tu truong `taskStatus` cua response RCS thanh cong. `code=0` cua response API khong bi nham thanh `taskStatus=0`.
 
 Khi task completed:
 
@@ -466,6 +474,15 @@ Khi task completed:
 - task duoc luu vao `last_completed_task`
 - log event `task_completed`
 - chu ky sync sau do Vision co the tao task tiep theo trong batch
+
+Khi task failed/canceled/interrupted:
+
+- `active_task` duoc xoa
+- task duoc luu vao `last_failed_task`
+- batch hien tai duoc xoa de khong bo qua source cua task that bai
+- log event `task_failed`
+- PDA/status API hien thi dung nghia cua ma `0`, `5`, `10`; response query thanh cong `code=0` khong bi hien thi nham la RCS tu choi tao task
+- lane van giu mode hien tai; Vision chi tao batch moi khi toan bo dieu kien profile lai thoa man
 
 ### 5.9 Khi batch dung
 
